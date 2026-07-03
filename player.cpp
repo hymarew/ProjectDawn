@@ -1,4 +1,4 @@
-#include "main.h"
+﻿#include "main.h"
 #include "manager.h"
 #include "inputManager.h"
 #include "renderer.h"
@@ -19,7 +19,7 @@ void Player::Init()
     m_Layer    = 1;
     m_Position = { 0.0f, 0.0f, 0.0f };
 
-    AddComponent<ModelRenderer>(this)->Load("asset\\model\\player.obj");
+    AddComponent<ModelRenderer>(this)->Load("asset\\model\\PlayerTPS_Character.obj");
 
     // 影を受けたり落とすためのシェーダー読込
     Renderer::CreateVertexShader(&m_VertexShader, &m_VertexLayout,
@@ -117,27 +117,12 @@ void Player::Draw()
     Renderer::GetDeviceContext()->VSSetShader(m_VertexShader, NULL, 0);
     Renderer::GetDeviceContext()->PSSetShader(m_PixelShader, NULL, 0);
 
-    // マトリクス設定
-    XMMATRIX world, scale, rot, trans;
-    scale = XMMatrixScaling(m_Scale.x, m_Scale.y, m_Scale.z);
-    rot   = XMMatrixRotationRollPitchYaw(m_Rotation.x, m_Rotation.y, m_Rotation.z);
-    trans = XMMatrixTranslation(m_Position.x, m_Position.y, m_Position.z);
-    world = scale * rot * trans;
-
-    Renderer::SetWorldMatrix(world);
-
+    // ワールド行列（Blenderの向き補正込み）はModelRenderer側で設定する
     GameObject::Draw(); // 継承元のDraw()を呼び出す（コンポーネントのモデル描画）
 }
 
 void Player::DrawShadow()
 {
-    XMMATRIX world, scale, rot, trans;
-    scale = XMMatrixScaling(m_Scale.x, m_Scale.y, m_Scale.z);
-    rot   = XMMatrixRotationRollPitchYaw(m_Rotation.x, m_Rotation.y, m_Rotation.z);
-    trans = XMMatrixTranslation(m_Position.x, m_Position.y, m_Position.z);
-    world = scale * rot * trans;
-
-    Renderer::SetWorldMatrix(world);
-
+    // ワールド行列（Blenderの向き補正込み）はModelRenderer側で設定する
     GameObject::DrawShadow();
 }

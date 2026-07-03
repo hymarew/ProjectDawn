@@ -8,14 +8,35 @@
 #include "renderer.h"
 #include "modelRenderer.h"
 #include "DirectXTex.h"
+#include "gameObject.h"
 
-
+namespace
+{
+    // Blenderで書き出したモデルは軸の向きがズレるため、Y軸を180°回転させて補正する
+    constexpr float MODEL_ROTATION_OFFSET_Y = XM_PI;
+}
 
 std::unordered_map<std::string, MODEL*> ModelRenderer::m_ModelPool;
 
 
+// 所有者(GameObject)の位置・回転・スケールに、Blender用の向き補正を加えてワールド行列を確定する
+static void SetOwnerWorldMatrix(GameObject* owner)
+{
+	Vector3 pos   = owner->GetPosition();
+	Vector3 rot   = owner->GetRotation();
+	Vector3 scale = owner->GetScale();
+
+	XMMATRIX world =
+		XMMatrixScaling(scale.x, scale.y, scale.z) *
+		XMMatrixRotationRollPitchYaw(rot.x, rot.y + MODEL_ROTATION_OFFSET_Y, rot.z) *
+		XMMatrixTranslation(pos.x, pos.y, pos.z);
+
+	Renderer::SetWorldMatrix(world);
+}
+
 void ModelRenderer::Draw()
 {
+	SetOwnerWorldMatrix(GetOwner());
 
 	// 頂点バッファ設定
 	UINT stride = sizeof(VERTEX_3D);
@@ -46,8 +67,8 @@ void ModelRenderer::Draw()
 
 void ModelRenderer::DrawShadow()
 {
-	// ★ ここではワールド行列の計算はしない！
-	// 親（PlayerやEnemy）が既に Renderer::SetWorldMatrix() を呼んでくれているため。
+	// Blender向き補正込みのワールド行列をここで確定する（親側では設定しない）
+	SetOwnerWorldMatrix(GetOwner());
 
 	// ==================================================
 	// 1. GPUに「このモデルの頂点データ」と「インデックスデータ」を渡す
