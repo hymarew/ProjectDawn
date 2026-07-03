@@ -1,0 +1,19 @@
+# Visual Studio
+.vs/
+*.suo
+*.user
+*.VC.db
+*.VC.opendb
+
+# Build
+x64/
+Debug/
+Release/
+*.obj
+*.pdb
+*.exe
+*.ilk
+*.tlog
+
+# その他
+*.log
