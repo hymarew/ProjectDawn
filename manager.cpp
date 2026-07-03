@@ -8,6 +8,11 @@
 #include "mouse.h"
 #include "debugInfo.h"
 
+//オブジェクト系
+#include "gameObject.h"
+#include "camera.h"
+#include "field.h"
+
 bool g_ShowDebugUI = false;
 
 std::list<GameObject*> Manager::m_GameObject;
@@ -16,10 +21,20 @@ void Manager::Init()
 {
 	Renderer::Init();
 	InputManager::Init();
+
+	AddGameObject<Camera>();
+	AddGameObject<Field>();
 }
 
 void Manager::Uninit()
 {
+	for (GameObject* gameObject : m_GameObject)
+	{
+		gameObject->Uninit();
+		delete gameObject;
+	}
+	m_GameObject.clear();
+
 	Mouse::Uninit();
 	Renderer::Uninit();
 }
@@ -35,11 +50,26 @@ void Manager::Update(float dt)
 		ShowCursor(g_ShowDebugUI);
 		Mouse::SetLocked(!g_ShowDebugUI);
 	}
+
+	for (GameObject* gameObject : m_GameObject)
+	{
+		gameObject->Update(dt);
+	}
 }
 
 void Manager::Draw()
 {
 	Renderer::Begin();
+
+	// カメラのView/Projectionを先に確定させてから他のオブジェクトを描画する
+	Camera* camera = GetGameObject<Camera>();
+	if (camera) camera->Draw();
+
+	for (GameObject* gameObject : m_GameObject)
+	{
+		if (gameObject == camera) continue;
+		gameObject->Draw();
+	}
 
 	ImGuiDraw();
 }
