@@ -2,42 +2,77 @@
 #include "main.h"
 #include "manager.h"
 #include "renderer.h"
-#include "keyboard.h"
+#include "input.h"
+#include "inputManager.h"
+#include "inputVisualizer.h"
 #include "mouse.h"
 #include "debugInfo.h"
 
+//オブジェクト系
+#include "gameObject.h"
+#include "camera.h"
+#include "field.h"
+#include "player.h"
+
 bool g_ShowDebugUI = false;
+
+std::list<GameObject*> Manager::m_GameObject;
 
 void Manager::Init()
 {
 	Renderer::Init();
-	Keyboard_Initialize();
-	Mouse::Init();
+	InputManager::Init();
+
+	// PlayerのUpdate後にCameraが追従できるよう、Playerを先に登録する
+	AddGameObject<Player>();
+	AddGameObject<Camera>();
+	AddGameObject<Field>();
 }
 
 void Manager::Uninit()
 {
+	for (GameObject* gameObject : m_GameObject)
+	{
+		gameObject->Uninit();
+		delete gameObject;
+	}
+	m_GameObject.clear();
+
 	Mouse::Uninit();
 	Renderer::Uninit();
 }
 
 void Manager::Update(float dt)
 {
-	keycopy();
-	Mouse::Update();
+	InputManager::Update();
 
 	// 1キーでデバッグUIとカーソル表示を切り替える
-	if (Keyboard_IsKeyDownTrigger(KK_D1))
+	if (Input::GetKeyTrigger('1'))
 	{
 		g_ShowDebugUI = !g_ShowDebugUI;
 		ShowCursor(g_ShowDebugUI);
 		Mouse::SetLocked(!g_ShowDebugUI);
+	}
+
+	for (GameObject* gameObject : m_GameObject)
+	{
+		gameObject->Update(dt);
 	}
 }
 
 void Manager::Draw()
 {
 	Renderer::Begin();
+
+	// カメラのView/Projectionを先に確定させてから他のオブジェクトを描画する
+	Camera* camera = GetGameObject<Camera>();
+	if (camera) camera->Draw();
+
+	for (GameObject* gameObject : m_GameObject)
+	{
+		if (gameObject == camera) continue;
+		gameObject->Draw();
+	}
 
 	ImGuiDraw();
 }
@@ -52,6 +87,8 @@ void Manager::ImGuiDraw()
 		{
 			DebugSystemInfo();
 		}
+
+		InputVisualizer::Draw();
 
 		ImGui::End();
 	}
