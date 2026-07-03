@@ -14,6 +14,7 @@ Release/
 *.exe
 *.ilk
 *.tlog
+*.cso
 
 # その他
 *.log

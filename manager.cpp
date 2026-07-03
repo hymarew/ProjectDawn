@@ -2,17 +2,20 @@
 #include "main.h"
 #include "manager.h"
 #include "renderer.h"
-#include "keyboard.h"
+#include "input.h"
+#include "inputManager.h"
+#include "inputVisualizer.h"
 #include "mouse.h"
 #include "debugInfo.h"
 
 bool g_ShowDebugUI = false;
 
+std::list<GameObject*> Manager::m_GameObject;
+
 void Manager::Init()
 {
 	Renderer::Init();
-	Keyboard_Initialize();
-	Mouse::Init();
+	InputManager::Init();
 }
 
 void Manager::Uninit()
@@ -23,11 +26,10 @@ void Manager::Uninit()
 
 void Manager::Update(float dt)
 {
-	keycopy();
-	Mouse::Update();
+	InputManager::Update();
 
 	// 1キーでデバッグUIとカーソル表示を切り替える
-	if (Keyboard_IsKeyDownTrigger(KK_D1))
+	if (Input::GetKeyTrigger('1'))
 	{
 		g_ShowDebugUI = !g_ShowDebugUI;
 		ShowCursor(g_ShowDebugUI);
@@ -52,6 +54,8 @@ void Manager::ImGuiDraw()
 		{
 			DebugSystemInfo();
 		}
+
+		InputVisualizer::Draw();
 
 		ImGui::End();
 	}
