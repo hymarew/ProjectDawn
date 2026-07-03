@@ -150,6 +150,8 @@
     <ClCompile Include="inputVisualizer.cpp" />
     <ClCompile Include="camera.cpp" />
     <ClCompile Include="field.cpp" />
+    <ClCompile Include="player.cpp" />
+    <ClCompile Include="modelRenderer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="component.h" />
@@ -158,6 +160,8 @@
     <ClInclude Include="gameObject.h" />
     <ClInclude Include="camera.h" />
     <ClInclude Include="field.h" />
+    <ClInclude Include="player.h" />
+    <ClInclude Include="modelRenderer.h" />
     <ClInclude Include="keyboard.h" />
     <ClInclude Include="main.h" />
     <ClInclude Include="manager.h" />

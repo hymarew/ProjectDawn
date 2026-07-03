@@ -12,6 +12,7 @@
 #include "gameObject.h"
 #include "camera.h"
 #include "field.h"
+#include "player.h"
 
 bool g_ShowDebugUI = false;
 
@@ -22,6 +23,8 @@ void Manager::Init()
 	Renderer::Init();
 	InputManager::Init();
 
+	// PlayerのUpdate後にCameraが追従できるよう、Playerを先に登録する
+	AddGameObject<Player>();
 	AddGameObject<Camera>();
 	AddGameObject<Field>();
 }

@@ -1,15 +1,19 @@
 #include "main.h"
+#include "manager.h"
 #include "renderer.h"
 #include "camera.h"
 #include "input.h"
 #include "inputManager.h"
+#include "player.h"
 
 namespace
 {
-    constexpr float MOVE_SPEED    = 10.0f;   // カメラ自由移動の速度
+    constexpr float MOVE_SPEED    = 10.0f;   // カメラ自由移動の速度（Playerが居ない時のみ使用）
     constexpr float PITCH_MIN     = -1.4f;
     constexpr float PITCH_MAX     = 1.4f;
     constexpr float SHAKE_DAMPING = 0.9f;
+    constexpr float TPS_DISTANCE  = 6.0f;    // プレイヤーからカメラまでの距離
+    constexpr float TPS_HEIGHT    = 1.6f;    // 注視点の高さオフセット
 }
 
 void Camera::Init()
@@ -39,16 +43,28 @@ void Camera::Update(float dt)
     if (m_Rotation.x < PITCH_MIN) m_Rotation.x = PITCH_MIN;
     if (m_Rotation.x > PITCH_MAX) m_Rotation.x = PITCH_MAX;
 
-    // WASD/スティックで自由移動（追従対象のPlayerがまだ無いため）
     Vector3 forward = GetForward();
     Vector3 right   = GetRight();
-    float moveX = InputManager::GetMoveX();
-    float moveY = InputManager::GetMoveY();
 
-    m_Position += right   * (moveX * MOVE_SPEED * dt);
-    m_Position += forward * (moveY * MOVE_SPEED * dt);
+    Player* player = Manager::GetGameObject<Player>();
+    if (player)
+    {
+        // TPS: プレイヤーの後方・上方から追従する
+        Vector3 lookAt = player->GetPosition() + Vector3(0.0f, TPS_HEIGHT, 0.0f);
+        m_Position = lookAt - forward * TPS_DISTANCE;
+        m_Target   = lookAt;
+    }
+    else
+    {
+        // プレイヤーが居ない場合はWASD/スティックで自由移動する
+        float moveX = InputManager::GetMoveX();
+        float moveY = InputManager::GetMoveY();
 
-    m_Target = m_Position + forward;
+        m_Position += right   * (moveX * MOVE_SPEED * dt);
+        m_Position += forward * (moveY * MOVE_SPEED * dt);
+
+        m_Target = m_Position + forward;
+    }
 
     // ズーム補間
     UpdateZoom(dt);
