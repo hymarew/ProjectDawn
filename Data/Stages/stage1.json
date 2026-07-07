@@ -1,0 +1,22 @@
+{
+    "id": "stage1",
+
+    "name": "STAGE 1",
+
+    "description": "First Mission",
+
+    "thumbnail": "asset/stageImages/stage1.png",
+
+    "waves":
+    [
+        {
+            "spawnerCount": 2
+        },
+        {
+            "spawnerCount": 3
+        },
+        {
+            "spawnerCount": 4
+        }
+    ]
+}

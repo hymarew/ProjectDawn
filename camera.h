@@ -1,13 +1,29 @@
 #pragma once
+#include <memory>
 #include "vector3.h"
 #include "gameObject.h"
+#include "cameraStrategy.h"
+
+enum class CameraMode
+{
+    DEFAULT,
+    FPS,
+    TPS,
+    EVENT,
+};
 
 class Camera : public GameObject
 {
 private:
     Vector3 m_Target = {};
+    static Camera* m_MainCamera;
 
     XMMATRIX m_View, m_Projection;
+
+    CameraMode m_Mode = CameraMode::DEFAULT;
+
+    std::unique_ptr<CameraStrategy> m_Strategy;
+    GameObject* m_EventTarget = nullptr;
 
     // ズーム
     float m_CurrentFov    = 1.222f;  // 70°
@@ -20,7 +36,7 @@ private:
     float m_ShakeIntensity = 0.0f;
 
     void UpdateZoom(float dt);
-    void ApplyShake(float dt);
+    void ApplyShake();
 
 public:
     void Init()    override;
@@ -28,6 +44,14 @@ public:
     void Update(float dt) override;
     void Draw()    override;
     const char* GetName() override { return "Camera"; }
+
+    // モード切り替え（Strategyを差し替える）
+    CameraMode GetMode() const { return m_Mode; }
+    void SetMode(CameraMode mode);
+
+    // イベントカメラ用ターゲット
+    void        SetEventTarget(GameObject* obj) { m_EventTarget = obj; }
+    GameObject* GetEventTarget() const          { return m_EventTarget; }
 
     // ズーム
     void ZoomTo(float targetFov, float duration);

@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 
 
@@ -11,6 +11,7 @@ protected:
 
 public:
 	Component() = delete;
+	//Component() {}
 	Component(GameObject* Object) { m_GameObject = Object; }
 	virtual ~Component() {}
 

@@ -2,6 +2,7 @@
 #include "renderer.h"
 #include "field.h"
 #include "DirectXTex.h"
+#include "audio.h"
 
 void Field::Init()
 {
@@ -49,15 +50,15 @@ void Field::Init()
     Renderer::CreatePixelShader(&m_PixelShader,
         "shader\\ShadowMapLightingPS.cso");
 
-    // テクスチャ読み込み（アセットが無ければテクスチャ無しで続行する）
-    m_Texture = nullptr;
+    // テクスチャ読み込み
     TexMetadata metadata;
     ScratchImage image;
-    if (SUCCEEDED(LoadFromWICFile(L"asset\\model\\grass.jpg", WIC_FLAGS_NONE, &metadata, image)))
-    {
-        CreateShaderResourceView(Renderer::GetDevice(), image.GetImages(),
-            image.GetImageCount(), metadata, &m_Texture);
-    }
+    LoadFromWICFile(L"asset\\model\\grass.jpg", WIC_FLAGS_NONE, &metadata, image);
+    CreateShaderResourceView(Renderer::GetDevice(), image.GetImages(),
+        image.GetImageCount(), metadata, &m_Texture);
+
+    assert(m_Texture);
+
 }
 
 void Field::Uninit()
@@ -69,7 +70,7 @@ void Field::Uninit()
     m_VertexShader->Release();
     m_PixelShader->Release();
 
-    if (m_Texture) m_Texture->Release();
+    //m_Texture->Release();
 }
 
 void Field::Update(float dt)
@@ -98,7 +99,7 @@ void Field::Draw()
     // マテリアル設定
     MATERIAL material{};
     material.Diffuse = { 1.0f, 1.0f, 1.0f, 1.0f };
-    material.TextureEnable = (m_Texture != nullptr);
+    material.TextureEnable = true;
     Renderer::SetMaterial(material);
 
     //テクスチャ設定

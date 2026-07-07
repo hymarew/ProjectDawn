@@ -1,13 +1,15 @@
-﻿#pragma once
+#pragma once
 #include <vector>
 #include "vector3.h"
 
 class GameObject;
+class Camera;
 
 class Manager
 {
 private:
 	static std::list<GameObject*> m_GameObject;
+	static Camera* m_Camera;
 
 public:
 	static void Init();
@@ -17,11 +19,14 @@ public:
 	static void ImGuiDraw();
 	static void DebugSystemInfo();
 
+	static Camera* GetCamera() { return m_Camera; }	// カメラを取得する専用関数
+	static void SetCamera(Camera* camera) { m_Camera = camera; }	// カメラを登録する専用関数
+
 	//実行ファイルのサイズがでかくなりすぎたりするらしい
 	template <typename T>	//テンプレート化(通常引数でクラスは送れないけど、リストとかテンプレートを組み合わせると行ける)
 	static T* AddGameObject()
 	{
-		T* gameObject = new T;
+		T* gameObject= new T;
 		gameObject->Init();
 		m_GameObject.push_back(gameObject);
 
@@ -71,4 +76,29 @@ public:
 
 };
 
+extern bool g_CastShadow;
 extern bool g_ShowDebugUI;
+extern bool g_ShowColliderDebug;
+
+class BulletPool;
+class BulletManager;
+extern BulletPool    g_BulletPool;
+extern BulletManager g_BulletManager;
+
+class CollisionManager;
+extern CollisionManager g_CollisionManager;
+
+class ColliderDebugRenderer;
+extern ColliderDebugRenderer g_ColliderDebugRenderer;
+
+class ShadowRenderer;
+extern ShadowRenderer* g_ShadowRenderer;
+
+class SceneManager;
+extern SceneManager g_SceneManager;
+
+class StageManager;
+extern StageManager g_StageManager;
+
+class FadeManager;
+extern FadeManager g_FadeManager;

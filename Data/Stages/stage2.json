@@ -1,0 +1,22 @@
+{
+    "id": "stage2",
+
+    "name": "STAGE 2",
+
+    "description": "Advanced Mission",
+
+    "thumbnail": "asset/stageImages/stage2.png",
+
+    "waves":
+    [
+        {
+            "spawnerCount": 4
+        },
+        {
+            "spawnerCount": 5
+        },
+        {
+            "spawnerCount": 6
+        }
+    ]
+}

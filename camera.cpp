@@ -5,72 +5,82 @@
 #include "input.h"
 #include "inputManager.h"
 #include "player.h"
+#include "GameConfig.h"
 
-namespace
-{
-    constexpr float MOVE_SPEED    = 10.0f;   // カメラ自由移動の速度（Playerが居ない時のみ使用）
-    constexpr float PITCH_MIN     = -1.4f;
-    constexpr float PITCH_MAX     = 1.4f;
-    constexpr float SHAKE_DAMPING = 0.9f;
-    constexpr float TPS_DISTANCE  = 6.0f;    // プレイヤーからカメラまでの距離
-    constexpr float TPS_HEIGHT    = 1.6f;    // 注視点の高さオフセット
-}
+// 各ストラテジーの実装
+#include "defaultCameraStrategy.h"
+#include "fpsCameraStrategy.h"
+#include "tpsCameraStrategy.h"
+#include "eventCameraStrategy.h"
+
+Camera* Camera::m_MainCamera = nullptr;
 
 void Camera::Init()
 {
-    m_Layer         = 0;
-    m_Position      = { 0.0f, 5.0f, -10.0f };
-    m_CurrentFov    = 1.222f;  // 70°
-    m_ZoomTargetFov = m_CurrentFov;
+    m_Layer      = 0;
+    m_Position   = { 0.0f, 5.0f, -10.0f };
+    m_MainCamera = this;
+    m_CurrentFov = GameConfig::Camera::FOV_TPS;
 
     m_Projection = XMMatrixPerspectiveFovLH(
         m_CurrentFov,
         (float)SCREEN_WIDTH / SCREEN_HEIGHT, 1.0f, 1000.0f);
 
-    m_Target = m_Position + GetForward();
+    // 初期モードを設定（Strategyを生成）
+    SetMode(CameraMode::DEFAULT);
 }
 
 void Camera::Uninit()
 {
 }
 
+void Camera::SetMode(CameraMode mode)
+{
+    if (m_Strategy) m_Strategy->OnExit();
+
+    switch (mode)
+    {
+    case CameraMode::DEFAULT: m_Strategy = std::make_unique<DefaultCameraStrategy>(); break;
+    case CameraMode::FPS:     m_Strategy = std::make_unique<FpsCameraStrategy>();     break;
+    case CameraMode::TPS:     m_Strategy = std::make_unique<TpsCameraStrategy>();     break;
+    case CameraMode::EVENT:   m_Strategy = std::make_unique<EventCameraStrategy>();   break;
+    }
+
+    m_Strategy->OnEnter(m_Position, m_Target);
+    m_Mode = mode;
+}
+
 void Camera::Update(float dt)
 {
-    // マウス/スティックで視点回転
+    Player* player = Manager::GetGameObject<Player>();
+    if (!player) return;
+
+    // 共通: マウス入力でYaw/Pitch更新
     m_Rotation.y += InputManager::GetCameraMoveX();
     m_Rotation.x += InputManager::GetCameraMoveY();
 
-    if (m_Rotation.x < PITCH_MIN) m_Rotation.x = PITCH_MIN;
-    if (m_Rotation.x > PITCH_MAX) m_Rotation.x = PITCH_MAX;
+    // Pitch 制限（TPS以外にも適用）
+    if (m_Rotation.x < GameConfig::Camera::TPS_PITCH_MIN) m_Rotation.x = GameConfig::Camera::TPS_PITCH_MIN;
+    if (m_Rotation.x > GameConfig::Camera::TPS_PITCH_MAX) m_Rotation.x = GameConfig::Camera::TPS_PITCH_MAX;
 
-    Vector3 forward = GetForward();
-    Vector3 right   = GetRight();
+    // Strategyに計算を委譲
+    CameraContext ctx;
+    ctx.playerPos    = player->GetPosition();
+    ctx.yaw          = m_Rotation.y;
+    ctx.pitch        = m_Rotation.x;
+    ctx.dt           = dt;
+    ctx.eventTarget  = m_EventTarget;
 
-    Player* player = Manager::GetGameObject<Player>();
-    if (player)
-    {
-        // TPS: プレイヤーの後方・上方から追従する
-        Vector3 lookAt = player->GetPosition() + Vector3(0.0f, TPS_HEIGHT, 0.0f);
-        m_Position = lookAt - forward * TPS_DISTANCE;
-        m_Target   = lookAt;
-    }
-    else
-    {
-        // プレイヤーが居ない場合はWASD/スティックで自由移動する
-        float moveX = InputManager::GetMoveX();
-        float moveY = InputManager::GetMoveY();
+    CameraOutput out = m_Strategy->Update(ctx);
+    m_Position = out.position;
+    m_Target   = out.target;
+    if (out.fov > 0.0f) m_CurrentFov = out.fov;
 
-        m_Position += right   * (moveX * MOVE_SPEED * dt);
-        m_Position += forward * (moveY * MOVE_SPEED * dt);
-
-        m_Target = m_Position + forward;
-    }
-
-    // ズーム補間
+    // 共通: ズーム補間
     UpdateZoom(dt);
 
-    // シェイク
-    ApplyShake(dt);
+    // 共通: シェイク
+    ApplyShake();
 
     // デバッグ: Tキーでシェイクテスト
     if (Input::GetKeyTrigger('T'))
@@ -90,7 +100,7 @@ void Camera::UpdateZoom(float dt)
         (float)SCREEN_WIDTH / SCREEN_HEIGHT, 1.0f, 1000.0f);
 }
 
-void Camera::ApplyShake(float dt)
+void Camera::ApplyShake()
 {
     if (m_ShakeTimer <= 0.0f) return;
 
@@ -101,8 +111,8 @@ void Camera::ApplyShake(float dt)
     m_Position += offset;
     m_Target   += offset;
 
-    m_ShakeIntensity *= SHAKE_DAMPING;
-    m_ShakeTimer     -= dt;
+    m_ShakeIntensity *= GameConfig::Camera::SHAKE_DAMPING;
+    m_ShakeTimer     -= GameConfig::Camera::FRAME_TIME;
 }
 
 void Camera::ZoomTo(float targetFov, float duration)
