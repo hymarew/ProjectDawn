@@ -1,6 +1,8 @@
 #include "spiderPool.h"
 #include <algorithm>
 
+SpiderPool g_SpiderPool;
+
 void SpiderPool::Init(int maxCount)
 {
     m_MaxCount = maxCount;

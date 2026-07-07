@@ -36,3 +36,5 @@ private:
     int m_MaxCount  = 0;
     int m_KillCount = 0;
 };
+
+extern SpiderPool g_SpiderPool;

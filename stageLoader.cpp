@@ -3,17 +3,6 @@
 #include <sstream>
 
 // ---------------------------------------------------------
-// KeyToStageID : JSON の id 文字列を StageID へ変換する
-// ---------------------------------------------------------
-bool StageLoader::KeyToStageID(const std::string& key, StageID& outID)
-{
-    if (key == "stage1") { outID = StageID::Stage1; return true; }
-    if (key == "stage2") { outID = StageID::Stage2; return true; }
-    if (key == "stage3") { outID = StageID::Stage3; return true; }
-    return false;  // 未知のキーは false を返し、呼び出し元が Load を中断できるようにする
-}
-
-// ---------------------------------------------------------
 // ParseString : src から `"key": "value"` を探して value を返す
 //
 // JSON ライブラリを使わず手動パースする（playerLog.cpp / saveManager.cpp と同方針）。

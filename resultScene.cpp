@@ -35,13 +35,14 @@ void ResultScene::Init()
         if (g_RankingManager.TryRegister(entry))
             g_RankingManager.Save();
 
-        // クリアしたステージに応じて次のステージを解放する。
-        // Stage3 クリアは StoryComplete へ遷移するため、ここでは解放しない。
+        // クリアしたステージの次に位置するステージを解放する。
+        // 次のステージが存在しない（=最終ステージ）場合は StoryComplete へ
+        // 遷移するため、ここでは何も解放しない。
         StageID cleared = GameContext::Instance().currentStage;
         auto&   db      = GameContext::Instance().stageDB;
 
-        if      (cleared == StageID::Stage1) db.UnlockStage(StageID::Stage2);
-        else if (cleared == StageID::Stage2) db.UnlockStage(StageID::Stage3);
+        if (const StageData* next = db.GetNextStage(cleared))
+            db.UnlockStage(next->id);
     }
 }
 
@@ -80,10 +81,15 @@ void ResultScene::Update(float dt)
             g_SceneManager.RequestChange(SceneID::Game);
             break;
         case 1:
-            // Stage3 クリア時だけ StoryComplete（エンディング演出）を挟んでから
-            // StageSelect へ戻る。それ以外は直接 StageSelect へ。
-            if (!g_StageManager.IsGameOver()
-                && GameContext::Instance().currentStage == StageID::Stage3)
+        {
+            // 最終ステージ（次のステージが存在しない）クリア時だけ
+            // StoryComplete（エンディング演出）を挟んでから StageSelect へ戻る。
+            // それ以外は直接 StageSelect へ。
+            auto&   db          = GameContext::Instance().stageDB;
+            StageID cleared     = GameContext::Instance().currentStage;
+            bool    isLastStage = (db.GetNextStage(cleared) == nullptr);
+
+            if (!g_StageManager.IsGameOver() && isLastStage)
             {
                 g_SceneManager.RequestChange(SceneID::StoryComplete);
             }
@@ -92,6 +98,7 @@ void ResultScene::Update(float dt)
                 g_SceneManager.RequestChange(SceneID::StageSelect);
             }
             break;
+        }
         }
     }
 }

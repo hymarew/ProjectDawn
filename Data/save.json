@@ -1,0 +1,18 @@
+{
+    "stages":
+    {
+        "stage1": true,
+        "stage2": true,
+        "stage3": false
+    },
+
+    "achievements":
+    {
+
+    },
+
+    "unlocks":
+    {
+
+    }
+}

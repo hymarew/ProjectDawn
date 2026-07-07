@@ -1,5 +1,7 @@
 #pragma once
 #include "scene.h"
+#include <d3d11.h>
+#include <unordered_map>
 
 // =====================================================
 // StageSelectScene : ステージ選択画面（Story モード専用）
@@ -18,4 +20,7 @@ public:
 
 private:
     int m_Selected = 0;  // 解放済みステージ一覧内のカーソル位置
+
+    // ステージごとのサムネイル画像（キー: StageID を int にキャストした値）
+    std::unordered_map<int, ID3D11ShaderResourceView*> m_Thumbnails;
 };

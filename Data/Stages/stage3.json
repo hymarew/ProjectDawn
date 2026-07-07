@@ -1,0 +1,22 @@
+{
+    "id": "stage3",
+
+    "name": "STAGE 3",
+
+    "description": "Final Mission",
+
+    "thumbnail": "asset/stageImages/stage3.png",
+
+    "waves":
+    [
+        {
+            "spawnerCount": 6
+        },
+        {
+            "spawnerCount": 8
+        },
+        {
+            "spawnerCount": 10
+        }
+    ]
+}

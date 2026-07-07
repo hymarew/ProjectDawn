@@ -5,6 +5,7 @@
 #include "fadeManager.h"
 #include "renderer.h"
 #include "input.h"
+#include "DirectXTex.h"
 
 // 解放済みステージだけを抽出したリストを返す。
 // Update と Draw の両方から毎フレーム呼ばれるが、ステージ数が少ないため問題ない。
@@ -24,10 +25,32 @@ void StageSelectScene::Init()
 {
     m_Selected = 0;
     ShowCursor(TRUE);
+
+    // 全ステージのサムネイルをここで読み込んでおく（未解放のステージ分も含む）
+    for (const auto& stage : GameContext::Instance().stageDB.GetStages())
+    {
+        if (stage.thumbnailPath.empty()) continue;
+
+        std::wstring wpath(stage.thumbnailPath.begin(), stage.thumbnailPath.end());
+
+        TexMetadata  metadata;
+        ScratchImage image;
+        if (FAILED(LoadFromWICFile(wpath.c_str(), WIC_FLAGS_NONE, &metadata, image)))
+            continue;
+
+        ID3D11ShaderResourceView* srv = nullptr;
+        CreateShaderResourceView(Renderer::GetDevice(), image.GetImages(),
+            image.GetImageCount(), metadata, &srv);
+
+        if (srv) m_Thumbnails[stage.id.number] = srv;
+    }
 }
 
 void StageSelectScene::Uninit()
 {
+    for (auto& pair : m_Thumbnails)
+        if (pair.second) pair.second->Release();
+    m_Thumbnails.clear();
 }
 
 void StageSelectScene::Update(float dt)
@@ -117,7 +140,7 @@ void StageSelectScene::Draw()
         dl->AddText(font, sz, ImVec2(listX, iy), col, unlocked[i]->name.c_str());
     }
 
-    // ---- サムネイルエリア（ダミー枠、Step4 で画像差し替え予定） ----
+    // ---- サムネイルエリア ----
     {
         const float panelX = SCREEN_WIDTH  * 0.45f;
         const float panelY = SCREEN_HEIGHT * 0.26f;
@@ -128,17 +151,34 @@ void StageSelectScene::Draw()
             ImVec2(panelX, panelY),
             ImVec2(panelX + panelW, panelY + panelH),
             IM_COL32(20, 20, 40, 220), 6.0f);
+
+        ID3D11ShaderResourceView* thumbnail = nullptr;
+        if (count > 0)
+        {
+            auto it = m_Thumbnails.find(unlocked[m_Selected]->id.number);
+            if (it != m_Thumbnails.end())
+                thumbnail = it->second;
+        }
+
+        if (thumbnail)
+        {
+            dl->AddImage((ImTextureID)thumbnail,
+                ImVec2(panelX, panelY), ImVec2(panelX + panelW, panelY + panelH));
+        }
+        else
+        {
+            const char* dummy = "[ No Image ]";
+            ImVec2 ds = font->CalcTextSizeA(20.0f, FLT_MAX, 0.0f, dummy);
+            dl->AddText(font, 20.0f,
+                ImVec2(panelX + (panelW - ds.x) * 0.5f,
+                       panelY + (panelH - 20.0f) * 0.5f),
+                IM_COL32(80, 80, 120, 180), dummy);
+        }
+
         dl->AddRect(
             ImVec2(panelX, panelY),
             ImVec2(panelX + panelW, panelY + panelH),
             IM_COL32(80, 100, 180, 160), 6.0f, 0, 1.5f);
-
-        const char* dummy = "[ Thumbnail ]";
-        ImVec2 ds = font->CalcTextSizeA(20.0f, FLT_MAX, 0.0f, dummy);
-        dl->AddText(font, 20.0f,
-            ImVec2(panelX + (panelW - ds.x) * 0.5f,
-                   panelY + (panelH - 20.0f) * 0.5f),
-            IM_COL32(80, 80, 120, 180), dummy);
     }
 
     // ---- 説明文エリア（選択中ステージ） ----

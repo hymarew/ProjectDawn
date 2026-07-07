@@ -17,7 +17,7 @@ public:
     static GameContext& Instance();
 
     GameMode      currentMode  = GameMode::Story;   // MenuScene で設定される
-    StageID       currentStage = StageID::Stage1;   // StageSelectScene で設定される
+    StageID       currentStage = StageID(1);        // StageSelectScene で設定される
     StageDatabase stageDB;                          // 解放状態を含むステージ一覧
 
 private:

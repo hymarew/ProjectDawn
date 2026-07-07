@@ -1,55 +1,57 @@
 #include "stageDatabase.h"
 #include "stageLoader.h"
 #include "saveManager.h"
-#include <cstdio>  // printf（エラーログ用）
+#include <cstdio>      // printf（エラーログ用）
+#include <algorithm>   // std::sort
+#include <windows.h>   // FindFirstFile/FindNextFile（<filesystem>はC++17のため使わない）
 
-// ---------------------------------------------------------
-// StageIDToKey : StageID を SaveManager のキー文字列へ変換する
-// ---------------------------------------------------------
-std::string StageIDToKey(StageID id)
+namespace
 {
-    switch (id)
-    {
-    case StageID::Stage1: return "stage1";
-    case StageID::Stage2: return "stage2";
-    case StageID::Stage3: return "stage3";
-    default:              return "";  // 未知の ID は空文字列。SaveManager 側でキー不在として安全に処理される。
-    }
+    constexpr const char* STAGES_DIR = "Data/Stages";
 }
 
 // ---------------------------------------------------------
-// LoadStages : JSON ファイルから m_Stages を構築する
+// LoadStages : Data/Stages/*.json を走査して m_Stages を構築する
 //
-// 読み込み順序がステージ選択画面の表示順になるため、
-// stage1 → stage2 → stage3 の順で固定している。
+// stage1, stage2, stage11 のように番号が飛んでいても、
+// フォルダ内の *.json をそのまま列挙するだけで対応できる。
+// 表示順はステージ番号の昇順に揃える。
 // ---------------------------------------------------------
 bool StageDatabase::LoadStages()
 {
-    // paths の順序 = StageSelectScene の表示順になる。
-    // ステージを追加する場合はここに追記する。
-    static const char* paths[] = {
-        "Data/Stages/stage1.json",
-        "Data/Stages/stage2.json",
-        "Data/Stages/stage3.json",
-    };
+    m_Stages.clear();
+
+    WIN32_FIND_DATAA findData;
+    std::string      pattern = std::string(STAGES_DIR) + "\\*.json";
+    HANDLE           hFind   = FindFirstFileA(pattern.c_str(), &findData);
+    if (hFind == INVALID_HANDLE_VALUE) return false;
 
     StageLoader loader;
-    for (const char* path : paths)
+    do
     {
+        if (findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+            continue;
+
+        std::string path = std::string(STAGES_DIR) + "\\" + findData.cFileName;
+
         StageData stage;
         if (!loader.Load(path, stage))
         {
-            // 失敗したファイル名を出力して即座に中断する。
-            // m_Stages が中途半端な状態にならないよう clear してから返す。
-            printf("Failed Load Stage : %s\n", path);
-            m_Stages.clear();
-            return false;
+            // 壊れたファイルはログを出してスキップし、他のステージは読み込みを続行する
+            printf("Failed Load Stage : %s\n", path.c_str());
+            continue;
         }
         // loader.Load が unlocked を false で返すため、
         // 解放状態の上書きはコンストラクタ末尾の SaveManager 参照に任せる
         m_Stages.push_back(stage);
-    }
-    return true;
+    } while (FindNextFileA(hFind, &findData));
+
+    FindClose(hFind);
+
+    std::sort(m_Stages.begin(), m_Stages.end(),
+        [](const StageData& a, const StageData& b) { return a.id.number < b.id.number; });
+
+    return !m_Stages.empty();
 }
 
 // ---------------------------------------------------------
@@ -86,6 +88,21 @@ const StageData* StageDatabase::GetStage(StageID id) const
             return &s;
     }
     return nullptr;  // 存在しない ID が渡された場合。呼び出し側で null チェックが必要。
+}
+
+const StageData* StageDatabase::GetNextStage(StageID id) const
+{
+    // m_Stages は LoadStages() でステージ番号の昇順にソート済みのため、
+    // id を見つけた次の要素がそのまま「次のステージ」になる。
+    for (size_t i = 0; i < m_Stages.size(); i++)
+    {
+        if (m_Stages[i].id == id)
+        {
+            if (i + 1 < m_Stages.size()) return &m_Stages[i + 1];
+            return nullptr;  // 最後のステージだった
+        }
+    }
+    return nullptr;  // id が見つからない
 }
 
 void StageDatabase::UnlockStage(StageID id)

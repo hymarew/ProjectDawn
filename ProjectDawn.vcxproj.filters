@@ -202,6 +202,9 @@
     <ClCompile Include="stageDatabase.cpp">
       <Filter>StageSystem</Filter>
     </ClCompile>
+    <ClCompile Include="stageID.cpp">
+      <Filter>StageSystem</Filter>
+    </ClCompile>
     <ClCompile Include="stageLoader.cpp">
       <Filter>StageSystem</Filter>
     </ClCompile>
@@ -617,6 +620,18 @@
       <Filter>シェーダーファイル</Filter>
     </FxCompile>
     <FxCompile Include="shader\unlitTextureVS.hlsl">
+      <Filter>シェーダーファイル</Filter>
+    </FxCompile>
+    <FxCompile Include="shader\TreeLeafPS.hlsl">
+      <Filter>シェーダーファイル</Filter>
+    </FxCompile>
+    <FxCompile Include="shader\TreeLeafVS.hlsl">
+      <Filter>シェーダーファイル</Filter>
+    </FxCompile>
+    <FxCompile Include="shader\CrystalPS.hlsl">
+      <Filter>シェーダーファイル</Filter>
+    </FxCompile>
+    <FxCompile Include="shader\ScorpionPS.hlsl">
       <Filter>シェーダーファイル</Filter>
     </FxCompile>
   </ItemGroup>

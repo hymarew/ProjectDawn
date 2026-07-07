@@ -25,7 +25,4 @@ private:
     static bool ParseInt(const std::string& src,
                          const std::string& key,
                          int& outValue);
-
-    // "stage1" などの文字列を StageID へ変換する。不明なら false を返す
-    static bool KeyToStageID(const std::string& key, StageID& outID);
 };
