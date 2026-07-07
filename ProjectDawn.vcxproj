@@ -77,6 +77,7 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -92,6 +93,7 @@
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -105,6 +107,7 @@
       <PreprocessorDefinitions>_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -120,6 +123,7 @@
       <PreprocessorDefinitions>NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -140,6 +144,72 @@
     <ClCompile Include="imgui\imgui_widgets.cpp" />
     <ClCompile Include="imgui\imgui_impl_dx11.cpp" />
     <ClCompile Include="imgui\imgui_impl_win32.cpp" />
+    <ClCompile Include="camera.cpp" />
+    <ClCompile Include="defaultCameraStrategy.cpp" />
+    <ClCompile Include="fpsCameraStrategy.cpp" />
+    <ClCompile Include="tpsCameraStrategy.cpp" />
+    <ClCompile Include="eventCameraStrategy.cpp" />
+    <ClCompile Include="boxCollider.cpp" />
+    <ClCompile Include="collisionManager.cpp" />
+    <ClCompile Include="colliderDebugRenderer.cpp" />
+    <ClCompile Include="sphereCollider.cpp" />
+    <ClCompile Include="enemy.cpp" />
+    <ClCompile Include="enemyBase.cpp" />
+    <ClCompile Include="enemyManager.cpp" />
+    <ClCompile Include="enemyPool.cpp" />
+    <ClCompile Include="enemyProjectilePool.cpp" />
+    <ClCompile Include="enemySpawner.cpp" />
+    <ClCompile Include="scorpion.cpp" />
+    <ClCompile Include="scorpionBehavior.cpp" />
+    <ClCompile Include="scorpionPool.cpp" />
+    <ClCompile Include="scorpionNeedlePool.cpp" />
+    <ClCompile Include="spiderEnemy.cpp" />
+    <ClCompile Include="spiderPool.cpp" />
+    <ClCompile Include="particleEmitter.cpp" />
+    <ClCompile Include="particleManager.cpp" />
+    <ClCompile Include="particleRenderer.cpp" />
+    <ClCompile Include="player.cpp" />
+    <ClCompile Include="saveManager.cpp" />
+    <ClCompile Include="rankingManager.cpp" />
+    <ClCompile Include="gameContext.cpp" />
+    <ClCompile Include="gameScene.cpp" />
+    <ClCompile Include="menuScene.cpp" />
+    <ClCompile Include="resultScene.cpp" />
+    <ClCompile Include="sceneManager.cpp" />
+    <ClCompile Include="stageSelectScene.cpp" />
+    <ClCompile Include="storyCompleteScene.cpp" />
+    <ClCompile Include="titleScene.cpp" />
+    <ClCompile Include="stageDatabase.cpp" />
+    <ClCompile Include="stageLoader.cpp" />
+    <ClCompile Include="pauseMenu.cpp" />
+    <ClCompile Include="tutorialOverlay.cpp" />
+    <ClCompile Include="weaponUI.cpp" />
+    <ClCompile Include="damageVisualizer.cpp" />
+    <ClCompile Include="weapon.cpp" />
+    <ClCompile Include="pistol.cpp" />
+    <ClCompile Include="shotgun.cpp" />
+    <ClCompile Include="assaultRifle.cpp" />
+    <ClCompile Include="rocketLauncher.cpp" />
+    <ClCompile Include="bulletManager.cpp" />
+    <ClCompile Include="bulletPool.cpp" />
+    <ClCompile Include="audio.cpp" />
+    <ClCompile Include="box.cpp" />
+    <ClCompile Include="explosion.cpp" />
+    <ClCompile Include="fadeManager.cpp" />
+    <ClCompile Include="field.cpp" />
+    <ClCompile Include="grass.cpp" />
+    <ClCompile Include="modelRenderer.cpp" />
+    <ClCompile Include="playerLog.cpp" />
+    <ClCompile Include="polygon2D.cpp" />
+    <ClCompile Include="shadowRenderer.cpp" />
+    <ClCompile Include="sky.cpp" />
+    <ClCompile Include="stageManager.cpp" />
+    <ClCompile Include="tree.cpp" />
+    <ClCompile Include="waveManager.cpp" />
+    <ClCompile Include="gamepad.cpp" />
+    <ClCompile Include="input.cpp" />
+    <ClCompile Include="inputManager.cpp" />
+    <ClCompile Include="inputVisualizer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="debugInfo.h" />
@@ -158,6 +228,149 @@
     <ClInclude Include="imgui\imstb_rectpack.h" />
     <ClInclude Include="imgui\imstb_textedit.h" />
     <ClInclude Include="imgui\imstb_truetype.h" />
+    <ClInclude Include="camera.h" />
+    <ClInclude Include="cameraStrategy.h" />
+    <ClInclude Include="defaultCameraStrategy.h" />
+    <ClInclude Include="fpsCameraStrategy.h" />
+    <ClInclude Include="tpsCameraStrategy.h" />
+    <ClInclude Include="eventCameraStrategy.h" />
+    <ClInclude Include="boxCollider.h" />
+    <ClInclude Include="collider.h" />
+    <ClInclude Include="collisionManager.h" />
+    <ClInclude Include="colliderDebugRenderer.h" />
+    <ClInclude Include="sphereCollider.h" />
+    <ClInclude Include="enemy.h" />
+    <ClInclude Include="enemyBase.h" />
+    <ClInclude Include="enemyManager.h" />
+    <ClInclude Include="enemyPool.h" />
+    <ClInclude Include="enemyProjectile.h" />
+    <ClInclude Include="enemyProjectilePool.h" />
+    <ClInclude Include="enemySpawner.h" />
+    <ClInclude Include="scorpion.h" />
+    <ClInclude Include="scorpionBehavior.h" />
+    <ClInclude Include="scorpionPool.h" />
+    <ClInclude Include="scorpionNeedlePool.h" />
+    <ClInclude Include="spiderEnemy.h" />
+    <ClInclude Include="spiderPool.h" />
+    <ClInclude Include="particleEmitter.h" />
+    <ClInclude Include="particleManager.h" />
+    <ClInclude Include="particleRenderer.h" />
+    <ClInclude Include="particleSetting.h" />
+    <ClInclude Include="player.h" />
+    <ClInclude Include="saveData.h" />
+    <ClInclude Include="saveManager.h" />
+    <ClInclude Include="rankingManager.h" />
+    <ClInclude Include="gameContext.h" />
+    <ClInclude Include="gameMode.h" />
+    <ClInclude Include="gameScene.h" />
+    <ClInclude Include="menuScene.h" />
+    <ClInclude Include="resultScene.h" />
+    <ClInclude Include="scene.h" />
+    <ClInclude Include="sceneManager.h" />
+    <ClInclude Include="stageSelectScene.h" />
+    <ClInclude Include="storyCompleteScene.h" />
+    <ClInclude Include="titleScene.h" />
+    <ClInclude Include="stageData.h" />
+    <ClInclude Include="stageDatabase.h" />
+    <ClInclude Include="stageID.h" />
+    <ClInclude Include="stageLoader.h" />
+    <ClInclude Include="pauseMenu.h" />
+    <ClInclude Include="tutorialOverlay.h" />
+    <ClInclude Include="weaponUI.h" />
+    <ClInclude Include="damageVisualizer.h" />
+    <ClInclude Include="weapon.h" />
+    <ClInclude Include="weaponParams.h" />
+    <ClInclude Include="pistol.h" />
+    <ClInclude Include="shotgun.h" />
+    <ClInclude Include="assaultRifle.h" />
+    <ClInclude Include="rocketLauncher.h" />
+    <ClInclude Include="bullet.h" />
+    <ClInclude Include="bulletManager.h" />
+    <ClInclude Include="bulletParams.h" />
+    <ClInclude Include="bulletPool.h" />
+    <ClInclude Include="DirectXTex.h" />
+    <ClInclude Include="audio.h" />
+    <ClInclude Include="box.h" />
+    <ClInclude Include="component.h" />
+    <ClInclude Include="explosion.h" />
+    <ClInclude Include="fadeManager.h" />
+    <ClInclude Include="field.h" />
+    <ClInclude Include="GameConfig.h" />
+    <ClInclude Include="gameObject.h" />
+    <ClInclude Include="grass.h" />
+    <ClInclude Include="modelRenderer.h" />
+    <ClInclude Include="playerLog.h" />
+    <ClInclude Include="polygon2D.h" />
+    <ClInclude Include="shadowRenderer.h" />
+    <ClInclude Include="sky.h" />
+    <ClInclude Include="stageManager.h" />
+    <ClInclude Include="tree.h" />
+    <ClInclude Include="waveManager.h" />
+    <ClInclude Include="gamepad.h" />
+    <ClInclude Include="input.h" />
+    <ClInclude Include="inputManager.h" />
+    <ClInclude Include="inputVisualizer.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="imgui\LICENSE.txt" />
+    <None Include="shader\common.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </None>
+    <None Include="shader\commonFanc.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="shader\ShadowDepthPS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">shader\%(Filename).cso</ObjectFileOutput>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.0</ShaderModel>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">shader\%(Filename).cso</ObjectFileOutput>
+    </FxCompile>
+    <FxCompile Include="shader\ShadowDepthVS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">shader\%(Filename).cso</ObjectFileOutput>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.0</ShaderModel>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">shader\%(Filename).cso</ObjectFileOutput>
+    </FxCompile>
+    <FxCompile Include="shader\ShadowMapLightingPS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">shader\%(Filename).cso</ObjectFileOutput>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.0</ShaderModel>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">shader\%(Filename).cso</ObjectFileOutput>
+    </FxCompile>
+    <FxCompile Include="shader\ShadowMapLightingVS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">shader\%(Filename).cso</ObjectFileOutput>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.0</ShaderModel>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">shader\%(Filename).cso</ObjectFileOutput>
+    </FxCompile>
+    <FxCompile Include="shader\unlitTexturePS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">shader\%(Filename).cso</ObjectFileOutput>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.0</ShaderModel>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">shader\%(Filename).cso</ObjectFileOutput>
+    </FxCompile>
+    <FxCompile Include="shader\unlitTextureVS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">shader\%(Filename).cso</ObjectFileOutput>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.0</ShaderModel>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">shader\%(Filename).cso</ObjectFileOutput>
+    </FxCompile>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

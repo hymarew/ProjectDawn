@@ -9,11 +9,11 @@
 x64/
 Debug/
 Release/
-*.obj
 *.pdb
 *.exe
 *.ilk
 *.tlog
+*.cso
 
 # その他
 *.log
