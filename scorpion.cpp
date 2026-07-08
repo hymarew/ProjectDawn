@@ -68,12 +68,14 @@ void Scorpion::Uninit()
 
 // =====================================================
 // Spawn : AI 状態をリセットして起こす
+// startActive が false のときは Idle（巡回）から開始し、
+// プレイヤーを索敵するまで Chase へ遷移しない。
 // =====================================================
-void Scorpion::Spawn(const Vector3& pos, GameObject* target)
+void Scorpion::Spawn(const Vector3& pos, GameObject* target, bool startActive)
 {
-    Enemy::Spawn(pos, target);
+    Enemy::Spawn(pos, target, startActive);
     m_Hp               = GameConfig::Scorpion::HP;
-    m_State            = EnemyState::Chase;
+    m_State            = startActive ? EnemyState::Chase : EnemyState::Idle;
     m_TailShotCooldown = 0.0f;
     m_TailShotWindup   = 0.0f;
     m_TailShotReady    = false;

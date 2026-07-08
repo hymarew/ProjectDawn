@@ -67,7 +67,11 @@ void SKY::Draw()
 
     Renderer::SetWorldMatrix(world);
 
+    // 空はどれだけ遠くの地形・敵より奥にあっても常に背景として扱う。
+    // デプス書き込みを無効化し、後から描く近景オブジェクトを絶対に隠さないようにする。
+    Renderer::SetDepthEnable(false);
     GameObject::Draw(); //継承元のDraw()を呼び出す
+    Renderer::SetDepthEnable(true);
 }
 
 void SKY::DrawShadow()

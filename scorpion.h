@@ -15,7 +15,7 @@ class Scorpion : public Enemy
 public:
     void Init()           override;
     void Uninit()         override;
-    void Spawn(const Vector3& pos, GameObject* target) override;
+    void Spawn(const Vector3& pos, GameObject* target, bool startActive = true) override;
     void Draw()           override;
     void DrawShadow()     override;
     void Alert()          override;

@@ -25,6 +25,7 @@
 #include "colliderDebugRenderer.h"
 #include "fadeManager.h"
 #include "saveManager.h"
+#include "particleManager.h"
 
 //インスタンス
 std::list<GameObject*> Manager::m_GameObject;
@@ -238,6 +239,32 @@ void Manager::ImGuiDraw()
 		g_DamageVisualizer.SetMode((DamageDisplayMode)dmode);
 	}
 
+	// ===== パーティクルデバッグ =====
+	if (ImGui::CollapsingHeader("Particle Debug"))
+	{
+		const Vector3 debugPos = { 0.0f, 3.0f, 0.0f };
+		ImGui::Text("Spawn Position: (%.1f, %.1f, %.1f)", debugPos.x, debugPos.y, debugPos.z);
+
+		auto& particleManager = ParticleManager::GetInstance();
+		if (ImGui::Button("Explosion"))      particleManager.Emit(EffectType::Explosion,      debugPos);
+		ImGui::SameLine();
+		if (ImGui::Button("MuzzleFlash"))    particleManager.Emit(EffectType::MuzzleFlash,    debugPos);
+		ImGui::SameLine();
+		if (ImGui::Button("Hit"))            particleManager.Emit(EffectType::Hit,            debugPos);
+
+		if (ImGui::Button("Smoke"))          particleManager.Emit(EffectType::Smoke,          debugPos);
+		ImGui::SameLine();
+		if (ImGui::Button("Spark"))          particleManager.Emit(EffectType::Spark,          debugPos);
+		ImGui::SameLine();
+		if (ImGui::Button("SpawnerDestroy")) particleManager.Emit(EffectType::SpawnerDestroy, debugPos);
+
+		if (ImGui::Button("BossAppear"))     particleManager.Emit(EffectType::BossAppear,     debugPos);
+
+		ImGui::SeparatorText("Full Explosion Sequence");
+		// 発光フラッシュ→火球→火花→デブリ→煙→爆風リングを一括再生する
+		if (ImGui::Button("Big Explosion")) particleManager.EmitBigExplosion(debugPos);
+	}
+
 	// =============== ここに移動！ ================
 	InputVisualizer::Draw();
 	// =============================================
@@ -264,6 +291,9 @@ void Manager::ImGuiDraw()
 		dl->AddLine(ImVec2(cx, cy - len - gap), ImVec2(cx, cy - gap), col, 1.5f);
 		dl->AddLine(ImVec2(cx, cy + gap), ImVec2(cx, cy + len + gap), col, 1.5f);
 	}
+
+	// 爆発の画面フラッシュ（フェードより奥、他の描画より手前に表示する）
+	ParticleManager::GetInstance().DrawScreenFlash();
 
 	// フェードオーバーレイ（他のUIより手前に描画する）
 	g_FadeManager.Draw();

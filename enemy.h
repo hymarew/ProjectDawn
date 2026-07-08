@@ -29,7 +29,9 @@ public:
     virtual const char* GetTypeName() const    { return "Enemy"; }
 
     // ---- 生成 / 破棄 ----
-    virtual void Spawn(const Vector3& pos, GameObject* target);
+    // startActive: true ならChase（Active）、false ならIdle（巡回）から開始する。
+    // 実際のAI状態の切り替えは子クラス（Scorpion等）が担当する。
+    virtual void Spawn(const Vector3& pos, GameObject* target, bool startActive = true);
     virtual void Kill();
 
     // ① 攻撃を受けたとき：自分を起こし、③ 周囲へ通知する

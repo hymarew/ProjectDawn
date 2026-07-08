@@ -22,6 +22,7 @@
 #include "player.h"
 #include "enemy.h"
 #include "enemyPool.h"
+#include "scorpion.h"
 #include "modelRenderer.h"
 #include "enemySpawner.h"
 #include "bulletPool.h"
@@ -33,7 +34,6 @@
 #include "tree.h"
 #include "grass.h"
 #include "sky.h"
-#include "box.h"
 #include "explosion.h"
 #include "particleManager.h"
 
@@ -70,8 +70,6 @@ void GameScene::Init()
     Manager::AddGameObject<Field>();
 
     Player* player = Manager::AddGameObject<Player>();
-    Box* box = Manager::AddGameObject<Box>();
-    box->SetPosition({ 0.0f,0.0f,-5.0f });
 
     g_BulletPool.Init(1000);
     g_BulletManager.Init();
@@ -155,6 +153,13 @@ void GameScene::Uninit()
     ParticleManager::GetInstance().Uninit();
     g_EnemyPool.Uninit();
     g_EnemyProjectilePool.Uninit();
+
+    // ModelRenderer::UnloadAll() が MODEL* を全て破棄するため、
+    // それらを static キャッシュしている各クラスも合わせてリセットする。
+    // これを怠ると次回 Init() 時に m_IsLoaded==true のまま解放済みポインタを使い続けてしまう。
+    Tree::ReleaseShaders();
+    Scorpion::ReleaseShaders();
+    Grass::ReleaseShaders();
 
     ModelRenderer::UnloadAll();
 }

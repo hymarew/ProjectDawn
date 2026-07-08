@@ -53,6 +53,9 @@
     <Filter Include="Weapon">
       <UniqueIdentifier>{0A28A145-0E89-46E2-9316-E04E90F9BDE1}</UniqueIdentifier>
     </Filter>
+    <Filter Include="不要">
+      <UniqueIdentifier>{df928ffb-bfe2-4c8b-ad79-9c2319bf5f85}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -124,9 +127,6 @@
     <ClCompile Include="enemy.cpp">
       <Filter>Enemy</Filter>
     </ClCompile>
-    <ClCompile Include="enemyBase.cpp">
-      <Filter>Enemy</Filter>
-    </ClCompile>
     <ClCompile Include="enemyManager.cpp">
       <Filter>Enemy</Filter>
     </ClCompile>
@@ -140,15 +140,6 @@
       <Filter>Enemy</Filter>
     </ClCompile>
     <ClCompile Include="scorpion.cpp">
-      <Filter>Enemy</Filter>
-    </ClCompile>
-    <ClCompile Include="scorpionBehavior.cpp">
-      <Filter>Enemy</Filter>
-    </ClCompile>
-    <ClCompile Include="scorpionPool.cpp">
-      <Filter>Enemy</Filter>
-    </ClCompile>
-    <ClCompile Include="scorpionNeedlePool.cpp">
       <Filter>Enemy</Filter>
     </ClCompile>
     <ClCompile Include="spiderEnemy.cpp">
@@ -244,9 +235,6 @@
     <ClCompile Include="audio.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="box.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
     <ClCompile Include="explosion.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
@@ -294,6 +282,9 @@
     </ClCompile>
     <ClCompile Include="inputVisualizer.cpp">
       <Filter>入力処理</Filter>
+    </ClCompile>
+    <ClCompile Include="box.cpp">
+      <Filter>不要</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -381,9 +372,6 @@
     <ClInclude Include="enemy.h">
       <Filter>Enemy</Filter>
     </ClInclude>
-    <ClInclude Include="enemyBase.h">
-      <Filter>Enemy</Filter>
-    </ClInclude>
     <ClInclude Include="enemyManager.h">
       <Filter>Enemy</Filter>
     </ClInclude>
@@ -400,15 +388,6 @@
       <Filter>Enemy</Filter>
     </ClInclude>
     <ClInclude Include="scorpion.h">
-      <Filter>Enemy</Filter>
-    </ClInclude>
-    <ClInclude Include="scorpionBehavior.h">
-      <Filter>Enemy</Filter>
-    </ClInclude>
-    <ClInclude Include="scorpionPool.h">
-      <Filter>Enemy</Filter>
-    </ClInclude>
-    <ClInclude Include="scorpionNeedlePool.h">
       <Filter>Enemy</Filter>
     </ClInclude>
     <ClInclude Include="spiderEnemy.h">
@@ -531,9 +510,6 @@
     <ClInclude Include="audio.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="box.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
     <ClInclude Include="component.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
@@ -590,6 +566,9 @@
     </ClInclude>
     <ClInclude Include="inputVisualizer.h">
       <Filter>入力処理</Filter>
+    </ClInclude>
+    <ClInclude Include="box.h">
+      <Filter>不要</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

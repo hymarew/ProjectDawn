@@ -170,7 +170,6 @@
     <ClCompile Include="colliderDebugRenderer.cpp" />
     <ClCompile Include="sphereCollider.cpp" />
     <ClCompile Include="enemy.cpp" />
-    <ClCompile Include="enemyBase.cpp" />
     <ClCompile Include="enemyManager.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
@@ -178,9 +177,6 @@
     <ClCompile Include="enemyProjectilePool.cpp" />
     <ClCompile Include="enemySpawner.cpp" />
     <ClCompile Include="scorpion.cpp" />
-    <ClCompile Include="scorpionBehavior.cpp" />
-    <ClCompile Include="scorpionPool.cpp" />
-    <ClCompile Include="scorpionNeedlePool.cpp" />
     <ClCompile Include="spiderEnemy.cpp" />
     <ClCompile Include="spiderPool.cpp" />
     <ClCompile Include="particleEmitter.cpp" />
@@ -212,7 +208,10 @@
     <ClCompile Include="bulletManager.cpp" />
     <ClCompile Include="bulletPool.cpp" />
     <ClCompile Include="audio.cpp" />
-    <ClCompile Include="box.cpp" />
+    <ClCompile Include="box.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="explosion.cpp" />
     <ClCompile Include="fadeManager.cpp" />
     <ClCompile Include="field.cpp" />
@@ -259,16 +258,12 @@
     <ClInclude Include="colliderDebugRenderer.h" />
     <ClInclude Include="sphereCollider.h" />
     <ClInclude Include="enemy.h" />
-    <ClInclude Include="enemyBase.h" />
     <ClInclude Include="enemyManager.h" />
     <ClInclude Include="enemyPool.h" />
     <ClInclude Include="enemyProjectile.h" />
     <ClInclude Include="enemyProjectilePool.h" />
     <ClInclude Include="enemySpawner.h" />
     <ClInclude Include="scorpion.h" />
-    <ClInclude Include="scorpionBehavior.h" />
-    <ClInclude Include="scorpionPool.h" />
-    <ClInclude Include="scorpionNeedlePool.h" />
     <ClInclude Include="spiderEnemy.h" />
     <ClInclude Include="spiderPool.h" />
     <ClInclude Include="particleEmitter.h" />
@@ -309,7 +304,10 @@
     <ClInclude Include="bulletPool.h" />
     <ClInclude Include="DirectXTex.h" />
     <ClInclude Include="audio.h" />
-    <ClInclude Include="box.h" />
+    <ClInclude Include="box.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClInclude>
     <ClInclude Include="component.h" />
     <ClInclude Include="explosion.h" />
     <ClInclude Include="fadeManager.h" />

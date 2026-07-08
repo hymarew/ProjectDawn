@@ -122,6 +122,21 @@ bool StageLoader::Load(const std::string& path, StageData& outStage)
                     WaveData wave;
                     // spawnerCount が取れなければ 0 のまま追加する
                     ParseInt(objSrc, "spawnerCount", wave.spawnerCount);
+
+                    // ---- 直接生成方式（enemyCount指定時のみ意味を持つ） ----
+                    ParseInt(objSrc, "enemyCount", wave.enemyCount);
+
+                    // aiState: "patrol" なら Idle から開始、それ以外（省略時含む）は Active
+                    std::string aiState;
+                    if (ParseString(objSrc, "aiState", aiState))
+                        wave.startActive = (aiState != "patrol");
+
+                    int sx = 0, sy = 0, sz = 0;
+                    ParseInt(objSrc, "spawnX", sx);
+                    ParseInt(objSrc, "spawnY", sy);
+                    ParseInt(objSrc, "spawnZ", sz);
+                    wave.spawnPos = { (float)sx, (float)sy, (float)sz };
+
                     outStage.waves.push_back(wave);
 
                     cur = objClose + 1;  // 次のオブジェクト検索を '}' の直後から始める

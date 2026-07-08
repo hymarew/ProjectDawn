@@ -74,6 +74,10 @@ void Player::Init()
 
 void Player::Uninit()
 {
+    // コライダー解除（GameObject::Uninit() でコンポーネントが破棄される前に取得する）
+    SphereCollider* col = GetComponent<SphereCollider>();
+    if (col) g_CollisionManager.Unregister(col);
+
     GameObject::Uninit();
 
     m_VertexLayout->Release();
@@ -86,10 +90,6 @@ void Player::Uninit()
         w->Uninit();
         delete w;
     }
-
-    // コライダー解除
-    SphereCollider* col = GetComponent<SphereCollider>();
-    if (col) g_CollisionManager.Unregister(col);
 }
 
 void Player::Update(float dt)

@@ -25,7 +25,19 @@ public:
     // エフェクトを発生させる。ゲームシーンやオブジェクトから呼び出す
     void Emit(EffectType type, Vector3 position);
 
+    // 発光フラッシュ・火球・火花・デブリ・煙・爆風リングを一括で発生させる爆発演出
+    void EmitBigExplosion(Vector3 position);
+
+    // 画面全体を一瞬明るくするフラッシュ（ImGui::Render() の直前に呼ぶ）
+    void DrawScreenFlash();
+
 private:
+    // 画面フラッシュ発生。EmitBigExplosion から呼ばれる
+    void TriggerScreenFlash(float duration);
+
+    // Field オブジェクトの高さを地面座標として取得する（未発見時は 0.0f）
+    float GetGroundY();
+
     ParticleManager()  = default;
     ~ParticleManager() = default;
 
@@ -43,4 +55,12 @@ private:
     ParticleRenderer m_Renderer;
 
     Vector3 m_Gravity; // 毎フレーム加算する重力加速度ベクトル
+
+    // 地面座標のキャッシュ（Field オブジェクトが見つかった時点で確定する）
+    float m_GroundY       = 0.0f;
+    bool  m_GroundYCached = false;
+
+    // 画面フラッシュの状態
+    float m_FlashTimer    = 0.0f; // 残り時間（秒）
+    float m_FlashDuration = 0.0f; // 発生時の合計時間（秒）
 };

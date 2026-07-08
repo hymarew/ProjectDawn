@@ -23,9 +23,9 @@ namespace GameConfig
     {
         constexpr float HP               = 120.0f;
         constexpr float MOVE_SPEED       =   8.0f;
-        constexpr float SENSE_RADIUS     =  18.0f;  // Idle → Chase の索敵半径
-        constexpr float LOSE_RADIUS      =  28.0f;  // Chase → Search の見失い半径
-        constexpr float ALERT_RADIUS     =  25.0f;  // 発見通知の伝達半径
+        constexpr float SENSE_RADIUS     =  50.0f;  // Idle → Chase の索敵半径
+        constexpr float LOSE_RADIUS      =  70.0f;  // Chase → Search の見失い半径
+        constexpr float ALERT_RADIUS     =  55.0f;  // 発見通知の伝達半径
         constexpr float CHASE_WEIGHT     =   0.7f;  // 追跡方向の重み
         constexpr float SEPARATION_WEIGHT=   0.3f;  // 分離方向の重み
         constexpr float MELEE_DAMAGE     =  20.0f;  // 噛み付き一撃のダメージ
@@ -83,8 +83,8 @@ namespace GameConfig
     {
         // Behavior 側パラメータ（攻撃タイミング・射程）
         constexpr float FIRE_INTERVAL  =  3.0f;   // 発射間隔（秒）
-        constexpr float RANGE_MIN      =  8.0f;   // 有効射程 最小
-        constexpr float RANGE_MAX      = 20.0f;   // 有効射程 最大
+        constexpr float RANGE_MIN      = 10.0f;   // 有効射程 最小
+        constexpr float RANGE_MAX      = 40.0f;   // 有効射程 最大
         constexpr float WINDUP         =  0.5f;   // 発射予兆時間（秒）
     }
 

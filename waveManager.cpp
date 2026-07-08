@@ -38,6 +38,12 @@ void WaveManager::Init(Player* target, const StageData* stage)
             cfg.SpawnerCount     = wd.spawnerCount;
             cfg.SpawnRate        = GameConfig::Spawner::DEFAULT_SPAWN_RATE;
             cfg.AnnounceDuration = 2.0f;
+
+            // 直接生成方式（enemyCount 指定時）
+            cfg.EnemyCount  = wd.enemyCount;
+            cfg.StartActive = wd.startActive;
+            cfg.SpawnPos    = wd.spawnPos;
+
             m_Waves.push_back(cfg);
         }
     }
@@ -86,10 +92,30 @@ void WaveManager::StartWave(int waveIndex)
 }
 
 // =====================================================
-// SpawnWaveEntities : スポナーをランダム配置で生成・登録する
+// SpawnWaveEntities : Wave開始時の敵/スポナー生成
+//
+// EnemyCount > 0 の場合は直接生成方式（スポナーを使わず、SpawnPos 周辺へ
+// EnemyCount 体を一斉生成する）。それ以外は従来のスポナー方式。
 // =====================================================
 void WaveManager::SpawnWaveEntities(const WaveConfig& cfg)
 {
+    if (cfg.EnemyCount > 0)
+    {
+        for (int i = 0; i < cfg.EnemyCount; i++)
+        {
+            // 固定座標周辺にランダムオフセットを付与し、同一座標への重なりを防ぐ
+            float offsetX = ((float)rand() / RAND_MAX * 2.0f - 1.0f) * ENEMY_SPAWN_OFFSET_RANGE;
+            float offsetZ = ((float)rand() / RAND_MAX * 2.0f - 1.0f) * ENEMY_SPAWN_OFFSET_RANGE;
+
+            Vector3 pos = cfg.SpawnPos;
+            pos.x += offsetX;
+            pos.z += offsetZ;
+
+            g_EnemyPool.SpawnEnemy(pos, m_Target, cfg.StartActive);
+        }
+        return;
+    }
+
     for (int i = 0; i < cfg.SpawnerCount; i++)
     {
         // 均等な角度でスポナーを配置する（重なりを防ぐ）
@@ -117,12 +143,18 @@ void WaveManager::SpawnWaveEntities(const WaveConfig& cfg)
 
 // =====================================================
 // IsCurrentWaveCleared : 現Waveのクリア条件判定
-// 敵0体 && 現Wave全スポナー破壊済み
+//
+// 直接生成方式（EnemyCount > 0）: 敵0体になった時点でクリア
+//   （スポナーを使わないため IsCurrentWaveSpawnersClear() は判定しない）
+// スポナー方式: 敵0体 && 現Wave全スポナー破壊済み
 // =====================================================
 bool WaveManager::IsCurrentWaveCleared() const
 {
     if (m_State != State::Active) return false;
     if (g_EnemyPool.GetActiveCount() > 0) return false;
+
+    if (m_Waves[m_CurrentWave].EnemyCount > 0) return true;
+
     return g_StageManager.IsCurrentWaveSpawnersClear();
 }
 

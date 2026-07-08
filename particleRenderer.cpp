@@ -139,16 +139,29 @@ void ParticleRenderer::Draw(const ParticleData* pool, int poolSize)
     // 深度テストを無効化（パーティクルが壁の後ろに隠れないようにする）
     Renderer::SetDepthEnable(false);
 
-    // デフォルトテクスチャをセット
-    // 将来: パーティクルごとに異なるテクスチャを使う場合は
-    //       テクスチャ種別でソートしてから描画すると切り替え回数を減らせる
-    Renderer::GetDeviceContext()->PSSetShaderResources(0, 1, &m_DefaultTexture);
+    // ブレンドモードの現在値を追跡し、切り替わったときだけステートを変更する
+    bool additiveEnabled = false;
+    Renderer::SetAdditiveBlend(false);
 
     // ---- アクティブな全パーティクルを1つずつ描画 ----
+    // TODO: パーティクル数が増えてきたらテクスチャ種別でソートしてから描画し、
+    //       PSSetShaderResources の切り替え回数を減らすと良い
     for (int i = 0; i < poolSize; i++)
     {
         const ParticleData& p = pool[i];
         if (!p.Active) continue; // 非アクティブはスキップ
+
+        // ---- 加算合成/通常合成の切り替え（爆炎・火花・爆風リングなど光るエフェクト用） ----
+        if (p.Additive != additiveEnabled)
+        {
+            additiveEnabled = p.Additive;
+            Renderer::SetAdditiveBlend(additiveEnabled);
+        }
+
+        // ---- パーティクルごとのテクスチャをセット ----
+        ID3D11ShaderResourceView* texture =
+            p.TexturePath ? GetOrLoadTexture(p.TexturePath) : m_DefaultTexture;
+        Renderer::GetDeviceContext()->PSSetShaderResources(0, 1, &texture);
 
         // ---- マテリアルに現在の色（アルファ含む）を反映 ----
         MATERIAL material{};
@@ -160,14 +173,26 @@ void ParticleRenderer::Draw(const ParticleData* pool, int poolSize)
         // スケール × Z軸回転 × ビルボード回転 × 平行移動 の順に合成する。
         // この順番が大切で、スケールを先に掛けることで「サイズ変更 → カメラ向き → 位置移動」になる。
         XMMATRIX scale = XMMatrixScaling(p.Size, p.Size, p.Size);  // サイズ
-        XMMATRIX rot   = XMMatrixRotationZ(p.Rotation);            // Z軸回転（スピン）
         XMMATRIX trans = XMMatrixTranslation(p.Position.x, p.Position.y, p.Position.z); // 位置
-        XMMATRIX world = scale * rot * invView * trans;
+        XMMATRIX world;
+
+        if (p.GroundAligned)
+        {
+            // ビルボードにせず、地面(XZ平面)に水平に寝かせて描画する（爆風リング用）
+            XMMATRIX groundRot = XMMatrixRotationX(XM_PIDIV2) * XMMatrixRotationY(p.Rotation);
+            world = scale * groundRot * trans;
+        }
+        else
+        {
+            XMMATRIX rot = XMMatrixRotationZ(p.Rotation); // Z軸回転（スピン）
+            world = scale * rot * invView * trans;
+        }
 
         Renderer::SetWorldMatrix(world);
         Renderer::GetDeviceContext()->Draw(4, 0); // 頂点4つで四角形を1枚描く
     }
 
-    // 深度テストを元に戻す（他のオブジェクトの描画に影響しないよう）
+    // ブレンド・深度を元に戻す（他のオブジェクトの描画に影響しないよう）
+    Renderer::SetAdditiveBlend(false);
     Renderer::SetDepthEnable(true);
 }

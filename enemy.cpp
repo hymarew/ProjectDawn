@@ -23,8 +23,9 @@ void Enemy::Uninit()
 
 // =====================================================
 // Spawn : アクティブリストに登録して起こす
+// startActive は基底クラスでは使用しない（子クラスがAI状態決定に使う）
 // =====================================================
-void Enemy::Spawn(const Vector3& pos, GameObject* target)
+void Enemy::Spawn(const Vector3& pos, GameObject* target, bool /*startActive*/)
 {
     m_IsActive          = true;
     m_Hp                = 0.0f;

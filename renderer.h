@@ -68,6 +68,7 @@ private:
 
 	static ID3D11BlendState*		m_BlendState;
 	static ID3D11BlendState*		m_BlendStateATC;
+	static ID3D11BlendState*		m_BlendStateAdditive;
 
 	//以下shadowマップ用
 	static ID3D11Texture2D* g_ShadowTexture;	//shadowマップの本体(Depth値)
@@ -87,6 +88,7 @@ public:
 
 	static void SetDepthEnable(bool Enable);
 	static void SetATCEnable(bool Enable);
+	static void SetAdditiveBlend(bool Enable); // true: 加算合成（光るエフェクト用）、false: 通常のアルファブレンドに戻す
 	static void SetWorldViewProjection2D();
 	static void SetWorldMatrix(XMMATRIX WorldMatrix);
 	static void SetViewMatrix(XMMATRIX ViewMatrix);

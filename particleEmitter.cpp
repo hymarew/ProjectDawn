@@ -67,17 +67,46 @@ void ParticleEmitter::Update(float dt, ParticleData* pool, int poolSize, int& ne
         // ランダムな方向と速さを合わせて速度ベクトルを作る（球状放出）
         float speed = speedDist(m_Rng);
         Vector3 dir = { axisDist(m_Rng), axisDist(m_Rng), axisDist(m_Rng) };
+        // 地面衝突するパーティクル（デブリ）は上半球方向に限定し、放物線を描いて飛び散らせる
+        if (m_Setting.GroundCollision)
+            dir.y = fabsf(dir.y);
         dir.normalize(); // 正規化しないと斜め方向が速くなる
 
         float life = lifeDist(m_Rng);
 
+        // 生成位置を少しばらつかせる（1点から噴き出す不自然さを消し、千切れた塊の見た目にする）
+        Vector3 jitter = { axisDist(m_Rng), axisDist(m_Rng), axisDist(m_Rng) };
+        jitter *= m_Setting.PositionJitter;
+
+        // このパーティクル固有の渦回転軸（ランダムな単位ベクトル）
+        Vector3 turbAxis = { axisDist(m_Rng), axisDist(m_Rng), axisDist(m_Rng) };
+        turbAxis.normalize();
+
+        float sizeMul = 1.0f + axisDist(m_Rng) * m_Setting.SizeVariance; // 個体ごとのサイズばらつき
+        float spin    = axisDist(m_Rng) * m_Setting.SpinSpeed;           // ±SpinSpeed の範囲でランダム自転
+
         p.Active      = true;
-        p.Position    = m_Position;
+        p.Position    = m_Position + jitter;
         p.Velocity    = dir * speed;
         p.LifeTime    = life;
         p.MaxLifeTime = life;
-        p.Size        = m_Setting.StartSize;
+        p.StartSize   = m_Setting.StartSize * sizeMul;
+        p.EndSize     = m_Setting.EndSize   * sizeMul;
+        p.Size        = p.StartSize;
         p.Rotation    = 0.0f;
+        p.SpinRate    = spin;
+        p.StartColor  = m_Setting.StartColor;
+        p.EndColor    = m_Setting.EndColor;
         p.Color       = m_Setting.StartColor;
+        p.Drag            = m_Setting.Drag;
+        p.Turbulence      = m_Setting.Turbulence;
+        p.TurbulenceAxis  = turbAxis;
+        p.BuoyancyDelay   = m_Setting.BuoyancyDelay;
+        p.BuoyancyForce   = m_Setting.BuoyancyForce;
+        p.TexturePath     = m_Setting.TexturePath;
+        p.Additive        = m_Setting.Additive;
+        p.GroundAligned   = m_Setting.GroundAligned;
+        p.GroundCollision = m_Setting.GroundCollision;
+        p.Bounciness      = m_Setting.Bounciness;
     }
 }

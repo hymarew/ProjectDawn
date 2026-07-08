@@ -24,7 +24,7 @@ void Camera::Init()
 
     m_Projection = XMMatrixPerspectiveFovLH(
         m_CurrentFov,
-        (float)SCREEN_WIDTH / SCREEN_HEIGHT, 1.0f, 1000.0f);
+        (float)SCREEN_WIDTH / SCREEN_HEIGHT, 1.0f, 1500.0f);
 
     // 初期モードを設定（Strategyを生成）
     SetMode(CameraMode::DEFAULT);
@@ -97,7 +97,7 @@ void Camera::UpdateZoom(float dt)
 
     m_Projection = XMMatrixPerspectiveFovLH(
         m_CurrentFov,
-        (float)SCREEN_WIDTH / SCREEN_HEIGHT, 1.0f, 1000.0f);
+        (float)SCREEN_WIDTH / SCREEN_HEIGHT, 1.0f, 1500.0f);
 }
 
 void Camera::ApplyShake()
