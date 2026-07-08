@@ -47,6 +47,12 @@
     <Filter Include="StageSystem">
       <UniqueIdentifier>{12C7EBE0-38C3-49B8-8052-1FE0C2A7222F}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Transition">
+      <UniqueIdentifier>{7FAEE5CB-02FB-4955-A15B-A14A88D1BD86}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Utility">
+      <UniqueIdentifier>{5DCB162C-96E8-4E28-A482-2ECC5806C6E6}</UniqueIdentifier>
+    </Filter>
     <Filter Include="UI">
       <UniqueIdentifier>{FB897A2F-E59C-40DF-B435-E9F7FAE980DC}</UniqueIdentifier>
     </Filter>
@@ -181,6 +187,51 @@
     <ClCompile Include="sceneManager.cpp">
       <Filter>Scene</Filter>
     </ClCompile>
+    <ClCompile Include="transitionBase.cpp">
+      <Filter>Transition</Filter>
+    </ClCompile>
+    <ClCompile Include="fadeTransition.cpp">
+      <Filter>Transition</Filter>
+    </ClCompile>
+    <ClCompile Include="transitionManager.cpp">
+      <Filter>Transition</Filter>
+    </ClCompile>
+    <ClCompile Include="fullScreenQuad.cpp">
+      <Filter>Transition</Filter>
+    </ClCompile>
+    <ClCompile Include="transitionParamsBuffer.cpp">
+      <Filter>Transition</Filter>
+    </ClCompile>
+    <ClCompile Include="wipeTransition.cpp">
+      <Filter>Transition</Filter>
+    </ClCompile>
+    <ClCompile Include="circleTransition.cpp">
+      <Filter>Transition</Filter>
+    </ClCompile>
+    <ClCompile Include="slideTransition.cpp">
+      <Filter>Transition</Filter>
+    </ClCompile>
+    <ClCompile Include="curtainTransition.cpp">
+      <Filter>Transition</Filter>
+    </ClCompile>
+    <ClCompile Include="screenCapture.cpp">
+      <Filter>Transition</Filter>
+    </ClCompile>
+    <ClCompile Include="mosaicTransition.cpp">
+      <Filter>Transition</Filter>
+    </ClCompile>
+    <ClCompile Include="renderTexture.cpp">
+      <Filter>Transition</Filter>
+    </ClCompile>
+    <ClCompile Include="blurTransition.cpp">
+      <Filter>Transition</Filter>
+    </ClCompile>
+    <ClCompile Include="distortionTransition.cpp">
+      <Filter>Transition</Filter>
+    </ClCompile>
+    <ClCompile Include="pixelDissolveTransition.cpp">
+      <Filter>Transition</Filter>
+    </ClCompile>
     <ClCompile Include="stageSelectScene.cpp">
       <Filter>Scene</Filter>
     </ClCompile>
@@ -236,9 +287,6 @@
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="explosion.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="fadeManager.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="field.cpp">
@@ -441,6 +489,60 @@
     <ClInclude Include="sceneManager.h">
       <Filter>Scene</Filter>
     </ClInclude>
+    <ClInclude Include="transitionType.h">
+      <Filter>Transition</Filter>
+    </ClInclude>
+    <ClInclude Include="iTransition.h">
+      <Filter>Transition</Filter>
+    </ClInclude>
+    <ClInclude Include="transitionBase.h">
+      <Filter>Transition</Filter>
+    </ClInclude>
+    <ClInclude Include="fadeTransition.h">
+      <Filter>Transition</Filter>
+    </ClInclude>
+    <ClInclude Include="transitionManager.h">
+      <Filter>Transition</Filter>
+    </ClInclude>
+    <ClInclude Include="fullScreenQuad.h">
+      <Filter>Transition</Filter>
+    </ClInclude>
+    <ClInclude Include="transitionParamsBuffer.h">
+      <Filter>Transition</Filter>
+    </ClInclude>
+    <ClInclude Include="wipeTransition.h">
+      <Filter>Transition</Filter>
+    </ClInclude>
+    <ClInclude Include="circleTransition.h">
+      <Filter>Transition</Filter>
+    </ClInclude>
+    <ClInclude Include="slideTransition.h">
+      <Filter>Transition</Filter>
+    </ClInclude>
+    <ClInclude Include="curtainTransition.h">
+      <Filter>Transition</Filter>
+    </ClInclude>
+    <ClInclude Include="screenCapture.h">
+      <Filter>Transition</Filter>
+    </ClInclude>
+    <ClInclude Include="mosaicTransition.h">
+      <Filter>Transition</Filter>
+    </ClInclude>
+    <ClInclude Include="renderTexture.h">
+      <Filter>Transition</Filter>
+    </ClInclude>
+    <ClInclude Include="blurTransition.h">
+      <Filter>Transition</Filter>
+    </ClInclude>
+    <ClInclude Include="distortionTransition.h">
+      <Filter>Transition</Filter>
+    </ClInclude>
+    <ClInclude Include="pixelDissolveTransition.h">
+      <Filter>Transition</Filter>
+    </ClInclude>
+    <ClInclude Include="easing.h">
+      <Filter>Utility</Filter>
+    </ClInclude>
     <ClInclude Include="stageSelectScene.h">
       <Filter>Scene</Filter>
     </ClInclude>
@@ -516,9 +618,6 @@
     <ClInclude Include="explosion.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="fadeManager.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
     <ClInclude Include="field.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
@@ -581,6 +680,9 @@
     <None Include="shader\commonFanc.hlsl">
       <Filter>シェーダーファイル</Filter>
     </None>
+    <None Include="shader\transitionCommon.hlsl">
+      <Filter>シェーダーファイル</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="shader\ShadowDepthPS.hlsl">
@@ -599,6 +701,24 @@
       <Filter>シェーダーファイル</Filter>
     </FxCompile>
     <FxCompile Include="shader\unlitTextureVS.hlsl">
+      <Filter>シェーダーファイル</Filter>
+    </FxCompile>
+    <FxCompile Include="shader\wipePS.hlsl">
+      <Filter>シェーダーファイル</Filter>
+    </FxCompile>
+    <FxCompile Include="shader\circlePS.hlsl">
+      <Filter>シェーダーファイル</Filter>
+    </FxCompile>
+    <FxCompile Include="shader\mosaicPS.hlsl">
+      <Filter>シェーダーファイル</Filter>
+    </FxCompile>
+    <FxCompile Include="shader\blurPS.hlsl">
+      <Filter>シェーダーファイル</Filter>
+    </FxCompile>
+    <FxCompile Include="shader\distortionPS.hlsl">
+      <Filter>シェーダーファイル</Filter>
+    </FxCompile>
+    <FxCompile Include="shader\pixelDissolvePS.hlsl">
       <Filter>シェーダーファイル</Filter>
     </FxCompile>
     <FxCompile Include="shader\TreeLeafPS.hlsl">

@@ -1,7 +1,7 @@
 #include "main.h"
 #include "storyCompleteScene.h"
 #include "sceneManager.h"
-#include "fadeManager.h"
+#include "transitionManager.h"
 #include "renderer.h"
 #include "input.h"
 
@@ -80,10 +80,10 @@ void StoryCompleteScene::Draw()
             IM_COL32(130, 130, 150, 200), guide);
     }
 
-    g_FadeManager.Draw();
-
     ImGui::Render();
     ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+
+    g_TransitionManager.Draw();
 
     Renderer::End();
 }

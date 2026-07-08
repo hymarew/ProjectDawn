@@ -1,6 +1,6 @@
 #include "main.h"
 #include "sceneManager.h"
-#include "fadeManager.h"
+#include "transitionManager.h"
 #include "titleScene.h"
 #include "menuScene.h"
 #include "stageSelectScene.h"
@@ -22,7 +22,7 @@ void SceneManager::Init()
     m_CurrentScene->Init();
 
     // 起動時はタイトルがフェードインして登場する
-    g_FadeManager.StartFadeIn();
+    g_TransitionManager.Play(TransitionType::Fade, TransitionMode::In);
 }
 
 // ---------------------------------------------------------
@@ -42,14 +42,14 @@ void SceneManager::Uninit()
 // ---------------------------------------------------------
 void SceneManager::Update(float dt)
 {
-    g_FadeManager.Update(dt);
+    g_TransitionManager.Update(dt);
 
     // FadeOut が完了した瞬間にシーンを切り替えて FadeIn を開始する
-    if (m_HasRequest && g_FadeManager.IsFinished())
+    if (m_HasRequest && g_TransitionManager.IsFinished())
     {
         ApplyChange();
         m_HasRequest = false;
-        g_FadeManager.StartFadeIn();
+        g_TransitionManager.Play(TransitionType::Fade, TransitionMode::In);
     }
 
     if (m_CurrentScene)
@@ -74,7 +74,7 @@ void SceneManager::RequestChange(SceneID id)
 
     m_NextSceneID = id;
     m_HasRequest  = true;
-    g_FadeManager.StartFadeOut();
+    g_TransitionManager.Play(TransitionType::Fade, TransitionMode::Out);
 }
 
 // ---------------------------------------------------------

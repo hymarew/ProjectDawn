@@ -1,7 +1,7 @@
 #include "main.h"
 #include "titleScene.h"
 #include "sceneManager.h"
-#include "fadeManager.h"
+#include "transitionManager.h"
 #include "renderer.h"
 #include "input.h"
 
@@ -58,12 +58,12 @@ void TitleScene::Draw()
     dl->AddText(ImGui::GetFont(), promptSize, ImVec2(px, py),
         IM_COL32(200, 200, 200, 255), prompt);
 
-    // フェードオーバーレイ
-    g_FadeManager.Draw();
-
     // ImGui の描画データを GPU に送る
     ImGui::Render();
     ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+
+    // トランジション（Fade等）オーバーレイ。全UIより手前に描画するためImGuiの後で呼ぶ
+    g_TransitionManager.Draw();
 
     Renderer::End();
 }

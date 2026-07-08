@@ -312,6 +312,25 @@ void Renderer::End()
 	m_SwapChain->Present( 1, 0 );
 }
 
+void Renderer::CopyBackBufferTo(ID3D11Texture2D* dest)
+{
+	ID3D11Resource* backBuffer = nullptr;
+	m_RenderTargetView->GetResource(&backBuffer);
+	m_DeviceContext->CopyResource(dest, backBuffer);
+	backBuffer->Release();
+}
+
+void Renderer::SetRenderTarget(ID3D11RenderTargetView* rtv)
+{
+	// ポストプロセスのオフスクリーンパスなので深度は使わない
+	m_DeviceContext->OMSetRenderTargets(1, &rtv, nullptr);
+}
+
+void Renderer::RestoreMainRenderTarget()
+{
+	m_DeviceContext->OMSetRenderTargets(1, &m_RenderTargetView, m_DepthStencilView);
+}
+
 
 
 

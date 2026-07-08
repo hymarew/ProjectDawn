@@ -190,6 +190,21 @@
     <ClCompile Include="menuScene.cpp" />
     <ClCompile Include="resultScene.cpp" />
     <ClCompile Include="sceneManager.cpp" />
+    <ClCompile Include="transitionBase.cpp" />
+    <ClCompile Include="fadeTransition.cpp" />
+    <ClCompile Include="transitionManager.cpp" />
+    <ClCompile Include="fullScreenQuad.cpp" />
+    <ClCompile Include="transitionParamsBuffer.cpp" />
+    <ClCompile Include="wipeTransition.cpp" />
+    <ClCompile Include="circleTransition.cpp" />
+    <ClCompile Include="slideTransition.cpp" />
+    <ClCompile Include="curtainTransition.cpp" />
+    <ClCompile Include="screenCapture.cpp" />
+    <ClCompile Include="mosaicTransition.cpp" />
+    <ClCompile Include="renderTexture.cpp" />
+    <ClCompile Include="blurTransition.cpp" />
+    <ClCompile Include="distortionTransition.cpp" />
+    <ClCompile Include="pixelDissolveTransition.cpp" />
     <ClCompile Include="stageSelectScene.cpp" />
     <ClCompile Include="storyCompleteScene.cpp" />
     <ClCompile Include="titleScene.cpp" />
@@ -213,7 +228,6 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="explosion.cpp" />
-    <ClCompile Include="fadeManager.cpp" />
     <ClCompile Include="field.cpp" />
     <ClCompile Include="grass.cpp" />
     <ClCompile Include="modelRenderer.cpp" />
@@ -281,6 +295,24 @@
     <ClInclude Include="resultScene.h" />
     <ClInclude Include="scene.h" />
     <ClInclude Include="sceneManager.h" />
+    <ClInclude Include="transitionType.h" />
+    <ClInclude Include="iTransition.h" />
+    <ClInclude Include="transitionBase.h" />
+    <ClInclude Include="fadeTransition.h" />
+    <ClInclude Include="transitionManager.h" />
+    <ClInclude Include="fullScreenQuad.h" />
+    <ClInclude Include="transitionParamsBuffer.h" />
+    <ClInclude Include="wipeTransition.h" />
+    <ClInclude Include="circleTransition.h" />
+    <ClInclude Include="slideTransition.h" />
+    <ClInclude Include="curtainTransition.h" />
+    <ClInclude Include="screenCapture.h" />
+    <ClInclude Include="mosaicTransition.h" />
+    <ClInclude Include="renderTexture.h" />
+    <ClInclude Include="blurTransition.h" />
+    <ClInclude Include="distortionTransition.h" />
+    <ClInclude Include="pixelDissolveTransition.h" />
+    <ClInclude Include="easing.h" />
     <ClInclude Include="stageSelectScene.h" />
     <ClInclude Include="storyCompleteScene.h" />
     <ClInclude Include="titleScene.h" />
@@ -310,7 +342,6 @@
     </ClInclude>
     <ClInclude Include="component.h" />
     <ClInclude Include="explosion.h" />
-    <ClInclude Include="fadeManager.h" />
     <ClInclude Include="field.h" />
     <ClInclude Include="GameConfig.h" />
     <ClInclude Include="gameObject.h" />
@@ -335,6 +366,10 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </None>
     <None Include="shader\commonFanc.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </None>
+    <None Include="shader\transitionCommon.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </None>
@@ -385,6 +420,54 @@
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
       <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">shader\%(Filename).cso</ObjectFileOutput>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.0</ShaderModel>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">shader\%(Filename).cso</ObjectFileOutput>
+    </FxCompile>
+    <FxCompile Include="shader\wipePS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">shader\%(Filename).cso</ObjectFileOutput>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.0</ShaderModel>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">shader\%(Filename).cso</ObjectFileOutput>
+    </FxCompile>
+    <FxCompile Include="shader\circlePS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">shader\%(Filename).cso</ObjectFileOutput>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.0</ShaderModel>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">shader\%(Filename).cso</ObjectFileOutput>
+    </FxCompile>
+    <FxCompile Include="shader\mosaicPS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">shader\%(Filename).cso</ObjectFileOutput>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.0</ShaderModel>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">shader\%(Filename).cso</ObjectFileOutput>
+    </FxCompile>
+    <FxCompile Include="shader\blurPS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">shader\%(Filename).cso</ObjectFileOutput>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.0</ShaderModel>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">shader\%(Filename).cso</ObjectFileOutput>
+    </FxCompile>
+    <FxCompile Include="shader\distortionPS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">shader\%(Filename).cso</ObjectFileOutput>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.0</ShaderModel>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">shader\%(Filename).cso</ObjectFileOutput>
+    </FxCompile>
+    <FxCompile Include="shader\pixelDissolvePS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">shader\%(Filename).cso</ObjectFileOutput>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.0</ShaderModel>
       <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">shader\%(Filename).cso</ObjectFileOutput>
     </FxCompile>

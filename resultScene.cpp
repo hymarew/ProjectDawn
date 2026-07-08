@@ -4,7 +4,7 @@
 #include "stageManager.h"
 #include "rankingManager.h"
 #include "gameContext.h"
-#include "fadeManager.h"
+#include "transitionManager.h"
 #include "renderer.h"
 #include "input.h"
 #include "playerLog.h"
@@ -294,10 +294,10 @@ void ResultScene::Draw()
         }
     }
 
-    g_FadeManager.Draw();
-
     ImGui::Render();
     ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+
+    g_TransitionManager.Draw();
 
     Renderer::End();
 }

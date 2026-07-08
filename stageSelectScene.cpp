@@ -2,7 +2,7 @@
 #include "stageSelectScene.h"
 #include "sceneManager.h"
 #include "gameContext.h"
-#include "fadeManager.h"
+#include "transitionManager.h"
 #include "renderer.h"
 #include "input.h"
 #include "DirectXTex.h"
@@ -224,10 +224,10 @@ void StageSelectScene::Draw()
             IM_COL32(120, 120, 140, 180), guide);
     }
 
-    g_FadeManager.Draw();
-
     ImGui::Render();
     ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+
+    g_TransitionManager.Draw();
 
     Renderer::End();
 }

@@ -100,5 +100,5 @@ extern SceneManager g_SceneManager;
 class StageManager;
 extern StageManager g_StageManager;
 
-class FadeManager;
-extern FadeManager g_FadeManager;
+class TransitionManager;
+extern TransitionManager g_TransitionManager;
