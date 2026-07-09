@@ -10,13 +10,32 @@
     "waves":
     [
         {
-            "spawnerCount": 2
+            "enemyCount": 30,
+            "aiState": "patrol",
+            "spawnX": 0,
+            "spawnY": 0,
+            "spawnZ": 150
         },
         {
-            "spawnerCount": 3
+            "enemyCount": 50,
+            "aiState": "active",
+            "spawnX": 0,
+            "spawnY": 0,
+            "spawnZ": 300
         },
         {
-            "spawnerCount": 4
+            "enemyCount": 70,
+            "aiState": "patrol",
+            "spawnX": 0,
+            "spawnY": 0,
+            "spawnZ": 450
+        },
+        {
+            "enemyCount": 100,
+            "aiState": "active",
+            "spawnX": 0,
+            "spawnY": 0,
+            "spawnZ": 600
         }
     ]
 }

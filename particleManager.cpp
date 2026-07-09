@@ -13,8 +13,12 @@
 //     ParticleManager::GetInstance().Emit(EffectType::Spark, 位置);
 // ===================================================
 
+#include "main.h"
 #include "particleManager.h"
 #include "GameConfig.h"
+#include "manager.h"
+#include "field.h"
+#include "explosion.h"
 
 // ---------------------------------------------------------
 // Init : プール・エミッタリストの初期化
@@ -58,6 +62,13 @@ void ParticleManager::Uninit()
 // ---------------------------------------------------------
 void ParticleManager::Update(float dt)
 {
+    // ---- 画面フラッシュのタイマーを更新 ----
+    if (m_FlashTimer > 0.0f)
+    {
+        m_FlashTimer -= dt;
+        if (m_FlashTimer < 0.0f) m_FlashTimer = 0.0f;
+    }
+
     // ---- 全エミッタを更新 ----
     // 各エミッタが放出タイミングになっていたらグローバルプールにパーティクルを追加する
     for (auto& emitter : m_Emitters)
@@ -77,11 +88,53 @@ void ParticleManager::Update(float dt)
         ParticleData& p = m_Pool[i];
         if (!p.Active) continue; // 非アクティブはスキップ
 
-        // 重力を速度に加算（dt をかけることでフレームレートに依存しない）
-        p.Velocity += m_Gravity * dt;
+        float age = p.MaxLifeTime - p.LifeTime; // 生成からの経過秒数
+
+        // ---- 渦（乱流） ----
+        // 速度に垂直な力を加えて軌道を乱し、不規則な渦を巻きながら形が崩れる見た目にする。
+        // 速度が Drag で落ちるほどこの影響も小さくなり、自然と乱流が収まっていく。
+        if (p.Turbulence > 0.0f)
+        {
+            Vector3 axis = p.TurbulenceAxis;
+            Vector3 vel  = p.Velocity;
+            p.Velocity += Vector3::corss(axis, vel) * p.Turbulence * dt;
+        }
+
+        // ---- 減速（空気抵抗） ----
+        // 爆風の勢いが時間とともに失われていく表現
+        if (p.Drag > 0.0f)
+            p.Velocity -= p.Velocity * (p.Drag * dt);
+
+        // ---- 重力 or 浮力 ----
+        // 一定時間（BuoyancyDelay）が経過すると、重力の代わりに緩やかな上向きの浮力に切り替わる。
+        // これにより「爆風で吹き飛ぶ→熱でゆっくり立ち上る」という2段階の動きになる。
+        Vector3 accel = m_Gravity;
+        if (p.BuoyancyDelay >= 0.0f && age > p.BuoyancyDelay)
+            accel = { 0.0f, p.BuoyancyForce, 0.0f };
+        p.Velocity += accel * dt;
 
         // 速度に従って位置を移動
         p.Position += p.Velocity * dt;
+
+        // ---- 地面衝突（デブリ用） ----
+        // 地面まで落ちてきたらバウンドし、勢いが十分小さくなったら静止する。
+        if (p.GroundCollision)
+        {
+            float groundY = GetGroundY();
+            if (p.Position.y <= groundY && p.Velocity.y < 0.0f)
+            {
+                p.Position.y  = groundY;
+                p.Velocity.y  = -p.Velocity.y * p.Bounciness; // 反発
+                p.Velocity.x *= 0.6f; // 摩擦で水平方向の勢いも減衰
+                p.Velocity.z *= 0.6f;
+
+                if (fabsf(p.Velocity.y) < 1.0f) // 跳ね返りが十分小さければ静止させる
+                    p.Velocity = { 0.0f, 0.0f, 0.0f };
+            }
+        }
+
+        // 自転（ビルボード面内の回転）。渦を巻いて形が崩れて見える効果を補強する
+        p.Rotation += p.SpinRate * dt;
 
         // 寿命を減らす
         p.LifeTime -= dt;
@@ -93,16 +146,11 @@ void ParticleManager::Update(float dt)
             continue;
         }
 
-        // ---- アルファ管理 ----
-        // unlitTexturePS.hlsl に「alpha < 0.5 → ピクセル破棄（discard）」がある。
-        // alpha を下げると途中で突然消えるため、常に 1.0 を維持する。
-        // フェードアウトを実装する場合はシェーダーの discard 行を削除すること。
-        p.Color.w = 1.0f;
-
-        // TODO: サイズ補間・色補間もここで行いたい
-        //       現状は ParticleData が ParticleSetting を参照できないため、
-        //       アルファフェードのみ実装している。
-        //       将来は ParticleData に settingIndex を持たせて設定を引くと良い。
+        // ---- サイズ・色（アルファ含む）の補間 ----
+        // 寿命の進行度(0=生成直後 → 1=消滅直前)に応じて Start→End を線形補間する。
+        float t = 1.0f - (p.LifeTime / p.MaxLifeTime);
+        p.Size  = LerpF(p.StartSize, p.EndSize, t);
+        p.Color = LerpColor(p.StartColor, p.EndColor, t);
     }
 }
 
@@ -133,12 +181,135 @@ void ParticleManager::Emit(EffectType type, Vector3 position)
     case EffectType::Spark:          setting = ParticlePreset::Spark();          break;
     case EffectType::SpawnerDestroy: setting = ParticlePreset::SpawnerDestroy(); break;
     case EffectType::BossAppear:     setting = ParticlePreset::BossAppear();     break;
+    case EffectType::Debris:         setting = ParticlePreset::Debris();         break;
+    case EffectType::ShockwaveRing:  setting = ParticlePreset::ShockwaveRing();  break;
     default:                         setting = ParticlePreset::Explosion();      break;
     }
 
+    Emit(setting, position);
+}
+
+// ---------------------------------------------------------
+// Emit : プリセットを直接指定してエフェクトを発生させる
+// ---------------------------------------------------------
+void ParticleManager::Emit(const ParticleSetting& setting, Vector3 position)
+{
     // エミッタを生成してリストに追加
     // unique_ptr を使っているのでメモリ管理は自動
     auto emitter = std::make_unique<ParticleEmitter>();
     emitter->Init(setting, position);
     m_Emitters.push_back(std::move(emitter));
+}
+
+// ---------------------------------------------------------
+// EmitScorpionHit : スコーピオン被弾演出
+// 「硬い装甲に弾丸が当たり、削れ、弾かれる」を複数の小エフェクトの重ねで表現する。
+// ヒットフラッシュ（モデルの白発光）は Scorpion 側のシェーダーが担当する。
+// ---------------------------------------------------------
+void ParticleManager::EmitScorpionHit(Vector3 position)
+{
+    using namespace GameConfig;
+    Emit(ParticlePreset::ArmorSpark (ScorpionFX::HIT_SPARK_COUNT),  position); // 火花（メイン）
+    Emit(ParticlePreset::ArmorDebris(ScorpionFX::HIT_DEBRIS_COUNT), position); // 装甲片
+    Emit(ParticlePreset::ArmorDust  (ScorpionFX::HIT_DUST_COUNT),   position); // 削り粉
+    Emit(ParticlePreset::ImpactRing (1.0f),                          position); // 衝撃リング
+}
+
+// ---------------------------------------------------------
+// EmitScorpionDeath : スコーピオン撃破演出
+// 爆発は使わず、装甲が限界を迎えて砕け散るイメージ。通常ヒットの強化版。
+// ---------------------------------------------------------
+void ParticleManager::EmitScorpionDeath(Vector3 position)
+{
+    using namespace GameConfig;
+    Emit(ParticlePreset::ArmorSpark (ScorpionFX::DEATH_SPARK_COUNT),  position);
+    Emit(ParticlePreset::ArmorDebris(ScorpionFX::DEATH_DEBRIS_COUNT,
+                                     ScorpionFX::DEATH_DEBRIS_SIZE_MUL), position);
+    Emit(ParticlePreset::ArmorDust  (ScorpionFX::DEATH_DUST_COUNT),   position);
+    Emit(ParticlePreset::ImpactRing (ScorpionFX::DEATH_RING_SIZE_MUL), position);
+}
+
+// ---------------------------------------------------------
+// EmitBigExplosion : 爆発演出一式（発光フラッシュ・火球・火花・デブリ・煙・爆風リング）を発生させる
+// ---------------------------------------------------------
+void ParticleManager::EmitBigExplosion(Vector3 position)
+{
+    // 1. 発光フラッシュ：画面全体を一瞬明るくする + 爆心地の強い発光（加算合成の火球パーティクルが担う）
+    TriggerScreenFlash(0.12f);
+
+    // 2. 火球：既存のスプライトアニメーション（Explosion.png）を大きめのスケールで再生
+    Explosion* fireball = Manager::AddGameObject<Explosion>();
+    fireball->SetPosition(position);
+    fireball->SetScale({ 8.0f, 8.0f, 8.0f });
+
+    // 3. 爆風リング：爆心地の高さに関わらず、常に地面の高さで這うように拡大させる
+    Vector3 ringPosition = position;
+    ringPosition.y = GetGroundY();
+    Emit(EffectType::ShockwaveRing, ringPosition);
+
+    // 4. 火球パーティクル：加算合成の炎の塊（発光フラッシュの一部も兼ねる）
+    Emit(EffectType::Explosion, position);
+
+    // 5. 火花：全方向へ飛び散り、重力で落下・減速しながら消えていく
+    Emit(EffectType::Spark, position);
+
+    // 6. デブリ（破片）：放物線を描いて飛び散り、地面でバウンド／静止する
+    Emit(EffectType::Debris, position);
+
+    // 7. 煙：爆風で勢いよく広がった後、ゆっくり立ち上りながら消えていく
+    Emit(EffectType::Smoke, position);
+}
+
+// ---------------------------------------------------------
+// EmitHeal : 回復演出
+// 「生命エネルギーが身体へ流れ込む」柔らかい演出。爆発や煙は使わない。
+// ---------------------------------------------------------
+void ParticleManager::EmitHeal(Vector3 position)
+{
+    Emit(ParticlePreset::HealSparkle(GameConfig::HealItem::PARTICLE_COUNT), position);
+}
+
+// ---------------------------------------------------------
+// TriggerScreenFlash : 画面全体を一瞬明るくするフラッシュを開始する
+// ---------------------------------------------------------
+void ParticleManager::TriggerScreenFlash(float duration)
+{
+    m_FlashDuration = duration;
+    m_FlashTimer    = duration;
+}
+
+// ---------------------------------------------------------
+// DrawScreenFlash : 画面フラッシュの描画（ImGui::Render() の直前に呼ぶ）
+// ---------------------------------------------------------
+void ParticleManager::DrawScreenFlash()
+{
+    if (m_FlashTimer <= 0.0f || m_FlashDuration <= 0.0f) return;
+
+    // 経過とともに急速に減衰させる（発生直後が最も明るい）
+    float t     = m_FlashTimer / m_FlashDuration;
+    float alpha = t * t;
+
+    ImDrawList* dl = ImGui::GetForegroundDrawList();
+    ImU32 col = IM_COL32(255, 255, 255, (int)(alpha * 255.0f));
+    dl->AddRectFilled(
+        ImVec2(0.0f, 0.0f),
+        ImVec2((float)SCREEN_WIDTH, (float)SCREEN_HEIGHT),
+        col);
+}
+
+// ---------------------------------------------------------
+// GetGroundY : Field オブジェクトの高さを地面座標として取得する（見つからなければ 0.0f）
+// ---------------------------------------------------------
+float ParticleManager::GetGroundY()
+{
+    if (!m_GroundYCached)
+    {
+        Field* field = Manager::GetGameObject<Field>();
+        if (field)
+        {
+            m_GroundY       = field->GetPosition().y;
+            m_GroundYCached = true;
+        }
+    }
+    return m_GroundY;
 }

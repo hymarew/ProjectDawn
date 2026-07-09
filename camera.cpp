@@ -1,4 +1,4 @@
-#include "main.h"
+﻿#include "main.h"
 #include "manager.h"
 #include "renderer.h"
 #include "camera.h"
@@ -18,13 +18,13 @@ Camera* Camera::m_MainCamera = nullptr;
 void Camera::Init()
 {
     m_Layer      = 0;
-    m_Position   = { 0.0f, 5.0f, -10.0f };
+    m_Position   = { 0.0f, 1.0f, -10.0f };
     m_MainCamera = this;
     m_CurrentFov = GameConfig::Camera::FOV_TPS;
 
     m_Projection = XMMatrixPerspectiveFovLH(
         m_CurrentFov,
-        (float)SCREEN_WIDTH / SCREEN_HEIGHT, 1.0f, 1000.0f);
+        (float)SCREEN_WIDTH / SCREEN_HEIGHT, 1.0f, 1500.0f);
 
     // 初期モードを設定（Strategyを生成）
     SetMode(CameraMode::DEFAULT);
@@ -97,7 +97,7 @@ void Camera::UpdateZoom(float dt)
 
     m_Projection = XMMatrixPerspectiveFovLH(
         m_CurrentFov,
-        (float)SCREEN_WIDTH / SCREEN_HEIGHT, 1.0f, 1000.0f);
+        (float)SCREEN_WIDTH / SCREEN_HEIGHT, 1.0f, 1500.0f);
 }
 
 void Camera::ApplyShake()

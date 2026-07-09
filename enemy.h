@@ -29,7 +29,9 @@ public:
     virtual const char* GetTypeName() const    { return "Enemy"; }
 
     // ---- 生成 / 破棄 ----
-    virtual void Spawn(const Vector3& pos, GameObject* target);
+    // startActive: true ならChase（Active）、false ならIdle（巡回）から開始する。
+    // 実際のAI状態の切り替えは子クラス（Scorpion等）が担当する。
+    virtual void Spawn(const Vector3& pos, GameObject* target, bool startActive = true);
     virtual void Kill();
 
     // ① 攻撃を受けたとき：自分を起こし、③ 周囲へ通知する
@@ -55,6 +57,11 @@ protected:
 
     // ③ 攻撃を受けたとき呼ばれる（子クラスが周囲への通知を実装）
     virtual void OnDamaged() {}
+
+    // HPが0になったとき呼ばれる。デフォルトは即 Kill()。
+    // 子クラスが死亡演出（フラッシュ・装甲崩壊エフェクト等）を挟みたい場合に
+    // オーバーライドし、演出終了後に自分で Kill() を呼ぶ。
+    virtual void OnDeath() { Kill(); }
 
     GameObject* m_Target            = nullptr;
     float       m_Hp                = 0.0f;

@@ -1,9 +1,11 @@
 #include "main.h"
 #include "enemy.h"
 #include "manager.h"
+#include "healItem.h"
 #include "GameConfig.h"
 #include "playerLog.h"
 #include <algorithm>
+#include <cstdlib>
 
 std::vector<Enemy*> Enemy::s_ActiveList;
 int                 Enemy::s_KillCount = 0;
@@ -23,8 +25,9 @@ void Enemy::Uninit()
 
 // =====================================================
 // Spawn : アクティブリストに登録して起こす
+// startActive は基底クラスでは使用しない（子クラスがAI状態決定に使う）
 // =====================================================
-void Enemy::Spawn(const Vector3& pos, GameObject* target)
+void Enemy::Spawn(const Vector3& pos, GameObject* target, bool /*startActive*/)
 {
     m_IsActive          = true;
     m_Hp                = 0.0f;
@@ -49,6 +52,14 @@ void Enemy::Kill()
 
     ++s_KillCount;
     g_PlayerLog.enemyKills[GetTypeName()]++;
+
+    // 一定確率で回復アイテムをドロップする（倒れた場所の地面に配置）
+    if ((float)rand() / RAND_MAX < GameConfig::HealItem::DROP_RATE)
+    {
+        Vector3 dropPos = m_Position;
+        dropPos.y = 0.0f;
+        Manager::AddGameObject<HealItem>()->SetPosition(dropPos);
+    }
 }
 
 // =====================================================
@@ -81,9 +92,12 @@ void Enemy::Update(float dt)
 // =====================================================
 void Enemy::TakeDamage(float dmg)
 {
+    // すでに死亡している（死亡演出中を含む）敵には二重にダメージを与えない
+    if (m_Hp <= 0.0f) return;
+
     Alert();       // ① 自分が攻撃されたらアクティブになる
     m_Hp -= dmg;
     OnDamaged();   // ③ 周囲への通知（子クラスが実装）
     if (m_Hp <= 0.0f)
-        Kill();
+        OnDeath(); // デフォルトは即 Kill()。子クラスは死亡演出を挟める
 }

@@ -17,6 +17,11 @@ private:
     int m_ShotsFired = 0;
     int m_ShotsHit   = 0;
 
+    // スプラッシュ弾（ロケット）を現在位置で爆発させる。
+    // 範囲内の敵・スポナーへダメージ/ノックバックを与え、大爆発エフェクトを再生して弾を消す。
+    // 敵への直撃時と地面ヒット時の両方から呼ばれる。
+    void ExplodeSplash(Bullet& bullet, EnemyPool& enemyPool);
+
 public:
     BulletPool()  {}
     ~BulletPool() {}

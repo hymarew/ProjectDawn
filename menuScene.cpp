@@ -2,7 +2,7 @@
 #include "menuScene.h"
 #include "sceneManager.h"
 #include "gameContext.h"
-#include "fadeManager.h"
+#include "transitionManager.h"
 #include "renderer.h"
 #include "input.h"
 #include "mouse.h"
@@ -116,10 +116,10 @@ void MenuScene::Draw()
         dl->AddText(font, sz, ImVec2(tx, y), col, s_Items[i]);
     }
 
-    g_FadeManager.Draw();
-
     ImGui::Render();
     ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+
+    g_TransitionManager.Draw();
 
     Renderer::End();
 }

@@ -17,6 +17,9 @@ public:
     bool IsAlive() const { return m_Life > 0.0f; }
 
 private:
+    // パーティクルを1つ生成してプールへ書き込む（通常放出・バースト放出の共通処理）
+    void EmitOne(ParticleData* pool, int poolSize, int& nextFree);
+
     ParticleSetting m_Setting;
     Vector3         m_Position;
     float           m_Life;       // エミッタの残り寿命（秒）

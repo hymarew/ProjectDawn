@@ -23,8 +23,10 @@
 
 #include "GameConfig.h"
 #include "colliderDebugRenderer.h"
-#include "fadeManager.h"
+#include "transitionManager.h"
 #include "saveManager.h"
+#include "particleManager.h"
+#include "healItem.h"
 
 //インスタンス
 std::list<GameObject*> Manager::m_GameObject;
@@ -38,6 +40,52 @@ bool g_ShowDebugUI       = false;
 bool g_ShowColliderDebug = false;
 Camera* Manager::m_Camera = nullptr;
 
+// ---------------------------------------------------------
+// トランジションデバッグボタンの自動往復（Out再生→覆いきる→0.5秒待機→In再生）
+// ---------------------------------------------------------
+namespace
+{
+    enum class DebugTransitionState { Idle, WaitingForCover, DelayBeforeReveal };
+
+    DebugTransitionState s_DebugTransitionState = DebugTransitionState::Idle;
+    TransitionType       s_DebugTransitionType  = TransitionType::Fade;
+    float                s_DebugReturnTimer     = 0.0f;
+    constexpr float       DEBUG_RETURN_DELAY    = 0.5f; // 覆いきってからInを再生するまでの待ち時間（秒）
+
+    void PlayDebugTransition(TransitionType type)
+    {
+        g_TransitionManager.Play(type, TransitionMode::Out);
+        s_DebugTransitionType  = type;
+        s_DebugTransitionState = DebugTransitionState::WaitingForCover;
+    }
+
+    void UpdateDebugTransitionAutoReturn(float dt)
+    {
+        switch (s_DebugTransitionState)
+        {
+        case DebugTransitionState::WaitingForCover:
+            // Out再生が終わる（画面を覆いきる）まで待つ
+            if (!g_TransitionManager.IsPlaying())
+            {
+                s_DebugTransitionState = DebugTransitionState::DelayBeforeReveal;
+                s_DebugReturnTimer     = DEBUG_RETURN_DELAY;
+            }
+            break;
+
+        case DebugTransitionState::DelayBeforeReveal:
+            s_DebugReturnTimer -= dt;
+            if (s_DebugReturnTimer <= 0.0f)
+            {
+                g_TransitionManager.Play(s_DebugTransitionType, TransitionMode::In);
+                s_DebugTransitionState = DebugTransitionState::Idle;
+            }
+            break;
+
+        default:
+            break;
+        }
+    }
+}
 
 void Manager::Init()
 {
@@ -46,6 +94,10 @@ void Manager::Init()
 	g_ShadowRenderer->Init();
 	InputManager::Init();
 	Audio::InitMaster();
+
+	// トランジション（Fade等）のGPUリソースを用意する。
+	// SceneManager::Init() が起動直後にFadeInを再生するため、それより前に呼ぶ必要がある。
+	g_TransitionManager.Init();
 
 	// セーブデータをロードする。ファイルがなければデフォルト値で新規生成して保存する。
 	// SceneManager::Init より前に呼ぶことで、初回シーン（TitleScene）表示前にデータが揃う。
@@ -60,6 +112,8 @@ void Manager::Uninit()
 {
 	g_SceneManager.Uninit();
 
+	g_TransitionManager.Uninit();
+
 	g_ShadowRenderer->Uninit();
 	delete g_ShadowRenderer;
 	Audio::UninitMaster();
@@ -73,6 +127,9 @@ void Manager::Update(float dt)
 
 	// 現在のシーンを更新
 	g_SceneManager.Update(dt);
+
+	// トランジションデバッグボタンの自動往復（Out完了→0.5秒待機→In）
+	UpdateDebugTransitionAutoReturn(dt);
 }
 
 void Manager::Draw()
@@ -238,6 +295,79 @@ void Manager::ImGuiDraw()
 		g_DamageVisualizer.SetMode((DamageDisplayMode)dmode);
 	}
 
+	// ===== パーティクルデバッグ =====
+	if (ImGui::CollapsingHeader("Particle Debug"))
+	{
+		const Vector3 debugPos = { 0.0f, 3.0f, 0.0f };
+		ImGui::Text("Spawn Position: (%.1f, %.1f, %.1f)", debugPos.x, debugPos.y, debugPos.z);
+
+		auto& particleManager = ParticleManager::GetInstance();
+		if (ImGui::Button("Explosion"))      particleManager.Emit(EffectType::Explosion,      debugPos);
+		ImGui::SameLine();
+		if (ImGui::Button("MuzzleFlash"))    particleManager.Emit(EffectType::MuzzleFlash,    debugPos);
+		ImGui::SameLine();
+		if (ImGui::Button("Hit"))            particleManager.Emit(EffectType::Hit,            debugPos);
+
+		if (ImGui::Button("Smoke"))          particleManager.Emit(EffectType::Smoke,          debugPos);
+		ImGui::SameLine();
+		if (ImGui::Button("Spark"))          particleManager.Emit(EffectType::Spark,          debugPos);
+		ImGui::SameLine();
+		if (ImGui::Button("SpawnerDestroy")) particleManager.Emit(EffectType::SpawnerDestroy, debugPos);
+
+		if (ImGui::Button("BossAppear"))     particleManager.Emit(EffectType::BossAppear,     debugPos);
+
+		ImGui::SeparatorText("Full Explosion Sequence");
+		// 発光フラッシュ→火球→火花→デブリ→煙→爆風リングを一括再生する
+		if (ImGui::Button("Big Explosion")) particleManager.EmitBigExplosion(debugPos);
+
+		ImGui::SeparatorText("Scorpion Armor FX");
+		// 装甲被弾/撃破演出（火花・装甲片・粉・衝撃リングの合成。フラッシュは実際の被弾時のみ）
+		if (ImGui::Button("Scorpion Hit"))   particleManager.EmitScorpionHit(debugPos);
+		ImGui::SameLine();
+		if (ImGui::Button("Scorpion Death")) particleManager.EmitScorpionDeath(debugPos);
+
+		ImGui::SeparatorText("Heal Item");
+		if (ImGui::Button("Heal FX")) particleManager.EmitHeal(debugPos);
+		ImGui::SameLine();
+		// プレイヤーの前方3mに回復アイテムを配置する（取得テスト用）
+		if (ImGui::Button("Spawn HealItem"))
+		{
+			Player* p = Manager::GetGameObject<Player>();
+			if (p)
+			{
+				Vector3 pos = p->GetPosition();
+				pos.z += 3.0f;
+				Manager::AddGameObject<HealItem>()->SetPosition(pos);
+			}
+		}
+	}
+
+	// ===== トランジションデバッグ =====
+	// ボタン1つで Out再生→覆いきる→0.5秒待機→In再生 まで自動で行う。
+	// （Out単体だと画面が覆われたままになりデバッグUIが隠れて操作できなくなるため）
+	if (ImGui::CollapsingHeader("Transition Debug"))
+	{
+		ImGui::Text("State: %s", g_TransitionManager.IsPlaying() ? "Playing" : "Idle");
+
+		if (ImGui::Button("Fade"))          PlayDebugTransition(TransitionType::Fade);
+		ImGui::SameLine();
+		if (ImGui::Button("Wipe"))          PlayDebugTransition(TransitionType::Wipe);
+		ImGui::SameLine();
+		if (ImGui::Button("Circle"))        PlayDebugTransition(TransitionType::Circle);
+		ImGui::SameLine();
+		if (ImGui::Button("Slide"))         PlayDebugTransition(TransitionType::Slide);
+
+		if (ImGui::Button("Curtain"))       PlayDebugTransition(TransitionType::Curtain);
+		ImGui::SameLine();
+		if (ImGui::Button("Mosaic"))        PlayDebugTransition(TransitionType::Mosaic);
+		ImGui::SameLine();
+		if (ImGui::Button("Blur"))          PlayDebugTransition(TransitionType::Blur);
+		ImGui::SameLine();
+		if (ImGui::Button("Distortion"))    PlayDebugTransition(TransitionType::Distortion);
+
+		if (ImGui::Button("PixelDissolve")) PlayDebugTransition(TransitionType::PixelDissolve);
+	}
+
 	// =============== ここに移動！ ================
 	InputVisualizer::Draw();
 	// =============================================
@@ -265,11 +395,16 @@ void Manager::ImGuiDraw()
 		dl->AddLine(ImVec2(cx, cy + gap), ImVec2(cx, cy + len + gap), col, 1.5f);
 	}
 
-	// フェードオーバーレイ（他のUIより手前に描画する）
-	g_FadeManager.Draw();
+	// 爆発の画面フラッシュ（フェードより奥、他の描画より手前に表示する）
+	ParticleManager::GetInstance().DrawScreenFlash();
 
 	ImGui::Render();
 	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+
+	// トランジション（Fade等）オーバーレイ。
+	// ImGui描画の後に呼ぶことで、ポーズメニュー等の全UIより手前に確実に描画される。
+	// (Transitionは独自シェーダーを使う raw な D3D 描画のため、ImGuiのDrawListより後段になる)
+	g_TransitionManager.Draw();
 }
 
 void Manager::DebugSystemInfo()

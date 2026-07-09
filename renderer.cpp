@@ -25,6 +25,7 @@ ID3D11DepthStencilState* Renderer::m_DepthStateDisable{};
 
 ID3D11BlendState*		Renderer::m_BlendState{};
 ID3D11BlendState*		Renderer::m_BlendStateATC{};
+ID3D11BlendState*		Renderer::m_BlendStateAdditive{};
 
 //以下shadowマップ用 コメントはヘッダー参照
 ID3D11Texture2D*			Renderer::g_ShadowTexture{};	
@@ -154,6 +155,12 @@ void Renderer::Init()
 
 	blendDesc.AlphaToCoverageEnable = TRUE;
 	m_Device->CreateBlendState( &blendDesc, &m_BlendStateATC );
+
+	// 加算合成ブレンドステート（爆炎・火花・爆風リングなど「光る」エフェクト用）
+	blendDesc.AlphaToCoverageEnable = FALSE;
+	blendDesc.RenderTarget[0].SrcBlend  = D3D11_BLEND_SRC_ALPHA;
+	blendDesc.RenderTarget[0].DestBlend = D3D11_BLEND_ONE;
+	m_Device->CreateBlendState( &blendDesc, &m_BlendStateAdditive );
 
 	float blendFactor[4] = {0.0f, 0.0f, 0.0f, 0.0f};
 	m_DeviceContext->OMSetBlendState(m_BlendState, blendFactor, 0xffffffff );
@@ -305,6 +312,25 @@ void Renderer::End()
 	m_SwapChain->Present( 1, 0 );
 }
 
+void Renderer::CopyBackBufferTo(ID3D11Texture2D* dest)
+{
+	ID3D11Resource* backBuffer = nullptr;
+	m_RenderTargetView->GetResource(&backBuffer);
+	m_DeviceContext->CopyResource(dest, backBuffer);
+	backBuffer->Release();
+}
+
+void Renderer::SetRenderTarget(ID3D11RenderTargetView* rtv)
+{
+	// ポストプロセスのオフスクリーンパスなので深度は使わない
+	m_DeviceContext->OMSetRenderTargets(1, &rtv, nullptr);
+}
+
+void Renderer::RestoreMainRenderTarget()
+{
+	m_DeviceContext->OMSetRenderTargets(1, &m_RenderTargetView, m_DepthStencilView);
+}
+
 
 
 
@@ -328,6 +354,16 @@ void Renderer::SetATCEnable( bool Enable )
 	else
 		m_DeviceContext->OMSetBlendState(m_BlendState, blendFactor, 0xffffffff);
 
+}
+
+void Renderer::SetAdditiveBlend(bool Enable)
+{
+	float blendFactor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+
+	if (Enable)
+		m_DeviceContext->OMSetBlendState(m_BlendStateAdditive, blendFactor, 0xffffffff);
+	else
+		m_DeviceContext->OMSetBlendState(m_BlendState, blendFactor, 0xffffffff);
 }
 
 void Renderer::SetWorldViewProjection2D()

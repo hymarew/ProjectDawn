@@ -17,7 +17,8 @@ public:
     void    Uninit();
     void    Update(float dt);
 
-    Enemy*  SpawnEnemy(const Vector3& pos, GameObject* target);
+    // startActive: true ならChase（Active）、false ならIdle（巡回）で生成する
+    Enemy*  SpawnEnemy(const Vector3& pos, GameObject* target, bool startActive = true);
 
     int     GetActiveCount() const { return (int)Enemy::GetActiveList().size(); }
     int     GetKillCount()   const { return Enemy::GetTotalKills(); }

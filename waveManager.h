@@ -10,12 +10,19 @@ class Player;
 // stageData.h の WaveData（JSON 由来）とは別物。
 // WaveData.spawnerCount から SpawnerCount を取り、
 // SpawnRate / AnnounceDuration はゲーム側で付与する。
+//
+// EnemyCount > 0 のときは直接生成方式（スポナーを使わずWave開始時に
+// SpawnPos 周辺へ EnemyCount 体を一斉生成する）を使う。
 // =====================================================
 struct WaveConfig
 {
-    int   SpawnerCount;      // このWaveで生成するスポナー数
+    int   SpawnerCount;      // このWaveで生成するスポナー数（スポナー方式）
     float SpawnRate;         // スポナー1体あたりの生成速度（体/秒）
     float AnnounceDuration;  // "WAVE X" 表示時間（秒）
+
+    int     EnemyCount  = 0;     // 一斉生成する敵数（直接生成方式。0なら未使用）
+    bool    StartActive = true;  // true: Chase（Active）から開始 / false: Idle（巡回）から開始
+    Vector3 SpawnPos    = {};    // 固定生成座標
 };
 
 // =====================================================
@@ -88,9 +95,12 @@ private:
     char m_AnnounceText[32] = {};
 
     // 次 Wave 開始までの待機時間（秒）
-    static constexpr float NEXT_WAVE_DELAY  = 3.0f;
+    static constexpr float NEXT_WAVE_DELAY  = 5.0f;
 
     // スポナーのランダム配置距離（プレイヤー原点からの距離）
     static constexpr float SPAWNER_MIN_DIST = 15.0f;
     static constexpr float SPAWNER_MAX_DIST = 30.0f;
+
+    // 直接生成方式: 固定座標周辺に敵をばらけさせるオフセット半径（同一座標への重なり防止）
+    static constexpr float ENEMY_SPAWN_OFFSET_RANGE = 20.0f;
 };

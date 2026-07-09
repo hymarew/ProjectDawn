@@ -19,8 +19,10 @@ void main(in PS_IN In, out float4 outDiffuse : SV_Target)
 		outDiffuse = In.Diffuse;
 	}
 	
-	    // --- 修正：アルファ値が低い（透明な）ピクセルは描画自体を破棄する ---
-    if (outDiffuse.a < 0.5f)
+	    // --- ほぼ完全に透明なピクセルだけ描画を破棄する ---
+    // （0.5だとパーティクルのフェードアウトが半分で急に消えてしまうため、
+    //   ブレンドで自然に消えるギリギリまでしきい値を下げている）
+    if (outDiffuse.a < 0.01f)
     {
         discard; // ピクセルを破棄（Zバッファにも書き込まれなくなる）
     }

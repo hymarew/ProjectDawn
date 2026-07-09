@@ -68,6 +68,7 @@ private:
 
 	static ID3D11BlendState*		m_BlendState;
 	static ID3D11BlendState*		m_BlendStateATC;
+	static ID3D11BlendState*		m_BlendStateAdditive;
 
 	//以下shadowマップ用
 	static ID3D11Texture2D* g_ShadowTexture;	//shadowマップの本体(Depth値)
@@ -87,6 +88,7 @@ public:
 
 	static void SetDepthEnable(bool Enable);
 	static void SetATCEnable(bool Enable);
+	static void SetAdditiveBlend(bool Enable); // true: 加算合成（光るエフェクト用）、false: 通常のアルファブレンドに戻す
 	static void SetWorldViewProjection2D();
 	static void SetWorldMatrix(XMMATRIX WorldMatrix);
 	static void SetViewMatrix(XMMATRIX ViewMatrix);
@@ -99,6 +101,13 @@ public:
 	static ID3D11DeviceContext* GetDeviceContext( void ){ return m_DeviceContext; }
 	static void CreateVertexShader(ID3D11VertexShader** VertexShader, ID3D11InputLayout** VertexLayout, const char* FileName);
 	static void CreatePixelShader(ID3D11PixelShader** PixelShader, const char* FileName);
+
+	// 現在のバックバッファの内容を dest へコピーする（Mosaic/Blur/Distortion等の画面キャプチャ用）
+	static void CopyBackBufferTo(ID3D11Texture2D* dest);
+
+	// オフスクリーンレンダーターゲットへの切り替え/復帰（Blur等のマルチパス処理用）
+	static void SetRenderTarget(ID3D11RenderTargetView* rtv);
+	static void RestoreMainRenderTarget();
 
 	//shadowマップ用
 	static void CreateShadowMap(void);
