@@ -79,6 +79,10 @@ struct ParticleSetting
     bool  GroundAligned   = false; // true: 地面に水平な板として描画する（ビルボードにしない）
     bool  GroundCollision = false; // true: 地面衝突でバウンド／静止する（デブリ用）
     float Bounciness      = 0.0f;  // 地面衝突時の反発係数（0〜1）
+
+    // 0より大きい場合、SpawnPerSec を無視して初回Updateで正確にこの数だけ放出して終了する。
+    // 「火花を必ず15個」のようにフレームレートに依存せず個数を保証したいバースト演出に使う。
+    int   BurstCount      = 0;
 };
 
 // 線形補間ヘルパー
@@ -236,6 +240,105 @@ namespace ParticlePreset
         s.SizeVariance    = 0.3f;
         s.GroundCollision = true;  // 地面に届いたらバウンド／静止する
         s.Bounciness      = 0.35f; // 反発係数（跳ねるたびに勢いが減っていく）
+        return s;
+    }
+
+    // =====================================================
+    // スコーピオン装甲エフェクト群
+    // 「硬い外骨格に弾丸が当たり、削れ、弾かれる」印象を作る。
+    // 生成数は引数で渡す（通常ヒットと撃破で使い回すため）。
+    // 調整値は GameConfig::ScorpionFX を参照。
+    // =====================================================
+
+    // 装甲火花: メインエフェクト。白黄→オレンジで硬い装甲に弾かれた印象を作る。
+    inline ParticleSetting ArmorSpark(int count)
+    {
+        ParticleSetting s{};
+        s.MinLife  = 0.15f; s.MaxLife  = 0.4f;
+        s.MinSpeed = 6.0f;  s.MaxSpeed = 20.0f; // 弾かれた勢い（ランダム360°）
+        s.StartSize = 0.25f; s.EndSize = 0.1f;  // 飛びながら小さくなる
+        s.StartColor = { 1.0f, 0.95f, 0.7f, 1.0f }; // 白〜黄
+        s.EndColor   = { 1.0f, 0.45f, 0.05f, 0.0f }; // オレンジへ変化しつつフェード
+        s.TexturePath = L"asset\\texture\\particle.png";
+        s.Drag         = 3.0f;  // 徐々に減速（毎フレーム×0.95相当）
+        s.SpinSpeed    = 6.0f;
+        s.SizeVariance = 0.5f;
+        s.Additive     = true;  // 加算合成で光らせる
+        s.BurstCount   = count;
+        return s;
+    }
+
+    // 装甲片: 削れた外骨格の破片。黒・灰の小片が重力で落ち、回転しながら飛ぶ。
+    // white.png（ハードエッジの矩形）を暗く着色することで四角い破片に見せる。
+    inline ParticleSetting ArmorDebris(int count, float sizeMul = 1.0f)
+    {
+        ParticleSetting s{};
+        s.MinLife  = 0.6f; s.MaxLife  = 1.2f;
+        s.MinSpeed = 4.0f; s.MaxSpeed = 10.0f;
+        s.StartSize = 0.14f * sizeMul; s.EndSize = 0.12f * sizeMul;
+        s.StartColor = { 0.16f, 0.14f, 0.12f, 1.0f }; // 黒〜焦げ茶
+        s.EndColor   = { 0.10f, 0.10f, 0.10f, 0.0f }; // 灰色に沈みながらフェード
+        s.TexturePath = L"asset\\texture\\white.png";
+        s.Drag            = 0.3f;  // 重い破片なので空気抵抗は弱い（重力で放物線を描く）
+        s.SpinSpeed       = 10.0f; // 激しく回転しながら飛ぶ
+        s.SizeVariance    = 0.5f;
+        s.GroundCollision = true;  // 地面でバウンドして転がる
+        s.Bounciness      = 0.3f;
+        s.BurstCount      = count;
+        return s;
+    }
+
+    // 削り粉: 煙ではなく「削れた粉」。命中点から少し広がってすぐ消える。
+    inline ParticleSetting ArmorDust(int count)
+    {
+        ParticleSetting s{};
+        s.MinLife  = 0.15f; s.MaxLife  = 0.3f; // 仕様: 0.15〜0.30秒
+        s.MinSpeed = 1.0f;  s.MaxSpeed = 3.0f; // 少し広がる程度
+        s.StartSize = 0.35f; s.EndSize = 0.9f; // 広がりながら薄れる
+        s.StartColor = { 0.5f, 0.45f, 0.38f, 0.55f }; // 灰〜茶の粉
+        s.EndColor   = { 0.35f, 0.32f, 0.28f, 0.0f };
+        s.TexturePath = L"asset\\texture\\smoke.png";
+        s.BuoyancyDelay = 0.0f; s.BuoyancyForce = 0.0f; // 重力無効（その場で漂って消える）
+        s.SizeVariance  = 0.4f;
+        s.BurstCount    = count;
+        return s;
+    }
+
+    // 衝撃リング: 命中点で小→大に一瞬で広がる衝撃波（カメラ向きビルボード）。
+    inline ParticleSetting ImpactRing(float sizeMul = 1.0f)
+    {
+        ParticleSetting s{};
+        s.MinLife  = 0.15f; s.MaxLife = 0.15f; // 仕様: 約0.15秒
+        s.MinSpeed = 0.0f;  s.MaxSpeed = 0.0f; // その場でサイズだけ拡大
+        s.StartSize = 0.3f; s.EndSize = 2.2f * sizeMul;
+        s.StartColor = { 1.0f, 1.0f, 0.9f, 0.9f };  // 白い閃光
+        s.EndColor   = { 1.0f, 0.8f, 0.5f, 0.0f };  // 広がりながら消える
+        s.TexturePath = L"asset\\texture\\particle.png";
+        s.BuoyancyDelay = 0.0f; s.BuoyancyForce = 0.0f; // 重力無効
+        s.Additive   = true;
+        s.BurstCount = 1;
+        return s;
+    }
+
+    // 回復キラキラ: 「生命エネルギーが身体へ流れ込む」柔らかく幻想的な演出。
+    // プレイヤー中心から小さな光の粒がふわっと上昇し、少し揺れながら透明になって消える。
+    // 緑をメインに黄緑・白を混ぜた色で、加算合成によりほんのり発光する。
+    inline ParticleSetting HealSparkle(int count)
+    {
+        ParticleSetting s{};
+        s.MinLife  = 0.8f; s.MaxLife  = 1.2f; // 仕様: 約0.8〜1.2秒
+        s.MinSpeed = 0.5f; s.MaxSpeed = 2.0f; // ゆっくり・少しランダムに拡散
+        s.StartSize = 0.25f; s.EndSize = 0.08f; // 小さめの光の粒。縮小しながら消える
+        s.StartColor = { 0.55f, 1.0f, 0.55f, 1.0f }; // 黄緑〜白っぽい光
+        s.EndColor   = { 0.1f,  0.9f, 0.35f, 0.0f }; // 緑に落ち着きながらフェードアウト
+        s.TexturePath = L"asset\\texture\\particle.png";
+        s.BuoyancyDelay  = 0.0f;  // 重力を無効化し、
+        s.BuoyancyForce  = 2.0f;  // 緩やかな上昇力で「ふわっと舞い上がる」動きにする
+        s.Turbulence     = 1.5f;  // 少し揺れる
+        s.PositionJitter = 0.6f;  // プレイヤーの身体の周囲から湧き出す
+        s.SizeVariance   = 0.5f;
+        s.Additive       = true;  // 軽い発光（爆発のような強い光にはしない）
+        s.BurstCount     = count;
         return s;
     }
 

@@ -36,39 +36,16 @@ void BulletPool::Update(float dt, EnemyPool& enemyPool)
 
         for (auto* e : enemyPool.GetActiveEnemies())
         {
+            // 死亡演出中（HP0だがまだ消えていない）の敵は弾が素通りする
+            if (e->GetHp() <= 0.0f) continue;
+
             Vector3 diff = e->GetPosition() - bullet.position;
             if (diff.LengthSq() < kHitDist2)
             {
                 if (bullet.splashRadius > 0.0f)
                 {
-                    const float splashR2 = bullet.splashRadius * bullet.splashRadius;
-                    for (auto* splash : enemyPool.GetActiveEnemies())
-                    {
-                        Vector3 d = splash->GetPosition() - bullet.position;
-                        if (d.LengthSq() < splashR2)
-                        {
-                            splash->TakeDamage(bullet.damage);
-                            g_DamageVisualizer.Add(splash->GetPosition(), bullet.damage);
-                            if (bullet.knockbackPower > 0.0f)
-                            {
-                                float len = d.Length();
-                                if (len > 0.01f)
-                                    splash->AddKnockback(d * (1.0f / len), bullet.knockbackPower);
-                            }
-                        }
-                    }
-                    for (auto* spawner : m_Spawners)
-                    {
-                        if (spawner->IsDestroyed()) continue;
-                        Vector3 d = spawner->GetPosition() - bullet.position;
-                        if (d.LengthSq() < splashR2)
-                        {
-                            spawner->TakeDamage(bullet.damage);
-                            g_DamageVisualizer.Add(spawner->GetPosition(), bullet.damage);
-                        }
-                    }
-                    Camera* cam = Manager::GetCamera();
-                    if (cam) cam->Shake(0.3f, 0.2f);
+                    // ロケット弾: 直撃地点で爆発（範囲ダメージ + 大爆発エフェクト）
+                    ExplodeSplash(bullet, enemyPool);
                 }
                 else
                 {
@@ -80,17 +57,23 @@ void BulletPool::Update(float dt, EnemyPool& enemyPool)
                         if (cam) cam->Shake(0.15f, 0.1f);
                     }
                     g_DamageVisualizer.Add(e->GetPosition(), bullet.damage);
+
+                    // 通常弾: 硬い装甲に弾かれる被弾演出（火花・装甲片・粉・衝撃リング）。爆発はしない
+                    ParticleManager::GetInstance().EmitScorpionHit(bullet.position);
+                    bullet.isActive = false;
                 }
-
-                Manager::AddGameObject<Explosion>()->SetPosition(bullet.position);
-                ParticleManager::GetInstance().Emit(EffectType::Spark, bullet.position);
-
-                bullet.isActive = false;
                 break;
             }
         }
 
         if (!bullet.isActive) continue;
+
+        // スプラッシュ弾（ロケット）は地面に当たっても爆発する（地面撃ちで範囲攻撃ができる）
+        if (bullet.splashRadius > 0.0f && bullet.position.y <= 0.0f)
+        {
+            ExplodeSplash(bullet, enemyPool);
+            continue;
+        }
 
         if (bullet.splashRadius <= 0.0f)
         {
@@ -108,8 +91,9 @@ void BulletPool::Update(float dt, EnemyPool& enemyPool)
                     spawner->TakeDamage(bullet.damage);
                     g_DamageVisualizer.Add(spawner->GetPosition(), bullet.damage);
 
+                    // スポナー破壊時は大爆発演出（発光フラッシュ・火球・火花・デブリ・煙・爆風リング）
                     if (spawner->IsDestroyed())
-                        Manager::AddGameObject<Explosion>()->SetPosition(spawner->GetPosition());
+                        ParticleManager::GetInstance().EmitBigExplosion(spawner->GetPosition());
 
                     bullet.isActive = false;
                     break;
@@ -123,6 +107,57 @@ void BulletPool::Update(float dt, EnemyPool& enemyPool)
         if (bullet.lifeTime <= 0.0f)
             bullet.isActive = false;
     }
+}
+
+// =====================================================
+// ExplodeSplash : スプラッシュ弾（ロケット）を現在位置で爆発させる
+// 敵への直撃時と地面ヒット時の両方から呼ばれる共通処理。
+// =====================================================
+void BulletPool::ExplodeSplash(Bullet& bullet, EnemyPool& enemyPool)
+{
+    const float splashR2 = bullet.splashRadius * bullet.splashRadius;
+
+    // 範囲内の敵全員へダメージ + ノックバック
+    for (auto* splash : enemyPool.GetActiveEnemies())
+    {
+        if (splash->GetHp() <= 0.0f) continue; // 死亡演出中はスキップ
+
+        Vector3 d = splash->GetPosition() - bullet.position;
+        if (d.LengthSq() < splashR2)
+        {
+            splash->TakeDamage(bullet.damage);
+            g_DamageVisualizer.Add(splash->GetPosition(), bullet.damage);
+            if (bullet.knockbackPower > 0.0f)
+            {
+                float len = d.Length();
+                if (len > 0.01f)
+                    splash->AddKnockback(d * (1.0f / len), bullet.knockbackPower);
+            }
+        }
+    }
+
+    // 範囲内のスポナーへダメージ（破壊されたら大爆発）
+    for (auto* spawner : m_Spawners)
+    {
+        if (spawner->IsDestroyed()) continue;
+        Vector3 d = spawner->GetPosition() - bullet.position;
+        if (d.LengthSq() < splashR2)
+        {
+            spawner->TakeDamage(bullet.damage);
+            g_DamageVisualizer.Add(spawner->GetPosition(), bullet.damage);
+
+            if (spawner->IsDestroyed())
+                ParticleManager::GetInstance().EmitBigExplosion(spawner->GetPosition());
+        }
+    }
+
+    Camera* cam = Manager::GetCamera();
+    if (cam) cam->Shake(0.3f, 0.2f);
+
+    // 大爆発演出（発光フラッシュ・火球・火花・デブリ・煙・爆風リング）
+    ParticleManager::GetInstance().EmitBigExplosion(bullet.position);
+
+    bullet.isActive = false;
 }
 
 Bullet* BulletPool::Spawn(const Vector3& pos, const Vector3& velocity, float lifeTime, float damage,

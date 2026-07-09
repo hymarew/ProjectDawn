@@ -57,6 +57,14 @@ public:
 
     // source : 攻撃した敵タイプ名（"Alien" など）。ログ記録に使用
     void  TakeDamage(float dmg, const char* source = "Alien");
+
+    // HP回復（最大HPを超えないようClampする）。回復アイテム等から呼ばれる
+    void  Heal(float amount)
+    {
+        m_Hp += amount;
+        if (m_Hp > GetMaxHp()) m_Hp = GetMaxHp();
+    }
+
     float GetHp()    const { return m_Hp; }
     float GetMaxHp() const { return GameConfig::Player::MAX_HP; }
     bool  IsAlive()  const { return m_Hp > 0.0f; }

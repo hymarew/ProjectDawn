@@ -5,6 +5,7 @@
 #include "renderer.h"
 #include "modelRenderer.h"
 #include "sphereCollider.h"
+#include "particleManager.h"
 #include "GameConfig.h"
 #include <cstdlib>
 #include <cmath>
@@ -12,7 +13,15 @@
 ID3D11VertexShader* Scorpion::m_VertexShader = nullptr;
 ID3D11PixelShader*  Scorpion::m_PixelShader  = nullptr;
 ID3D11InputLayout*  Scorpion::m_VertexLayout = nullptr;
+ID3D11Buffer*       Scorpion::m_FlashBuffer  = nullptr;
 bool                Scorpion::m_IsLoaded     = false;
+
+// FlashBuffer(b9) のCPU側ミラー。ScorpionPS.hlsl とレイアウトを一致させること
+struct FlashCB
+{
+    float Intensity;
+    float Dummy[3];
+};
 
 // ---- XZ 平面ユーティリティ ----
 static float SLen2D(const Vector3& v) { return sqrtf(v.x * v.x + v.z * v.z); }
@@ -31,6 +40,7 @@ void Scorpion::ReleaseShaders()
     if (m_VertexShader) { m_VertexShader->Release(); m_VertexShader = nullptr; }
     if (m_PixelShader)  { m_PixelShader->Release();  m_PixelShader  = nullptr; }
     if (m_VertexLayout) { m_VertexLayout->Release();  m_VertexLayout = nullptr; }
+    if (m_FlashBuffer)  { m_FlashBuffer->Release();   m_FlashBuffer  = nullptr; }
     m_IsLoaded = false;
 }
 
@@ -51,6 +61,14 @@ void Scorpion::Init()
         Renderer::CreateVertexShader(&m_VertexShader, &m_VertexLayout,
             "shader\\ShadowMapLightingVS.cso");
         Renderer::CreatePixelShader(&m_PixelShader, "shader\\ScorpionPS.cso");
+
+        // ヒットフラッシュ用の定数バッファ（b9, 全個体共有。値は個体ごとに描画直前に書き込む）
+        D3D11_BUFFER_DESC bd{};
+        bd.Usage     = D3D11_USAGE_DEFAULT;
+        bd.ByteWidth = sizeof(FlashCB);
+        bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+        Renderer::GetDevice()->CreateBuffer(&bd, nullptr, &m_FlashBuffer);
+
         m_IsLoaded = true;
     }
 
@@ -79,6 +97,9 @@ void Scorpion::Spawn(const Vector3& pos, GameObject* target, bool startActive)
     m_TailShotCooldown = 0.0f;
     m_TailShotWindup   = 0.0f;
     m_TailShotReady    = false;
+    m_FlashIntensity   = 0.0f;
+    m_FlashDecay       = 0.0f;
+    m_DyingTimer       = 0.0f;
 
     float range      = GameConfig::Scorpion::SURROUND_OFFSET;
     m_SurroundOffset = (((float)rand() / RAND_MAX) * 2.0f - 1.0f) * range;
@@ -98,11 +119,19 @@ void Scorpion::Alert()
 // =====================================================
 void Scorpion::UpdateAI(float dt)
 {
+    // ヒットフラッシュの減衰（どの状態でも共通）
+    if (m_FlashIntensity > 0.0f)
+    {
+        m_FlashIntensity -= dt * m_FlashDecay;
+        if (m_FlashIntensity < 0.0f) m_FlashIntensity = 0.0f;
+    }
+
     switch (m_State)
     {
     case EnemyState::Idle:    UpdateIdle    (dt); break;
     case EnemyState::Chase:   UpdateChase   (dt); break;
     case EnemyState::TailShot:UpdateTailShot(dt); break;
+    case EnemyState::Dying:   UpdateDying   (dt); break;
     }
 }
 
@@ -124,11 +153,47 @@ void Scorpion::AlertNearby()
 }
 
 // =====================================================
-// OnDamaged : 攻撃を受けたとき周囲の仲間を起こす（③）
+// OnDamaged : 攻撃を受けたとき周囲の仲間を起こす（③）+ ヒットフラッシュ
 // =====================================================
 void Scorpion::OnDamaged()
 {
     AlertNearby();
+
+    // モデル全体を一瞬白く発光させる（硬い装甲に弾かれた衝撃の表現）
+    m_FlashIntensity = 1.0f;
+    m_FlashDecay     = GameConfig::ScorpionFX::FLASH_DECAY;
+}
+
+// =====================================================
+// OnDeath : 即消滅せず死亡演出（Dying）へ遷移する
+// 爆発は使わず「装甲が限界を迎えて砕け散る」イメージ。
+// =====================================================
+void Scorpion::OnDeath()
+{
+    m_State      = EnemyState::Dying;
+    m_DyingTimer = GameConfig::ScorpionFX::DEATH_DURATION;
+    m_Velocity   = {};
+
+    // 通常より強く・長いフラッシュ
+    m_FlashIntensity = 1.0f;
+    m_FlashDecay     = GameConfig::ScorpionFX::DEATH_FLASH_DECAY;
+
+    // 装甲崩壊エフェクト（火花大量・大きめの装甲片・粉・衝撃リング）
+    Vector3 fxPos = GetPosition();
+    fxPos.y += 1.0f; // 地面ギリギリではなく胴体の高さから飛び散らせる
+    ParticleManager::GetInstance().EmitScorpionDeath(fxPos);
+}
+
+// =====================================================
+// UpdateDying : 死亡演出中。フラッシュを見せてからモデルを消す
+// =====================================================
+void Scorpion::UpdateDying(float dt)
+{
+    m_Velocity = {};
+
+    m_DyingTimer -= dt;
+    if (m_DyingTimer <= 0.0f)
+        Kill(); // エフェクト再生後にモデル消滅（アクティブリストから除外）
 }
 
 // =====================================================
@@ -303,6 +368,11 @@ void Scorpion::Draw()
     Renderer::SetLight(Light);
     ctx->VSSetShader(m_VertexShader, nullptr, 0);
     ctx->PSSetShader(m_PixelShader,  nullptr, 0);
+
+    // 個体ごとのヒットフラッシュ強度をシェーダー(b9)へ書き込む
+    FlashCB flash = { m_FlashIntensity, { 0.0f, 0.0f, 0.0f } };
+    ctx->UpdateSubresource(m_FlashBuffer, 0, nullptr, &flash, 0, 0);
+    ctx->PSSetConstantBuffers(9, 1, &m_FlashBuffer);
 
     XMMATRIX world = XMMatrixScaling(m_Scale.x, m_Scale.y, m_Scale.z)
                    * XMMatrixRotationRollPitchYaw(m_Rotation.x, m_Rotation.y, m_Rotation.z)

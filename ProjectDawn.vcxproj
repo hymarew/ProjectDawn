@@ -229,6 +229,8 @@
     </ClCompile>
     <ClCompile Include="explosion.cpp" />
     <ClCompile Include="field.cpp" />
+    <ClCompile Include="healItem.cpp" />
+    <ClCompile Include="damageEffectManager.cpp" />
     <ClCompile Include="grass.cpp" />
     <ClCompile Include="modelRenderer.cpp" />
     <ClCompile Include="playerLog.cpp" />
@@ -343,6 +345,8 @@
     <ClInclude Include="component.h" />
     <ClInclude Include="explosion.h" />
     <ClInclude Include="field.h" />
+    <ClInclude Include="healItem.h" />
+    <ClInclude Include="damageEffectManager.h" />
     <ClInclude Include="GameConfig.h" />
     <ClInclude Include="gameObject.h" />
     <ClInclude Include="grass.h" />

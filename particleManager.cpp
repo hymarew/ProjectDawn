@@ -186,11 +186,47 @@ void ParticleManager::Emit(EffectType type, Vector3 position)
     default:                         setting = ParticlePreset::Explosion();      break;
     }
 
+    Emit(setting, position);
+}
+
+// ---------------------------------------------------------
+// Emit : プリセットを直接指定してエフェクトを発生させる
+// ---------------------------------------------------------
+void ParticleManager::Emit(const ParticleSetting& setting, Vector3 position)
+{
     // エミッタを生成してリストに追加
     // unique_ptr を使っているのでメモリ管理は自動
     auto emitter = std::make_unique<ParticleEmitter>();
     emitter->Init(setting, position);
     m_Emitters.push_back(std::move(emitter));
+}
+
+// ---------------------------------------------------------
+// EmitScorpionHit : スコーピオン被弾演出
+// 「硬い装甲に弾丸が当たり、削れ、弾かれる」を複数の小エフェクトの重ねで表現する。
+// ヒットフラッシュ（モデルの白発光）は Scorpion 側のシェーダーが担当する。
+// ---------------------------------------------------------
+void ParticleManager::EmitScorpionHit(Vector3 position)
+{
+    using namespace GameConfig;
+    Emit(ParticlePreset::ArmorSpark (ScorpionFX::HIT_SPARK_COUNT),  position); // 火花（メイン）
+    Emit(ParticlePreset::ArmorDebris(ScorpionFX::HIT_DEBRIS_COUNT), position); // 装甲片
+    Emit(ParticlePreset::ArmorDust  (ScorpionFX::HIT_DUST_COUNT),   position); // 削り粉
+    Emit(ParticlePreset::ImpactRing (1.0f),                          position); // 衝撃リング
+}
+
+// ---------------------------------------------------------
+// EmitScorpionDeath : スコーピオン撃破演出
+// 爆発は使わず、装甲が限界を迎えて砕け散るイメージ。通常ヒットの強化版。
+// ---------------------------------------------------------
+void ParticleManager::EmitScorpionDeath(Vector3 position)
+{
+    using namespace GameConfig;
+    Emit(ParticlePreset::ArmorSpark (ScorpionFX::DEATH_SPARK_COUNT),  position);
+    Emit(ParticlePreset::ArmorDebris(ScorpionFX::DEATH_DEBRIS_COUNT,
+                                     ScorpionFX::DEATH_DEBRIS_SIZE_MUL), position);
+    Emit(ParticlePreset::ArmorDust  (ScorpionFX::DEATH_DUST_COUNT),   position);
+    Emit(ParticlePreset::ImpactRing (ScorpionFX::DEATH_RING_SIZE_MUL), position);
 }
 
 // ---------------------------------------------------------
@@ -222,6 +258,15 @@ void ParticleManager::EmitBigExplosion(Vector3 position)
 
     // 7. 煙：爆風で勢いよく広がった後、ゆっくり立ち上りながら消えていく
     Emit(EffectType::Smoke, position);
+}
+
+// ---------------------------------------------------------
+// EmitHeal : 回復演出
+// 「生命エネルギーが身体へ流れ込む」柔らかい演出。爆発や煙は使わない。
+// ---------------------------------------------------------
+void ParticleManager::EmitHeal(Vector3 position)
+{
+    Emit(ParticlePreset::HealSparkle(GameConfig::HealItem::PARTICLE_COUNT), position);
 }
 
 // ---------------------------------------------------------

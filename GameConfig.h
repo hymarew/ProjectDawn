@@ -33,6 +33,74 @@ namespace GameConfig
         constexpr float SURROUND_OFFSET  =   2.0f;  // 横方向ずれの最大量
     }
 
+    // =====================================================
+    // DamageEffect : 被弾時のUI演出調整値（画面全体の赤フラッシュ/カメラシェイクは使わない方針）
+    // =====================================================
+    namespace DamageEffect
+    {
+        // HUD全体シェイク
+        constexpr float SHAKE_DURATION   = 0.15f; // 揺れる時間（秒）
+        constexpr float SHAKE_MAX_OFFSET = 4.0f;  // 最大オフセット（px, X/Y共通）
+
+        // HPゲージ赤フラッシュ
+        constexpr float HP_FLASH_DURATION = 0.2f; // 赤→元の色に戻るまでの時間（秒）
+
+        // 被弾時の赤ビネット（0%→35%→0%）
+        constexpr float HIT_VIGNETTE_DURATION   = 0.25f;
+        constexpr float HIT_VIGNETTE_MAX_ALPHA  = 0.35f;
+        constexpr float HIT_VIGNETTE_RISE_RATIO = 0.3f; // durationのうち立ち上がりに使う割合
+
+        // 低HP心拍ビネット（HP30%以下でループ）
+        constexpr float LOW_HP_RATIO        = 0.3f;  // これ以下で心拍演出が始まる
+        constexpr float HEARTBEAT_PERIOD    = 1.0f;  // 周期（秒）
+        constexpr float HEARTBEAT_MIN_ALPHA = 0.15f;
+        constexpr float HEARTBEAT_MAX_ALPHA = 0.30f;
+
+        // ビネットの描画幅（画面端からこのピクセル数だけ内側までグラデーションする）
+        constexpr float VIGNETTE_SIZE = 220.0f;
+    }
+
+    // =====================================================
+    // HealItem : 回復アイテムの調整値
+    // =====================================================
+    namespace HealItem
+    {
+        constexpr float HEAL_RATIO      = 0.1f;  // 回復量 = 最大HP × この割合
+        constexpr float PICKUP_RADIUS   = 1.5f;  // 取得判定の半径（コライダー半径）
+        constexpr int   PARTICLE_COUNT  = 30;    // 回復エフェクトの粒子数（20〜40目安）
+        constexpr float MODEL_SCALE     = 3.0f;  // HealBox モデルの表示スケール
+        constexpr float DROP_RATE       = 0.1f;  // 敵撃破時にドロップする確率（0〜1）
+    }
+
+    // =====================================================
+    // ScorpionFX : スコーピオンのヒット/撃破エフェクト調整値
+    // 「硬い外骨格に弾丸が当たり、削れ、弾かれる」印象を重視。
+    // 爆発ではなく火花・装甲片・粉・衝撃波の組み合わせで表現する。
+    // =====================================================
+    namespace ScorpionFX
+    {
+        // ---- ヒットフラッシュ（モデル全体の白発光） ----
+        constexpr float FLASH_DECAY       = 20.0f; // 通常ヒット: 1.0→0 まで約0.05秒
+        constexpr float DEATH_FLASH_DECAY =  6.0f; // 撃破時: 通常より長め（約0.17秒）
+
+        // ---- 撃破演出 ----
+        constexpr float DEATH_DURATION = 0.25f; // 撃破からモデル消滅までの時間（秒）
+
+        // ---- 生成数（通常ヒット） ----
+        constexpr int HIT_SPARK_COUNT  = 15; // 火花（メイン。12〜20目安）
+        constexpr int HIT_DEBRIS_COUNT =  5; // 装甲片（3〜8目安）
+        constexpr int HIT_DUST_COUNT   =  3; // 粉
+
+        // ---- 生成数（撃破時） ----
+        constexpr int DEATH_SPARK_COUNT  = 30; // 通常の約2倍
+        constexpr int DEATH_DEBRIS_COUNT = 18; // 15〜20目安
+        constexpr int DEATH_DUST_COUNT   =  8;
+
+        // ---- サイズ倍率（撃破時は通常より大きめ） ----
+        constexpr float DEATH_DEBRIS_SIZE_MUL = 1.8f;
+        constexpr float DEATH_RING_SIZE_MUL   = 1.6f;
+    }
+
     namespace Collision
     {
         constexpr float SCORPION_RADIUS = 2.5f;
@@ -127,7 +195,7 @@ namespace GameConfig
         constexpr float FPS_HEIGHT        = 1.5f;
         constexpr float TPS_TARGET_HEIGHT = 2.0f;
         constexpr float TPS_DISTANCE      = 5.0f;
-        constexpr float TPS_HEIGHT_OFFSET = 2.0f;
+        constexpr float TPS_HEIGHT_OFFSET = 1.0f;
         constexpr float DEFAULT_TARGET_Y  = 2.0f;
         constexpr float DEFAULT_DISTANCE  = 10.0f;
         constexpr float DEFAULT_HEIGHT    = 5.0f;

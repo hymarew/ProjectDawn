@@ -2,6 +2,7 @@
 #include "sceneManager.h"
 #include "transitionManager.h"
 #include "titleScene.h"
+#include <cstdlib>
 #include "menuScene.h"
 #include "stageSelectScene.h"
 #include "storyCompleteScene.h"
@@ -14,6 +15,27 @@
 SceneManager g_SceneManager;
 
 // ---------------------------------------------------------
+// PickRandomTransitionType : 登録されている全種別からランダムに1つ選ぶ
+// 新しいTransitionTypeを追加したらここにも1行足すこと
+// ---------------------------------------------------------
+TransitionType SceneManager::PickRandomTransitionType()
+{
+    static const TransitionType kTypes[] = {
+        TransitionType::Fade,
+        TransitionType::Wipe,
+        TransitionType::Circle,
+        TransitionType::Slide,
+        TransitionType::Curtain,
+        TransitionType::Mosaic,
+        TransitionType::Blur,
+        TransitionType::Distortion,
+        TransitionType::PixelDissolve,
+    };
+    constexpr int kCount = sizeof(kTypes) / sizeof(kTypes[0]);
+    return kTypes[rand() % kCount];
+}
+
+// ---------------------------------------------------------
 // Init : タイトルシーンからスタート、FadeIn で登場
 // ---------------------------------------------------------
 void SceneManager::Init()
@@ -21,7 +43,7 @@ void SceneManager::Init()
     m_CurrentScene = std::make_unique<TitleScene>();
     m_CurrentScene->Init();
 
-    // 起動時はタイトルがフェードインして登場する
+    // 起動時はタイトルがフェードインして登場する（起動時だけは固定のFadeにしておく）
     g_TransitionManager.Play(TransitionType::Fade, TransitionMode::In);
 }
 
@@ -44,12 +66,12 @@ void SceneManager::Update(float dt)
 {
     g_TransitionManager.Update(dt);
 
-    // FadeOut が完了した瞬間にシーンを切り替えて FadeIn を開始する
+    // Out が完了した瞬間にシーンを切り替えて In を開始する（Out と同じ種類を使う）
     if (m_HasRequest && g_TransitionManager.IsFinished())
     {
         ApplyChange();
         m_HasRequest = false;
-        g_TransitionManager.Play(TransitionType::Fade, TransitionMode::In);
+        g_TransitionManager.Play(m_TransitionType, TransitionMode::In);
     }
 
     if (m_CurrentScene)
@@ -66,15 +88,16 @@ void SceneManager::Draw()
 }
 
 // ---------------------------------------------------------
-// RequestChange : FadeOut を起動してから次フレームに切り替える
+// RequestChange : ランダムなトランジションのOutを起動してから次フレームに切り替える
 // ---------------------------------------------------------
 void SceneManager::RequestChange(SceneID id)
 {
     if (m_HasRequest) return;  // 二重リクエスト防止
 
-    m_NextSceneID = id;
-    m_HasRequest  = true;
-    g_TransitionManager.Play(TransitionType::Fade, TransitionMode::Out);
+    m_NextSceneID     = id;
+    m_HasRequest       = true;
+    m_TransitionType   = PickRandomTransitionType(); // Out/Inで同じ種類を使う
+    g_TransitionManager.Play(m_TransitionType, TransitionMode::Out);
 }
 
 // ---------------------------------------------------------

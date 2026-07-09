@@ -4,6 +4,14 @@
 Texture2D g_Texture : register(t0);
 SamplerState g_SamplerState : register(s0);
 
+// ヒットフラッシュ用（被弾した瞬間モデル全体を白く発光させる）
+// C++側は Scorpion::Draw() が個体ごとの FlashIntensity を書き込む
+cbuffer FlashBuffer : register(b9)
+{
+    float  FlashIntensity; // 0=通常表示, 1=真っ白
+    float3 FlashDummy;
+}
+
 void main(in PS_IN In, out float4 outDiffuse : SV_Target)
 {
     // ベースカラー（テクスチャまたは頂点カラー × マテリアルDiffuse）
@@ -73,5 +81,10 @@ void main(in PS_IN In, out float4 outDiffuse : SV_Target)
     float shadowFactor = CalcShadowFactor(In.ShadowPos);
 
     float3 finalColor = (diffuse + specular + fresnelGlow + rimLight) * shadowFactor + emissive;
+
+    // --- ヒットフラッシュ ---
+    // 被弾した瞬間だけモデル全体を白へ寄せる（FlashIntensity は毎フレーム減衰する）
+    finalColor = lerp(finalColor, float3(1.0f, 1.0f, 1.0f), saturate(FlashIntensity));
+
     outDiffuse = float4(finalColor, baseColor.a);
 }

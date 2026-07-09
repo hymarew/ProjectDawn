@@ -26,6 +26,7 @@
 #include "transitionManager.h"
 #include "saveManager.h"
 #include "particleManager.h"
+#include "healItem.h"
 
 //インスタンス
 std::list<GameObject*> Manager::m_GameObject;
@@ -318,6 +319,27 @@ void Manager::ImGuiDraw()
 		ImGui::SeparatorText("Full Explosion Sequence");
 		// 発光フラッシュ→火球→火花→デブリ→煙→爆風リングを一括再生する
 		if (ImGui::Button("Big Explosion")) particleManager.EmitBigExplosion(debugPos);
+
+		ImGui::SeparatorText("Scorpion Armor FX");
+		// 装甲被弾/撃破演出（火花・装甲片・粉・衝撃リングの合成。フラッシュは実際の被弾時のみ）
+		if (ImGui::Button("Scorpion Hit"))   particleManager.EmitScorpionHit(debugPos);
+		ImGui::SameLine();
+		if (ImGui::Button("Scorpion Death")) particleManager.EmitScorpionDeath(debugPos);
+
+		ImGui::SeparatorText("Heal Item");
+		if (ImGui::Button("Heal FX")) particleManager.EmitHeal(debugPos);
+		ImGui::SameLine();
+		// プレイヤーの前方3mに回復アイテムを配置する（取得テスト用）
+		if (ImGui::Button("Spawn HealItem"))
+		{
+			Player* p = Manager::GetGameObject<Player>();
+			if (p)
+			{
+				Vector3 pos = p->GetPosition();
+				pos.z += 3.0f;
+				Manager::AddGameObject<HealItem>()->SetPosition(pos);
+			}
+		}
 	}
 
 	// ===== トランジションデバッグ =====

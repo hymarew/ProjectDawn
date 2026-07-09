@@ -1,6 +1,7 @@
 #pragma once
 #include <memory>
 #include "scene.h"
+#include "transitionType.h"
 
 // =====================================================
 // SceneID : 遷移先を指定するID
@@ -43,6 +44,12 @@ private:
     std::unique_ptr<Scene> m_CurrentScene;       // 現在動いているシーン
     SceneID                m_NextSceneID;         // 遷移先ID
     bool                   m_HasRequest = false;  // 遷移リクエストがあるか
+
+    // シーン切り替え1回分でOut/Inに同じ種類を使うため、RequestChange時に選んで保持しておく
+    TransitionType m_TransitionType = TransitionType::Fade;
+
+    // 登録されている全トランジション種別からランダムに1つ選ぶ
+    static TransitionType PickRandomTransitionType();
 
     // 実際にシーンを切り替える（Updateの先頭で呼ばれる）
     void ApplyChange();

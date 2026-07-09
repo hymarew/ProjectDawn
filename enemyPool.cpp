@@ -40,7 +40,9 @@ Enemy* EnemyPool::SpawnEnemy(const Vector3& pos, GameObject* target, bool startA
 {
     for (Scorpion* s : m_Pool)
     {
-        if (!s->IsAlive())
+        // IsAlive()（HP判定）ではなく m_IsActive で空きスロットを判定する。
+        // HP0でも死亡演出中の個体はまだ画面に存在するため、再利用してはいけない。
+        if (!s->m_IsActive)
         {
             s->Spawn(pos, target, startActive);
             return s;

@@ -20,6 +20,8 @@
 #include "polygon2D.h"
 #include "field.h"
 #include "player.h"
+#include "healItem.h"
+#include "damageEffectManager.h"
 #include "enemy.h"
 #include "enemyPool.h"
 #include "scorpion.h"
@@ -70,6 +72,9 @@ void GameScene::Init()
     Manager::AddGameObject<Field>();
 
     Player* player = Manager::AddGameObject<Player>();
+
+    // 動作確認用の回復アイテム（接触で最大HPの10%回復）
+    Manager::AddGameObject<HealItem>()->SetPosition({ 5.0f, 0.0f, -5.0f });
 
     g_BulletPool.Init(1000);
     g_BulletManager.Init();
@@ -259,6 +264,9 @@ void GameScene::Update(float dt)
     g_CollisionManager.CheckObstacleVsEnemies(g_EnemyPool);
     g_CollisionManager.Update();
 
+    // 被弾UI演出（HUDシェイク・HPフラッシュ・赤ビネット・低HP心拍）を更新する
+    g_DamageEffectManager.Update(dt, player ? (player->GetHp() / player->GetMaxHp()) : 1.0f);
+
     m_WaveManager.Update(dt);
 
     // ---- 終了判定 ----
@@ -354,9 +362,16 @@ void GameScene::DrawHUD()
     const float MX    = 20.0f;  // 左右マージン
     const float MY    = 16.0f;  // 上マージン
 
-    // 影付きテキスト描画ヘルパー
+    // 被弾時にHUD全体へ加算する短いシェイクオフセット（0.15秒, ±4px, 減衰）
+    const Vector2 shake = g_DamageEffectManager.GetHudShakeOffset();
+
+    // シェイクオフセット込みの座標を作るヘルパー（矩形描画で使う）
+    auto S = [&](float x, float y) { return ImVec2(x + shake.x, y + shake.y); };
+
+    // 影付きテキスト描画ヘルパー（シェイクオフセットを自動で加算する）
     auto ShadowText = [&](float x, float y, float sz, ImU32 col, const char* text)
     {
+        x += shake.x; y += shake.y;
         dl->AddText(font, sz, ImVec2(x + 1.5f, y + 1.5f), IM_COL32(0,0,0,180), text);
         dl->AddText(font, sz, ImVec2(x, y), col, text);
     };
@@ -383,17 +398,28 @@ void GameScene::DrawHUD()
                      : (ratio > 0.25f)? IM_COL32(220, 160, 40, 230)
                                       : IM_COL32(220, 50,  50, 230);
 
+        // 被弾直後はHPバーを赤く点滅させ、0.2秒かけて通常色へ線形補間で戻す
+        float flashT = g_DamageEffectManager.GetHpFlashRatio();
+        if (flashT > 0.0f)
+        {
+            auto LerpU8 = [](int a, int b, float t) { return (int)(a + (b - a) * t); };
+            int r = LerpU8((barCol >> IM_COL32_R_SHIFT) & 0xFF, 255, flashT);
+            int g = LerpU8((barCol >> IM_COL32_G_SHIFT) & 0xFF,  40, flashT);
+            int b = LerpU8((barCol >> IM_COL32_B_SHIFT) & 0xFF,  40, flashT);
+            barCol = IM_COL32(r, g, b, 230);
+        }
+
         ShadowText(x, y, 15.0f, IM_COL32(200,200,200,200), "HP");
 
         // バー背景
-        dl->AddRectFilled(ImVec2(x, y+18), ImVec2(x+barW, y+18+barH),
+        dl->AddRectFilled(S(x, y+18), S(x+barW, y+18+barH),
             IM_COL32(30,30,30,200), 3.0f);
         // バー本体
         if (ratio > 0.0f)
-            dl->AddRectFilled(ImVec2(x+1, y+19), ImVec2(x+1+(barW-2)*ratio, y+18+barH-1),
+            dl->AddRectFilled(S(x+1, y+19), S(x+1+(barW-2)*ratio, y+18+barH-1),
                 barCol, 3.0f);
         // 枠
-        dl->AddRect(ImVec2(x, y+18), ImVec2(x+barW, y+18+barH),
+        dl->AddRect(S(x, y+18), S(x+barW, y+18+barH),
             IM_COL32(180,180,180,160), 3.0f, 0, 1.2f);
 
         // 数値
@@ -437,18 +463,18 @@ void GameScene::DrawHUD()
                                           : IM_COL32(160,  40, 40, 230);
 
             // 背景
-            dl->AddRectFilled(ImVec2(barX, curY), ImVec2(barX+BAR_W, curY+BAR_H),
+            dl->AddRectFilled(S(barX, curY), S(barX+BAR_W, curY+BAR_H),
                 IM_COL32(30,10,10,210), 4.0f);
             // 本体
             if (ratio > 0.0f)
-                dl->AddRectFilled(ImVec2(barX+1, curY+1),
-                    ImVec2(barX+1+(BAR_W-2)*ratio, curY+BAR_H-1), barCol, 4.0f);
+                dl->AddRectFilled(S(barX+1, curY+1),
+                    S(barX+1+(BAR_W-2)*ratio, curY+BAR_H-1), barCol, 4.0f);
             // 光沢ライン
-            dl->AddRectFilled(ImVec2(barX+2, curY+2),
-                ImVec2(barX+2+(BAR_W-4)*ratio, curY+5),
+            dl->AddRectFilled(S(barX+2, curY+2),
+                S(barX+2+(BAR_W-4)*ratio, curY+5),
                 IM_COL32(255,180,180,60), 2.0f);
             // 枠
-            dl->AddRect(ImVec2(barX, curY), ImVec2(barX+BAR_W, curY+BAR_H),
+            dl->AddRect(S(barX, curY), S(barX+BAR_W, curY+BAR_H),
                 IM_COL32(200,100,100,200), 4.0f, 0, 1.5f);
             curY += BAR_H + 3.0f;
 
@@ -496,6 +522,36 @@ void GameScene::DrawHUD()
         snprintf(buf, sizeof(buf), "Wave    : %d / %d",
             m_WaveManager.GetCurrentWave(), m_WaveManager.GetTotalWaves());
         ShadowText(x, baseY+lineH*2, sz, IM_COL32(210,210,210,220), buf);
+    }
+
+    // ========================================================
+    // 赤ビネット（画面端のみ。中央は透明。被弾フラッシュ + 低HP心拍）
+    // ========================================================
+    {
+        float alpha = g_DamageEffectManager.GetVignetteAlpha();
+        if (alpha > 0.0f)
+        {
+            const float size = GameConfig::DamageEffect::VIGNETTE_SIZE;
+            ImU32 edgeCol   = IM_COL32(200, 20, 20, (int)(alpha * 255.0f));
+            ImU32 transCol  = IM_COL32(200, 20, 20, 0);
+
+            // 上端（上が濃く、下に向かって透明）
+            dl->AddRectFilledMultiColor(
+                ImVec2(0.0f, 0.0f), ImVec2((float)SCREEN_WIDTH, size),
+                edgeCol, edgeCol, transCol, transCol);
+            // 下端
+            dl->AddRectFilledMultiColor(
+                ImVec2(0.0f, (float)SCREEN_HEIGHT - size), ImVec2((float)SCREEN_WIDTH, (float)SCREEN_HEIGHT),
+                transCol, transCol, edgeCol, edgeCol);
+            // 左端
+            dl->AddRectFilledMultiColor(
+                ImVec2(0.0f, 0.0f), ImVec2(size, (float)SCREEN_HEIGHT),
+                edgeCol, transCol, transCol, edgeCol);
+            // 右端
+            dl->AddRectFilledMultiColor(
+                ImVec2((float)SCREEN_WIDTH - size, 0.0f), ImVec2((float)SCREEN_WIDTH, (float)SCREEN_HEIGHT),
+                transCol, edgeCol, edgeCol, transCol);
+        }
     }
 }
 

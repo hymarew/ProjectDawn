@@ -15,12 +15,13 @@
 #include "collisionManager.h"
 #include "GameConfig.h"
 #include "playerLog.h"
+#include "damageEffectManager.h"
 void Player::Init()
 {
     m_Layer = 1;
     m_Position = { 0.0f,0.0f,0.0f };
 
-    AddComponent<ModelRenderer>(this)->Load("asset\\model\\player.obj");
+    AddComponent<ModelRenderer>(this)->Load("asset\\model\\Playerble.obj");
 
     //影を受けたり落とすために(ここら辺の細かい実験はまだ)
     // シェーダー読込
@@ -343,6 +344,10 @@ void Player::TakeDamage(float dmg, const char* source)
     m_Hp -= dmg;
     if (m_Hp < 0.0f) m_Hp = 0.0f;
     m_InvTimer = GameConfig::Player::INVINCIBLE_SEC;
+
+    // 被弾UI演出（HUDシェイク・HP赤フラッシュ・赤ビネット）を再生する。
+    // 画面全体の赤フラッシュやカメラシェイクはエイムを阻害するため使わない方針。
+    g_DamageEffectManager.OnDamaged();
 
     g_PlayerLog.totalDamageTaken += dmg;
     g_PlayerLog.damageSources[source]++;

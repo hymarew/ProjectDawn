@@ -1,4 +1,4 @@
-#include "main.h"
+﻿#include "main.h"
 #include "manager.h"
 #include "renderer.h"
 #include "camera.h"
@@ -18,7 +18,7 @@ Camera* Camera::m_MainCamera = nullptr;
 void Camera::Init()
 {
     m_Layer      = 0;
-    m_Position   = { 0.0f, 5.0f, -10.0f };
+    m_Position   = { 0.0f, 1.0f, -10.0f };
     m_MainCamera = this;
     m_CurrentFov = GameConfig::Camera::FOV_TPS;
 

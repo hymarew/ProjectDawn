@@ -25,8 +25,21 @@ public:
     // エフェクトを発生させる。ゲームシーンやオブジェクトから呼び出す
     void Emit(EffectType type, Vector3 position);
 
+    // プリセットを直接指定して発生させる（生成数などをパラメータ化した演出用）
+    void Emit(const ParticleSetting& setting, Vector3 position);
+
     // 発光フラッシュ・火球・火花・デブリ・煙・爆風リングを一括で発生させる爆発演出
     void EmitBigExplosion(Vector3 position);
+
+    // スコーピオン被弾演出（火花・装甲片・粉・衝撃リングの合成）
+    // 「硬い外骨格に弾丸が弾かれる」印象。爆発は使わない。
+    void EmitScorpionHit(Vector3 position);
+
+    // スコーピオン撃破演出（被弾演出の強化版。装甲が限界を迎えて砕け散るイメージ）
+    void EmitScorpionDeath(Vector3 position);
+
+    // 回復演出（緑のキラキラした光の粒がふわっと舞い上がる）
+    void EmitHeal(Vector3 position);
 
     // 画面全体を一瞬明るくするフラッシュ（ImGui::Render() の直前に呼ぶ）
     void DrawScreenFlash();

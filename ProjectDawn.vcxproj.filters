@@ -292,6 +292,12 @@
     <ClCompile Include="field.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
+    <ClCompile Include="healItem.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="damageEffectManager.cpp">
+      <Filter>UI</Filter>
+    </ClCompile>
     <ClCompile Include="grass.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
@@ -620,6 +626,12 @@
     </ClInclude>
     <ClInclude Include="field.h">
       <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="healItem.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="damageEffectManager.h">
+      <Filter>UI</Filter>
     </ClInclude>
     <ClInclude Include="GameConfig.h">
       <Filter>ヘッダー ファイル</Filter>
