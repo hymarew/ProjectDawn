@@ -22,6 +22,7 @@
 #include "player.h"
 #include "healItem.h"
 #include "damageEffectManager.h"
+#include "dynamicLightManager.h"
 #include "enemy.h"
 #include "enemyPool.h"
 #include "scorpion.h"
@@ -298,6 +299,11 @@ void GameScene::Draw()
 
     // Main Pass
     Renderer::Begin();
+
+    // 動的ポイントライト（ロケットの噴射炎・爆発フラッシュ等）をGPUへ送る。
+    // メインパスの描画開始前に1回呼べば、以降の全描画で参照される。
+    g_DynamicLightManager.Apply();
+
     Camera* camera = Manager::GetGameObject<Camera>();
     Vector3 forward = camera->GetForward();
     Vector3 position = camera->GetPosition();

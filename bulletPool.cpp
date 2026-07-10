@@ -9,6 +9,7 @@
 #include "particleManager.h"
 #include "damageVisualizer.h"
 #include "GameConfig.h"
+#include "dynamicLightManager.h"
 
 void BulletPool::Init(int maxBullets)
 {
@@ -103,9 +104,33 @@ void BulletPool::Update(float dt, EnemyPool& enemyPool)
 
         if (!bullet.isActive) continue;
 
+        // ---- ロケット弾の飛行演出（噴射炎ライトの追従・火花） ----
+        // ※トレイル（発光炎+白煙）は影のちかつきの原因になったため廃止した
+        if (bullet.splashRadius > 0.0f)
+        {
+            if (bullet.lightSlot >= 0)
+                g_DynamicLightManager.UpdateSlot(bullet.lightSlot, bullet.position);
+
+            bullet.sparkTimer -= dt;
+            if (bullet.sparkTimer <= 0.0f)
+            {
+                bullet.sparkTimer += GameConfig::RocketFX::SPARK_INTERVAL;
+                if (g_RocketSparkEnabled) // デバッグトグル
+                    ParticleManager::GetInstance().Emit(ParticlePreset::RocketSpark(), bullet.position);
+            }
+        }
+
         bullet.lifeTime -= dt;
         if (bullet.lifeTime <= 0.0f)
+        {
+            // 何にも当たらず寿命切れした場合も、確保していたライトを解放する
+            if (bullet.lightSlot >= 0)
+            {
+                g_DynamicLightManager.Release(bullet.lightSlot);
+                bullet.lightSlot = -1;
+            }
             bullet.isActive = false;
+        }
     }
 }
 
@@ -157,6 +182,25 @@ void BulletPool::ExplodeSplash(Bullet& bullet, EnemyPool& enemyPool)
     // 大爆発演出（発光フラッシュ・火球・火花・デブリ・煙・爆風リング）
     ParticleManager::GetInstance().EmitBigExplosion(bullet.position);
 
+    // 噴射炎の追従ライトは役目を終えたので先に解放する（AddFlashがスロット不足で
+    // 取りこぼさないよう、爆発フラッシュを追加する前に解放しておく）
+    if (bullet.lightSlot >= 0)
+    {
+        g_DynamicLightManager.Release(bullet.lightSlot);
+        bullet.lightSlot = -1;
+    }
+
+    // 爆発時の瞬間的な強いポイントライト（急速に減衰し、寿命が尽きたら自動で消える）
+    if (g_ExplosionLightEnabled) // デバッグトグル（影ちかつき切り分け用）
+    {
+        g_DynamicLightManager.AddFlash(
+            bullet.position,
+            GameConfig::RocketFX::EXPLOSION_LIGHT_RADIUS,
+            Vector3(1.0f, 0.6f, 0.2f), // 黄〜オレンジ
+            GameConfig::RocketFX::EXPLOSION_LIGHT_INTENSITY,
+            GameConfig::RocketFX::EXPLOSION_LIGHT_LIFE);
+    }
+
     bullet.isActive = false;
 }
 
@@ -174,6 +218,16 @@ Bullet* BulletPool::Spawn(const Vector3& pos, const Vector3& velocity, float lif
             bullet.splashRadius   = splashRadius;
             bullet.knockbackPower = knockbackPower;
             bullet.isActive       = true;
+            bullet.sparkTimer     = 0.0f;
+
+            // ロケット弾は噴射炎の追従ポイントライトを確保する（デバッグトグルでOFF可能）
+            bullet.lightSlot = (splashRadius > 0.0f && g_RocketLightEnabled)
+                ? g_DynamicLightManager.Acquire(pos,
+                      GameConfig::RocketFX::TRAIL_LIGHT_RADIUS,
+                      Vector3(1.0f, 0.6f, 0.15f), // オレンジ〜黄橙色
+                      GameConfig::RocketFX::TRAIL_LIGHT_INTENSITY)
+                : -1;
+
             m_ShotsFired++;
             return &bullet;
         }

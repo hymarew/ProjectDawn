@@ -1,5 +1,7 @@
 #include "rocketLauncher.h"
 #include "bulletPool.h"
+#include "particleManager.h"
+#include "manager.h"
 #include "GameConfig.h"
 
 void RocketLauncher::Init(BulletPool* pool)
@@ -31,4 +33,12 @@ void RocketLauncher::Fire(const Vector3& origin, const Vector3& direction)
         GameConfig::RocketLauncher::SPLASH_RADIUS,
         GameConfig::RocketLauncher::KNOCKBACK_POWER
     );
+
+    // 発射時マズルフラッシュ（通常武器より一回り大きい）+ 煙（デバッグトグルでOFF可能）
+    if (g_RocketMuzzleEnabled)
+    {
+        auto& particleManager = ParticleManager::GetInstance();
+        particleManager.Emit(ParticlePreset::RocketMuzzleFlash(), origin);
+        particleManager.Emit(ParticlePreset::RocketMuzzleSmoke(), origin);
+    }
 }

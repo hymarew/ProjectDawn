@@ -231,6 +231,7 @@
     <ClCompile Include="field.cpp" />
     <ClCompile Include="healItem.cpp" />
     <ClCompile Include="damageEffectManager.cpp" />
+    <ClCompile Include="dynamicLightManager.cpp" />
     <ClCompile Include="grass.cpp" />
     <ClCompile Include="modelRenderer.cpp" />
     <ClCompile Include="playerLog.cpp" />
@@ -347,6 +348,7 @@
     <ClInclude Include="field.h" />
     <ClInclude Include="healItem.h" />
     <ClInclude Include="damageEffectManager.h" />
+    <ClInclude Include="dynamicLightManager.h" />
     <ClInclude Include="GameConfig.h" />
     <ClInclude Include="gameObject.h" />
     <ClInclude Include="grass.h" />
@@ -374,6 +376,10 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </None>
     <None Include="shader\transitionCommon.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </None>
+    <None Include="shader\dynamicLights.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </None>

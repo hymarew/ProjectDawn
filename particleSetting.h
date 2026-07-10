@@ -2,6 +2,7 @@
 #include <d3d11.h>
 #include <DirectXMath.h>
 #include "vector3.h"
+#include "GameConfig.h"
 
 using namespace DirectX;
 
@@ -339,6 +340,56 @@ namespace ParticlePreset
         s.SizeVariance   = 0.5f;
         s.Additive       = true;  // 軽い発光（爆発のような強い光にはしない）
         s.BurstCount     = count;
+        return s;
+    }
+
+    // =====================================================
+    // ロケットランチャー演出群（発射〜飛行〜着弾）
+    // 生成タイミングは呼び出し側（RocketLauncher / BulletPool）が管理する。
+    // 調整値は GameConfig::RocketFX を参照。
+    // =====================================================
+
+    // 発射マズルフラッシュ: 通常武器より一回り大きい黄〜オレンジの閃光
+    inline ParticleSetting RocketMuzzleFlash()
+    {
+        ParticleSetting s{};
+        const float sizeMul = GameConfig::RocketFX::MUZZLE_FLASH_SIZE_MUL;
+        s.MinLife  = 0.05f; s.MaxLife  = 0.1f; // 仕様: 0.05〜0.1秒
+        s.MinSpeed = 2.0f;  s.MaxSpeed = 6.0f;
+        s.StartSize = 0.35f * sizeMul; s.EndSize = 1.3f * sizeMul; // 徐々に透明になりながら広がる
+        s.StartColor = { 1.0f, 0.85f, 0.4f, 1.0f }; // 黄〜オレンジ
+        s.EndColor   = { 1.0f, 0.4f,  0.1f, 0.0f };
+        s.TexturePath = L"asset\\texture\\particle.png";
+        s.Additive   = true;
+        s.BurstCount = 6;
+        return s;
+    }
+
+    // 発射時の煙: マズルフラッシュと同時に発生させる小さな煙（爆発の煙より短寿命・小規模）
+    inline ParticleSetting RocketMuzzleSmoke()
+    {
+        ParticleSetting s = Smoke();
+        s.MinLife  = 0.35f; s.MaxLife  = 0.6f;
+        s.StartSize = 0.5f; s.EndSize  = 2.0f;
+        s.BurstCount = 5;
+        return s;
+    }
+
+    // 飛行中の火花: 噴射口から控えめに放出する小さな粒子（ロケット本体とは異なる速度で飛ぶ）
+    // ※トレイル（発光炎+白煙）は影のちかつきの原因になったため廃止した
+    inline ParticleSetting RocketSpark()
+    {
+        ParticleSetting s{};
+        s.MinLife  = 0.2f; s.MaxLife  = 0.5f; // 仕様: 0.2〜0.5秒
+        s.MinSpeed = 3.0f; s.MaxSpeed = 8.0f;
+        s.StartSize = 0.1f; s.EndSize = 0.03f;
+        s.StartColor = { 1.0f, 0.85f, 0.3f,  0.6f }; // 黄〜オレンジ（火花自体は小さいので控えめでも視認できる）
+        s.EndColor   = { 1.0f, 0.4f,  0.05f, 0.0f };
+        s.TexturePath = L"asset\\texture\\particle.png";
+        s.Drag         = 2.0f;
+        s.SizeVariance = 0.4f;
+        s.Additive     = true;
+        s.BurstCount   = 1;
         return s;
     }
 

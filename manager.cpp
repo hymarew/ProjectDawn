@@ -27,6 +27,7 @@
 #include "saveManager.h"
 #include "particleManager.h"
 #include "healItem.h"
+#include "dynamicLightManager.h"
 
 //インスタンス
 std::list<GameObject*> Manager::m_GameObject;
@@ -38,6 +39,13 @@ CollisionManager g_CollisionManager;
 bool g_CastShadow        = true;
 bool g_ShowDebugUI       = false;
 bool g_ShowColliderDebug = false;
+
+// ロケット演出のデバッグトグル（影ちかつき等の原因切り分け用。全てONが通常状態）
+bool g_RocketSparkEnabled    = true;
+bool g_RocketMuzzleEnabled   = true;
+bool g_RocketLightEnabled    = true;
+bool g_ExplosionLightEnabled = true;
+bool g_DynamicLightsEnabled  = true;
 Camera* Manager::m_Camera = nullptr;
 
 // ---------------------------------------------------------
@@ -99,6 +107,9 @@ void Manager::Init()
 	// SceneManager::Init() が起動直後にFadeInを再生するため、それより前に呼ぶ必要がある。
 	g_TransitionManager.Init();
 
+	// 動的ポイントライト（ロケットの噴射炎・爆発フラッシュ等）のGPUリソースを用意する
+	g_DynamicLightManager.Init();
+
 	// セーブデータをロードする。ファイルがなければデフォルト値で新規生成して保存する。
 	// SceneManager::Init より前に呼ぶことで、初回シーン（TitleScene）表示前にデータが揃う。
 	g_SaveManager.Load();
@@ -113,6 +124,7 @@ void Manager::Uninit()
 	g_SceneManager.Uninit();
 
 	g_TransitionManager.Uninit();
+	g_DynamicLightManager.Uninit();
 
 	g_ShadowRenderer->Uninit();
 	delete g_ShadowRenderer;
@@ -127,6 +139,9 @@ void Manager::Update(float dt)
 
 	// 現在のシーンを更新
 	g_SceneManager.Update(dt);
+
+	// 動的ポイントライト（寿命付きの爆発フラッシュ等）の時間管理
+	g_DynamicLightManager.Update(dt);
 
 	// トランジションデバッグボタンの自動往復（Out完了→0.5秒待機→In）
 	UpdateDebugTransitionAutoReturn(dt);
@@ -325,6 +340,17 @@ void Manager::ImGuiDraw()
 		if (ImGui::Button("Scorpion Hit"))   particleManager.EmitScorpionHit(debugPos);
 		ImGui::SameLine();
 		if (ImGui::Button("Scorpion Death")) particleManager.EmitScorpionDeath(debugPos);
+
+		ImGui::SeparatorText("Rocket FX Debug (flicker isolation)");
+		// 影のちかつき原因を切り分けるため、ロケット演出を個別にON/OFFできる
+		ImGui::Checkbox("Sparks",              &g_RocketSparkEnabled);
+		ImGui::SameLine();
+		ImGui::Checkbox("Muzzle Flash",        &g_RocketMuzzleEnabled);
+		ImGui::SameLine();
+		ImGui::Checkbox("Rocket Light",        &g_RocketLightEnabled);
+		ImGui::Checkbox("Explosion Light",     &g_ExplosionLightEnabled);
+		ImGui::SameLine();
+		ImGui::Checkbox("Dynamic Lights (ALL)", &g_DynamicLightsEnabled);
 
 		ImGui::SeparatorText("Heal Item");
 		if (ImGui::Button("Heal FX")) particleManager.EmitHeal(debugPos);

@@ -298,6 +298,9 @@
     <ClCompile Include="damageEffectManager.cpp">
       <Filter>UI</Filter>
     </ClCompile>
+    <ClCompile Include="dynamicLightManager.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
     <ClCompile Include="grass.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
@@ -633,6 +636,9 @@
     <ClInclude Include="damageEffectManager.h">
       <Filter>UI</Filter>
     </ClInclude>
+    <ClInclude Include="dynamicLightManager.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
     <ClInclude Include="GameConfig.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
@@ -693,6 +699,9 @@
       <Filter>シェーダーファイル</Filter>
     </None>
     <None Include="shader\transitionCommon.hlsl">
+      <Filter>シェーダーファイル</Filter>
+    </None>
+    <None Include="shader\dynamicLights.hlsl">
       <Filter>シェーダーファイル</Filter>
     </None>
   </ItemGroup>
