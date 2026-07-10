@@ -20,6 +20,7 @@
 #include "field.h"
 #include "explosion.h"
 #include <chrono>
+#include <algorithm>
 
 namespace
 {
@@ -38,7 +39,7 @@ namespace
 void ParticleManager::Init()
 {
     // ---- グローバルプールの確保（初回のみ） ----
-    // 10万個 × 約130バイト ≒ 13MB あるためヒープに置く。
+    // 100万個 × 約150バイト ≒ 150MB あるためヒープに置く。
     // シーンをまたいでも確保し直さず使い回す
     if (!m_Pool)
         m_Pool = std::make_unique<ParticleData[]>(POOL_SIZE);
@@ -48,8 +49,9 @@ void ParticleManager::Init()
     for (int i = 0; i < POOL_SIZE; i++)
         m_Pool[i].Active = false;
 
-    // リングバッファの書き込み位置をリセット
-    m_NextFree = 0;
+    // リングバッファの書き込み位置とハイウォーターマークをリセット
+    m_NextFree  = 0;
+    m_UsedSlots = 0;
 
     // エミッタのリストをクリア
     m_Emitters.clear();
@@ -91,9 +93,13 @@ void ParticleManager::Update(float dt)
     }
 
     // ---- 全エミッタを更新 ----
-    // 各エミッタが放出タイミングになっていたらグローバルプールにパーティクルを追加する
+    // 各エミッタが放出タイミングになっていたらグローバルプールにパーティクルを追加する。
+    // 放出数を合計してハイウォーターマーク（使用済みスロット数）を進める
     for (auto& emitter : m_Emitters)
-        emitter->Update(dt, m_Pool.get(), POOL_SIZE, m_NextFree);
+    {
+        int emitted = emitter->Update(dt, m_Pool.get(), POOL_SIZE, m_NextFree);
+        m_UsedSlots = std::min(m_UsedSlots + emitted, POOL_SIZE);
+    }
 
     // ---- 寿命が尽きたエミッタをまとめて削除 ----
     // remove_if でリストの末尾に「削除すべきもの」を集め、erase で一括削除する
@@ -104,7 +110,8 @@ void ParticleManager::Update(float dt)
     );
 
     // ---- アクティブな全パーティクルの物理演算 ----
-    for (int i = 0; i < POOL_SIZE; i++)
+    // 書き込んだことのあるスロット（ハイウォーターマーク）までで走査を打ち切る
+    for (int i = 0; i < m_UsedSlots; i++)
     {
         ParticleData& p = m_Pool[i];
         if (!p.Active) continue; // 非アクティブはスキップ
@@ -185,7 +192,8 @@ void ParticleManager::Draw()
     const auto drawStart = DebugClock::now(); // 統計用: 描画CPU時間の計測開始
 
     // ParticleRenderer に全パーティクルの描画を任せる
-    m_Renderer.Draw(m_Pool.get(), POOL_SIZE);
+    // （走査はハイウォーターマークまで。未使用領域は見に行かない）
+    m_Renderer.Draw(m_Pool.get(), m_UsedSlots);
 
     // 統計を回収（デバッグUIが GetStats() で参照する）
     m_Stats.DrawMs      = ElapsedMs(drawStart);

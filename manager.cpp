@@ -349,11 +349,15 @@ void Manager::ImGuiDraw()
 			}
 
 			// プールを一気に埋める火花の洪水（純粋な描画数の上限テスト）
-			// 寿命を延ばした火花 2万個 × 5ヶ所 = 10万個でプールが満杯になる
-			if (ImGui::Button("Flood Sparks (fill pool)"))
+			// 選んだ個数を5ヶ所に分けてバースト放出する（寿命は3〜6秒に延長）
+			static int floodCount = 100000;
+			ImGui::RadioButton("10万",  &floodCount, 100000);  ImGui::SameLine();
+			ImGui::RadioButton("50万",  &floodCount, 500000);  ImGui::SameLine();
+			ImGui::RadioButton("100万", &floodCount, 1000000);
+			if (ImGui::Button("Flood Sparks"))
 			{
 				ParticleSetting s = ParticlePreset::Spark();
-				s.BurstCount = 20000;
+				s.BurstCount = floodCount / 5;
 				s.MinLife    = 3.0f;
 				s.MaxLife    = 6.0f;
 				for (int i = 0; i < 5; i++)

@@ -74,9 +74,14 @@ private:
     static constexpr int POOL_SIZE = GameConfig::Particle::POOL_SIZE;
 
     // グローバルプール（エミッタ間で共有）
-    // 10万個 × 約130バイト ≒ 13MB になるため、静的領域ではなくヒープに置く
+    // 100万個 × 約150バイト ≒ 150MB になるため、静的領域ではなくヒープに置く
     std::unique_ptr<ParticleData[]> m_Pool;
     int m_NextFree = 0; // リングバッファの次の書き込み位置
+
+    // ハイウォーターマーク: これまでに書き込んだことのあるスロット数（上限 POOL_SIZE）。
+    // 更新・描画の走査はここまでで打ち切れるため、プール上限を100万にしても
+    // 通常プレイ（数千個程度）の走査コストは増えない
+    int m_UsedSlots = 0;
 
     std::vector<std::unique_ptr<ParticleEmitter>> m_Emitters; // アクティブなエミッタ一覧
 
