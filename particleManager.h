@@ -9,6 +9,7 @@
 struct ParticleStats
 {
     int   ActiveCount = 0;    // 現在アクティブなパーティクル数
+    int   UsedSlots   = 0;    // 現在の走査範囲（ハイウォーターマーク）
     int   DrawCalls   = 0;    // 直近フレームのドローコール数
     float UpdateMs    = 0.0f; // CPUシミュレーションにかかった時間（ミリ秒）
     float DrawMs      = 0.0f; // 描画準備＋発行にかかったCPU時間（ミリ秒）

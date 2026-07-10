@@ -325,6 +325,7 @@ void Manager::ImGuiDraw()
 		{
 			const ParticleStats& stats = particleManager.GetStats();
 			ImGui::Text("Active Particles : %d / %d", stats.ActiveCount, GameConfig::Particle::POOL_SIZE);
+			ImGui::Text("Scan Range       : %d", stats.UsedSlots); // 走査範囲（粒子が消えると自動で縮む）
 			ImGui::Text("Draw Calls       : %d", stats.DrawCalls);
 			ImGui::Text("Update CPU       : %.3f ms", stats.UpdateMs);
 			ImGui::Text("Draw   CPU       : %.3f ms", stats.DrawMs);

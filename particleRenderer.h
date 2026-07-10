@@ -16,7 +16,8 @@
 class ParticleRenderer
 {
 public:
-    // maxInstances: インスタンスバッファの容量（= パーティクルプールの上限）
+    // maxInstances: インスタンスバッファ容量の上限（= パーティクルプールの上限）
+    // 実際のバッファは小さく確保し、必要になったら拡張する（EnsureInstanceCapacity 参照）
     void Init(int maxInstances);
     void Uninit();
 
@@ -54,9 +55,19 @@ private:
     // 該当する (テクスチャ, ブレンド) のバケットを探し、なければ作る
     Bucket& FindOrAddBucket(ID3D11ShaderResourceView* texture, bool additive);
 
+    // インスタンスバッファの容量を必要数に合わせて拡張・縮小する。
+    // 100万粒子ぶん（48MB）を常時確保して毎フレーム Map すると通常プレイでも
+    // 無駄なコストがかかるため、普段は最小容量に抑えてストレステスト時だけ拡張する
+    void EnsureInstanceCapacity(int needed);
+
+    static constexpr int MIN_INSTANCE_CAPACITY = 65536; // 通常プレイはこの容量で十分（約3MB）
+    static constexpr int SHRINK_IDLE_FRAMES    = 300;   // 縮小を判断するまでの猶予フレーム数
+
     ID3D11Buffer*       m_QuadVertexBuffer = nullptr; // 全パーティクル共有の板ポリ（4頂点）
     ID3D11Buffer*       m_InstanceBuffer   = nullptr; // インスタンスデータ（DYNAMIC）
-    int                 m_InstanceCapacity = 0;       // インスタンスバッファの容量
+    int                 m_InstanceCapacity = 0;       // インスタンスバッファの現在容量
+    int                 m_MaxInstances     = 0;       // 容量の上限（プールサイズ）
+    int                 m_ShrinkCounter    = 0;       // 容量に余裕がある状態が続いたフレーム数
     ID3D11InputLayout*  m_InputLayout      = nullptr;
     ID3D11VertexShader* m_VertexShader     = nullptr;
     ID3D11PixelShader*  m_PixelShader      = nullptr;

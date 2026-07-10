@@ -46,7 +46,7 @@ namespace
 // ---------------------------------------------------------
 void ParticleRenderer::Init(int maxInstances)
 {
-    m_InstanceCapacity = maxInstances;
+    m_MaxInstances = maxInstances;
 
     // ---- 板ポリゴンの頂点データを作る ----
     // 中心を原点とした1×1の四角形。全パーティクルがこの1枚を共有し、
@@ -68,14 +68,8 @@ void ParticleRenderer::Init(int maxInstances)
     Renderer::GetDevice()->CreateBuffer(&bd, &sd, &m_QuadVertexBuffer);
 
     // ---- インスタンスバッファ（毎フレームCPUから書き込む） ----
-    // DYNAMIC + WRITE_DISCARD で、フレームに1回だけ Map してまとめて転送する
-    D3D11_BUFFER_DESC ibd{};
-    ibd.Usage          = D3D11_USAGE_DYNAMIC;
-    ibd.ByteWidth      = sizeof(ParticleInstance) * maxInstances;
-    ibd.BindFlags      = D3D11_BIND_VERTEX_BUFFER;
-    ibd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-
-    Renderer::GetDevice()->CreateBuffer(&ibd, nullptr, &m_InstanceBuffer);
+    // まずは最小容量で確保し、粒子数が増えたら EnsureInstanceCapacity が拡張する
+    EnsureInstanceCapacity(MIN_INSTANCE_CAPACITY);
 
     // ---- シェーダーの読み込みと入力レイアウトの作成 ----
     // スロット0（共有板ポリ）とスロット1（インスタンスデータ）の
@@ -172,6 +166,68 @@ ID3D11ShaderResourceView* ParticleRenderer::GetOrLoadTexture(const wchar_t* path
 }
 
 // ---------------------------------------------------------
+// EnsureInstanceCapacity : インスタンスバッファの容量管理
+// 拡張: 必要数が容量を超えたら2倍ずつ増やして作り直す（最大 m_MaxInstances）
+// 縮小: 容量の1/8未満しか使わない状態が SHRINK_IDLE_FRAMES 続いたら
+//       最小容量まで戻す（ストレステスト後に通常プレイへ戻ったときの回収）
+// ---------------------------------------------------------
+void ParticleRenderer::EnsureInstanceCapacity(int needed)
+{
+    int target = m_InstanceCapacity;
+
+    if (needed > m_InstanceCapacity)
+    {
+        // ---- 拡張 ----
+        target = (m_InstanceCapacity > 0) ? m_InstanceCapacity : MIN_INSTANCE_CAPACITY;
+        while (target < needed)
+            target *= 2;
+        if (target > m_MaxInstances) target = m_MaxInstances;
+        m_ShrinkCounter = 0;
+    }
+    else if (m_InstanceCapacity > MIN_INSTANCE_CAPACITY && needed < m_InstanceCapacity / 8)
+    {
+        // ---- 縮小（すぐには行わず、余裕のある状態がしばらく続いてから） ----
+        m_ShrinkCounter++;
+        if (m_ShrinkCounter < SHRINK_IDLE_FRAMES)
+            return;
+
+        target = MIN_INSTANCE_CAPACITY;
+        while (target < needed)
+            target *= 2;
+        m_ShrinkCounter = 0;
+
+        // バケット側の vector が抱えたままの大きな capacity も一緒に返す
+        for (auto& bucket : m_Buckets)
+            bucket.Instances.shrink_to_fit();
+    }
+    else
+    {
+        m_ShrinkCounter = 0;
+        return;
+    }
+
+    if (target == m_InstanceCapacity)
+        return;
+
+    // ---- バッファを作り直す ----
+    // DYNAMIC + WRITE_DISCARD で、フレームに1回だけ Map してまとめて転送する
+    if (m_InstanceBuffer)
+    {
+        m_InstanceBuffer->Release();
+        m_InstanceBuffer = nullptr;
+    }
+
+    D3D11_BUFFER_DESC ibd{};
+    ibd.Usage          = D3D11_USAGE_DYNAMIC;
+    ibd.ByteWidth      = sizeof(ParticleInstance) * target;
+    ibd.BindFlags      = D3D11_BIND_VERTEX_BUFFER;
+    ibd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+
+    Renderer::GetDevice()->CreateBuffer(&ibd, nullptr, &m_InstanceBuffer);
+    m_InstanceCapacity = target;
+}
+
+// ---------------------------------------------------------
 // FindOrAddBucket : (テクスチャ, ブレンド) が一致するバケットを返す
 // バケット数はテクスチャ種×2程度しかないため線形探索で十分速い
 // ---------------------------------------------------------
@@ -238,6 +294,9 @@ void ParticleRenderer::Draw(const ParticleData* pool, int poolSize)
 
     if (m_ActiveCount == 0)
         return; // 描くものがなければGPUステートに触らない
+
+    // アクティブ数に合わせてバッファ容量を調整（不足なら拡張、余りすぎなら縮小）
+    EnsureInstanceCapacity(m_ActiveCount);
 
     // ---- 2. インスタンスバッファへ一括転送 ----
     // 描画順（通常合成 → 加算合成）と同じ並びで書き込み、

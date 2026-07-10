@@ -93,13 +93,19 @@ void ParticleManager::Update(float dt)
     }
 
     // ---- 全エミッタを更新 ----
-    // 各エミッタが放出タイミングになっていたらグローバルプールにパーティクルを追加する。
-    // 放出数を合計してハイウォーターマーク（使用済みスロット数）を進める
+    // 各エミッタが放出タイミングになっていたらグローバルプールにパーティクルを追加する
+    const int prevNextFree   = m_NextFree;
+    int       emittedTotal   = 0;
     for (auto& emitter : m_Emitters)
-    {
-        int emitted = emitter->Update(dt, m_Pool.get(), POOL_SIZE, m_NextFree);
-        m_UsedSlots = std::min(m_UsedSlots + emitted, POOL_SIZE);
-    }
+        emittedTotal += emitter->Update(dt, m_Pool.get(), POOL_SIZE, m_NextFree);
+
+    // ---- ハイウォーターマーク（走査範囲）を進める ----
+    // 書き込み位置がリングバッファを一周した場合は全域を使用中とみなす。
+    // そうでなければ「書き込み位置の末尾」まで走査範囲を広げる
+    if (emittedTotal >= POOL_SIZE || (emittedTotal > 0 && m_NextFree <= prevNextFree))
+        m_UsedSlots = POOL_SIZE;
+    else if (m_NextFree > m_UsedSlots)
+        m_UsedSlots = m_NextFree;
 
     // ---- 寿命が尽きたエミッタをまとめて削除 ----
     // remove_if でリストの末尾に「削除すべきもの」を集め、erase で一括削除する
@@ -110,7 +116,10 @@ void ParticleManager::Update(float dt)
     );
 
     // ---- アクティブな全パーティクルの物理演算 ----
-    // 書き込んだことのあるスロット（ハイウォーターマーク）までで走査を打ち切る
+    // 書き込んだことのあるスロット（ハイウォーターマーク）までで走査を打ち切る。
+    // 併せて「最後にアクティブだったスロット位置」を記録し、ループ後に走査範囲を縮める。
+    // これがないと大量バースト後にプール末尾まで走査し続け、FPSが戻らなくなる
+    int lastActive = -1;
     for (int i = 0; i < m_UsedSlots; i++)
     {
         ParticleData& p = m_Pool[i];
@@ -179,9 +188,17 @@ void ParticleManager::Update(float dt)
         float t = 1.0f - (p.LifeTime / p.MaxLifeTime);
         p.Size  = LerpF(p.StartSize, p.EndSize, t);
         p.Color = LerpColor(p.StartColor, p.EndColor, t);
+
+        lastActive = i; // ここまで生き残った = 走査が必要な末尾候補
     }
 
-    m_Stats.UpdateMs = ElapsedMs(updateStart); // 統計用: シミュレーション時間を記録
+    // ---- 走査範囲の縮小 ----
+    // 末尾側の死んだ領域を切り捨てる。大量バーストの粒子が消えれば
+    // 走査範囲も自動で縮み、通常プレイのコストに戻る
+    m_UsedSlots = lastActive + 1;
+
+    m_Stats.UpdateMs  = ElapsedMs(updateStart); // 統計用: シミュレーション時間を記録
+    m_Stats.UsedSlots = m_UsedSlots;            // 統計用: 現在の走査範囲
 }
 
 // ---------------------------------------------------------
