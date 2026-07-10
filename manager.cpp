@@ -317,6 +317,57 @@ void Manager::ImGuiDraw()
 		ImGui::Text("Spawn Position: (%.1f, %.1f, %.1f)", debugPos.x, debugPos.y, debugPos.z);
 
 		auto& particleManager = ParticleManager::GetInstance();
+
+		// ---- GPUインスタンシングの統計表示 ----
+		// 旧実装は「1パーティクル=1ドローコール」だったため、
+		// Active数に対してDraw Callsが数回で済んでいることが効果の証明になる
+		ImGui::SeparatorText("GPU Instancing Stats");
+		{
+			const ParticleStats& stats = particleManager.GetStats();
+			ImGui::Text("Active Particles : %d / %d", stats.ActiveCount, GameConfig::Particle::POOL_SIZE);
+			ImGui::Text("Draw Calls       : %d", stats.DrawCalls);
+			ImGui::Text("Update CPU       : %.3f ms", stats.UpdateMs);
+			ImGui::Text("Draw   CPU       : %.3f ms", stats.DrawMs);
+		}
+
+		// ---- ストレステスト ----
+		// 大量パーティクルへの耐性を実演するための負荷試験。
+		ImGui::SeparatorText("Stress Test");
+		{
+			// 爆発一式（フラッシュ・火球・火花・デブリ・煙・リング）を周囲へ一斉発生
+			static int stressExplosions = 10;
+			ImGui::SliderInt("Explosions", &stressExplosions, 1, 50);
+			if (ImGui::Button("Burst Explosions"))
+			{
+				for (int i = 0; i < stressExplosions; i++)
+				{
+					Vector3 pos = debugPos;
+					pos.x += (rand() / (float)RAND_MAX - 0.5f) * 40.0f;
+					pos.z += (rand() / (float)RAND_MAX - 0.5f) * 40.0f;
+					particleManager.EmitBigExplosion(pos);
+				}
+			}
+
+			// プールを一気に埋める火花の洪水（純粋な描画数の上限テスト）
+			// 寿命を延ばした火花 2万個 × 5ヶ所 = 10万個でプールが満杯になる
+			if (ImGui::Button("Flood Sparks (fill pool)"))
+			{
+				ParticleSetting s = ParticlePreset::Spark();
+				s.BurstCount = 20000;
+				s.MinLife    = 3.0f;
+				s.MaxLife    = 6.0f;
+				for (int i = 0; i < 5; i++)
+				{
+					Vector3 pos = debugPos;
+					pos.x += (rand() / (float)RAND_MAX - 0.5f) * 60.0f;
+					pos.y += 5.0f;
+					pos.z += (rand() / (float)RAND_MAX - 0.5f) * 60.0f;
+					particleManager.Emit(s, pos);
+				}
+			}
+		}
+
+		ImGui::SeparatorText("Effect Presets");
 		if (ImGui::Button("Explosion"))      particleManager.Emit(EffectType::Explosion,      debugPos);
 		ImGui::SameLine();
 		if (ImGui::Button("MuzzleFlash"))    particleManager.Emit(EffectType::MuzzleFlash,    debugPos);

@@ -11,6 +11,16 @@ namespace GameConfig
         constexpr float RESIST_DIVISOR = 20.0f;
     }
 
+    // =====================================================
+    // Particle : パーティクルシステムの調整値
+    // 描画はGPUインスタンシング（ドローコールはテクスチャ×ブレンド種別ごとに1回）
+    // のため、プール上限を上げても描画コストはほぼ増えない。
+    // =====================================================
+    namespace Particle
+    {
+        constexpr int POOL_SIZE = 100000; // 同時に存在できるパーティクルの上限（10万）
+    }
+
     namespace Player
     {
         constexpr float BULLET_SPEED          = 50.0f;

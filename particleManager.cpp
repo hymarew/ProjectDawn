@@ -19,12 +19,30 @@
 #include "manager.h"
 #include "field.h"
 #include "explosion.h"
+#include <chrono>
+
+namespace
+{
+    // CPU処理時間の計測ヘルパー（デバッグUIの統計表示用）
+    using DebugClock = std::chrono::high_resolution_clock;
+
+    float ElapsedMs(DebugClock::time_point start)
+    {
+        return std::chrono::duration<float, std::milli>(DebugClock::now() - start).count();
+    }
+}
 
 // ---------------------------------------------------------
 // Init : プール・エミッタリストの初期化
 // ---------------------------------------------------------
 void ParticleManager::Init()
 {
+    // ---- グローバルプールの確保（初回のみ） ----
+    // 10万個 × 約130バイト ≒ 13MB あるためヒープに置く。
+    // シーンをまたいでも確保し直さず使い回す
+    if (!m_Pool)
+        m_Pool = std::make_unique<ParticleData[]>(POOL_SIZE);
+
     // ---- グローバルプールを全スロット「非アクティブ」で初期化 ----
     // アクティブなスロットだけが Update・Draw で処理される
     for (int i = 0; i < POOL_SIZE; i++)
@@ -42,7 +60,8 @@ void ParticleManager::Init()
     m_Gravity = { 0.0f, -GameConfig::Physics::GRAVITY / 10.0f, 0.0f };
 
     // 描画クラスの初期化（GPUリソースの確保）
-    m_Renderer.Init();
+    // インスタンスバッファはプール全量ぶんの容量を確保する
+    m_Renderer.Init(POOL_SIZE);
 }
 
 // ---------------------------------------------------------
@@ -62,6 +81,8 @@ void ParticleManager::Uninit()
 // ---------------------------------------------------------
 void ParticleManager::Update(float dt)
 {
+    const auto updateStart = DebugClock::now(); // 統計用: シミュレーション時間の計測開始
+
     // ---- 画面フラッシュのタイマーを更新 ----
     if (m_FlashTimer > 0.0f)
     {
@@ -72,7 +93,7 @@ void ParticleManager::Update(float dt)
     // ---- 全エミッタを更新 ----
     // 各エミッタが放出タイミングになっていたらグローバルプールにパーティクルを追加する
     for (auto& emitter : m_Emitters)
-        emitter->Update(dt, m_Pool, POOL_SIZE, m_NextFree);
+        emitter->Update(dt, m_Pool.get(), POOL_SIZE, m_NextFree);
 
     // ---- 寿命が尽きたエミッタをまとめて削除 ----
     // remove_if でリストの末尾に「削除すべきもの」を集め、erase で一括削除する
@@ -152,6 +173,8 @@ void ParticleManager::Update(float dt)
         p.Size  = LerpF(p.StartSize, p.EndSize, t);
         p.Color = LerpColor(p.StartColor, p.EndColor, t);
     }
+
+    m_Stats.UpdateMs = ElapsedMs(updateStart); // 統計用: シミュレーション時間を記録
 }
 
 // ---------------------------------------------------------
@@ -159,8 +182,15 @@ void ParticleManager::Update(float dt)
 // ---------------------------------------------------------
 void ParticleManager::Draw()
 {
+    const auto drawStart = DebugClock::now(); // 統計用: 描画CPU時間の計測開始
+
     // ParticleRenderer に全パーティクルの描画を任せる
-    m_Renderer.Draw(m_Pool, POOL_SIZE);
+    m_Renderer.Draw(m_Pool.get(), POOL_SIZE);
+
+    // 統計を回収（デバッグUIが GetStats() で参照する）
+    m_Stats.DrawMs      = ElapsedMs(drawStart);
+    m_Stats.ActiveCount = m_Renderer.GetActiveCount();
+    m_Stats.DrawCalls   = m_Renderer.GetDrawCallCount();
 }
 
 // ---------------------------------------------------------
