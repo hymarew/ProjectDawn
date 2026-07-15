@@ -1,0 +1,20 @@
+{
+    "id": 109,
+    "name": "AR-9 Judgment",
+    "category": "AssaultRifle",
+    "rarity": "Epic",
+    "damage": 75,
+    "fireRate": 0.12,
+    "reloadTime": 2.0,
+    "magazineSize": 90,
+    "bulletSpeed": 70.0,
+    "bulletLifeTime": 2.4,
+    "spreadAngle": 1.0,
+    "splashRadius": 0.0,
+    "knockbackPower": 0.0,
+    "singleShot": false,
+    "zoomRatio": 1.8,
+    "attackType": "StraightShot",
+    "model": "",
+    "icon": ""
+}

@@ -1,4 +1,4 @@
-#include "main.h"
+﻿#include "main.h"
 #include "titleScene.h"
 #include "sceneManager.h"
 #include "transitionManager.h"
@@ -37,7 +37,7 @@ void TitleScene::Draw()
         IM_COL32(0, 0, 0, 255));
 
     // --- タイトル文字 ---
-    const char* title    = "ALIEN SHOOTER";
+    const char* title    = "Project Down";
     const float titleSize = 60.0f;
     ImVec2 tSize = ImGui::GetFont()->CalcTextSizeA(titleSize, FLT_MAX, 0.0f, title);
     float  tx    = (SCREEN_WIDTH  - tSize.x) * 0.5f;

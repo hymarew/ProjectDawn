@@ -1,0 +1,9 @@
+{
+    "id": 1106,
+    "name": "AR-6 Warden",
+    "type": "Weapon",
+    "rarity": "Rare",
+    "weaponID": 106,
+    "model": "asset\\model\\crystal.obj",
+    "icon": ""
+}

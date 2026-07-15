@@ -1,0 +1,20 @@
+{
+    "id": 107,
+    "name": "AR-7 Mirage",
+    "category": "AssaultRifle",
+    "rarity": "Rare",
+    "damage": 42,
+    "fireRate": 0.09,
+    "reloadTime": 1.6,
+    "magazineSize": 110,
+    "bulletSpeed": 70.0,
+    "bulletLifeTime": 2.0,
+    "spreadAngle": 2.0,
+    "splashRadius": 0.0,
+    "knockbackPower": 0.0,
+    "singleShot": false,
+    "zoomRatio": 1.5,
+    "attackType": "StraightShot",
+    "model": "",
+    "icon": ""
+}

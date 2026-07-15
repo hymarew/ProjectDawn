@@ -1,0 +1,20 @@
+{
+    "id": 204,
+    "name": "RL-4 Bison",
+    "category": "RocketLauncher",
+    "rarity": "Common",
+    "damage": 150,
+    "fireRate": 2.0,
+    "reloadTime": 2.0,
+    "magazineSize": 2,
+    "bulletSpeed": 20.0,
+    "bulletLifeTime": 6.0,
+    "spreadAngle": 0.0,
+    "splashRadius": 5.0,
+    "knockbackPower": 500,
+    "singleShot": true,
+    "zoomRatio": 1.0,
+    "attackType": "SplashProjectile",
+    "model": "",
+    "icon": ""
+}

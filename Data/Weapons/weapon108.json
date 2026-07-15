@@ -1,0 +1,20 @@
+{
+    "id": 108,
+    "name": "AR-8 Hurricane",
+    "category": "AssaultRifle",
+    "rarity": "Epic",
+    "damage": 40,
+    "fireRate": 0.06,
+    "reloadTime": 2.4,
+    "magazineSize": 150,
+    "bulletSpeed": 70.0,
+    "bulletLifeTime": 2.0,
+    "spreadAngle": 3.0,
+    "splashRadius": 0.0,
+    "knockbackPower": 0.0,
+    "singleShot": false,
+    "zoomRatio": 1.5,
+    "attackType": "StraightShot",
+    "model": "",
+    "icon": ""
+}

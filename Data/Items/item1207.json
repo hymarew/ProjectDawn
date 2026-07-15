@@ -1,0 +1,9 @@
+{
+    "id": 1207,
+    "name": "RL-7 Basilisk",
+    "type": "Weapon",
+    "rarity": "Rare",
+    "weaponID": 207,
+    "model": "asset\\model\\crystal.obj",
+    "icon": ""
+}

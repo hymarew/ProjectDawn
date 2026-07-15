@@ -5,6 +5,7 @@
 #include "gameObject.h"
 #include "renderer.h"
 #include "GameConfig.h"
+#include "weaponEquip.h"
 
 class Weapon;
 class SphereCollider;
@@ -23,11 +24,9 @@ private:
     bool m_Ground = true;
     float m_MoveAnimation;
 
-    // 所持している武器の一覧。Init で全武器を生成して登録する
-    std::vector<Weapon*> m_Weapons;
-
-    // 現在装備中の武器のインデックス（m_Weapons の添え字）
-    int m_WeaponIndex = 0;
+    // 装備武器の管理（Primary / Secondary）。
+    // Weapon 実体の生成・所持チェック・装備保存は WeaponEquip が担当する
+    WeaponEquip m_Equip;
 
     // HP と無敵時間
     float m_Hp      = 100.0f;
@@ -46,14 +45,11 @@ public:
     const char* GetName() override { return "Player"; }
 
     // 現在の武器を返す。外部から射撃や状態表示に使う
-    Weapon* GetWeapon() const;
+    Weapon* GetWeapon() const { return m_Equip.GetActiveWeapon(); }
 
-    // ImGui などから武器インデックスを直接指定して切り替える
-    void SetWeaponIndex(int index);
-
-    int GetWeaponIndex() const             { return m_WeaponIndex; }
-    int GetWeaponCount() const             { return (int)m_Weapons.size(); }
-    std::vector<Weapon*>& GetWeapons()     { return m_Weapons; }
+    // 装備管理へのアクセス（WeaponSelect 画面・ImGui から使う）
+    WeaponEquip&       GetEquip()       { return m_Equip; }
+    const WeaponEquip& GetEquip() const { return m_Equip; }
 
     // source : 攻撃した敵タイプ名（"Alien" など）。ログ記録に使用
     void  TakeDamage(float dmg, const char* source = "Alien");

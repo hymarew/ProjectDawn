@@ -1,0 +1,9 @@
+{
+    "id": 1205,
+    "name": "RL-5 Ogre",
+    "type": "Weapon",
+    "rarity": "Rare",
+    "weaponID": 205,
+    "model": "asset\\model\\crystal.obj",
+    "icon": ""
+}

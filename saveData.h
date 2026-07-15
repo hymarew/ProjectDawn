@@ -5,8 +5,7 @@
 // =====================================================
 // SaveData : セーブファイルに永続化するデータの構造体
 //
-// 現段階では stages / achievements / unlocks の 3 カテゴリを保持する。
-// StageDatabase との連携は Step4-2 で実装する。
+// stages / achievements / unlocks / equipment の 4 カテゴリを保持する。
 // =====================================================
 struct SaveData
 {
@@ -16,6 +15,9 @@ struct SaveData
     // 実績解放状態（将来用、現段階は空）
     std::unordered_map<std::string, bool> achievements;
 
-    // 武器・アイテム等の解放状態（将来用、現段階は空）
+    // 武器の所持状態。キーは "weapon101" など（Inventory と連携）
     std::unordered_map<std::string, bool> unlocks;
+
+    // 装備状態。"primary" / "secondary" → "weapon101" など（WeaponEquip と連携）
+    std::unordered_map<std::string, std::string> equipment;
 };

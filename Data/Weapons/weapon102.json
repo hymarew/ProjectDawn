@@ -1,0 +1,20 @@
+{
+    "id": 102,
+    "name": "AR-2 Falcon",
+    "category": "AssaultRifle",
+    "rarity": "Common",
+    "damage": 30,
+    "fireRate": 0.08,
+    "reloadTime": 2.3,
+    "magazineSize": 100,
+    "bulletSpeed": 70.0,
+    "bulletLifeTime": 2.0,
+    "spreadAngle": 2.2,
+    "splashRadius": 0.0,
+    "knockbackPower": 0.0,
+    "singleShot": false,
+    "zoomRatio": 1.5,
+    "attackType": "StraightShot",
+    "model": "",
+    "icon": ""
+}

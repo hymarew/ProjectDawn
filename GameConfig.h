@@ -74,15 +74,32 @@ namespace GameConfig
     }
 
     // =====================================================
-    // HealItem : 回復アイテムの調整値
+    // WorldItem : ワールドドロップアイテムの調整値
+    // 回復量・ドロップ率などのバランス値は JSON（Data/Items, Data/DropTables）側で持つ。
+    // ここには見た目・判定などコードに近い調整値だけを置く。
     // =====================================================
-    namespace HealItem
+    namespace WorldItem
     {
-        constexpr float HEAL_RATIO      = 0.1f;  // 回復量 = 最大HP × この割合
-        constexpr float PICKUP_RADIUS   = 1.5f;  // 取得判定の半径（コライダー半径）
-        constexpr int   PARTICLE_COUNT  = 30;    // 回復エフェクトの粒子数（20〜40目安）
-        constexpr float MODEL_SCALE     = 3.0f;  // HealBox モデルの表示スケール
-        constexpr float DROP_RATE       = 0.1f;  // 敵撃破時にドロップする確率（0〜1）
+        // ドロップは時間経過では消えない（取得 or シーン終了のリセットのみ）。
+        // そのため POOL_SIZE はステージ1回分の総ドロップ数を賄える量にしておく
+        constexpr int   POOL_SIZE           = 512;   // 同時に存在できるドロップの上限
+        constexpr float PICKUP_RADIUS       = 1.5f;  // 取得判定の半径
+        constexpr float MODEL_SCALE         = 2.0f;  // 表示モデルのスケール
+        constexpr float HOVER_HEIGHT        = 1.0f;  // 地面からの浮遊基準高さ
+        constexpr float BOB_HEIGHT          = 0.25f; // 浮遊の上下振幅
+        constexpr float BOB_SPEED           = 2.0f;  // 浮遊の速さ（rad/秒）
+        constexpr float ROTATE_SPEED        = 1.5f;  // 水平回転速度（rad/秒）
+        constexpr float DROP_SCATTER_RADIUS = 1.5f;  // 複数ドロップ時に散らす半径
+        constexpr int   HEAL_PARTICLE_COUNT = 30;    // 回復エフェクトの粒子数（20〜40目安）
+    }
+
+    // =====================================================
+    // WeaponSystem : 武器収集システムの調整値
+    // =====================================================
+    namespace WeaponSystem
+    {
+        constexpr int STARTER_AR_ID = 101;  // 初回起動時に付与する初期アサルトライフル
+        constexpr int STARTER_RL_ID = 201;  // 初回起動時に付与する初期ロケットランチャー
     }
 
     // =====================================================

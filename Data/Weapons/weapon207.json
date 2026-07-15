@@ -1,0 +1,20 @@
+{
+    "id": 207,
+    "name": "RL-7 Basilisk",
+    "category": "RocketLauncher",
+    "rarity": "Rare",
+    "damage": 200,
+    "fireRate": 2.0,
+    "reloadTime": 2.4,
+    "magazineSize": 2,
+    "bulletSpeed": 22.0,
+    "bulletLifeTime": 6.0,
+    "spreadAngle": 0.0,
+    "splashRadius": 5.5,
+    "knockbackPower": 550,
+    "singleShot": true,
+    "zoomRatio": 1.0,
+    "attackType": "SplashProjectile",
+    "model": "",
+    "icon": ""
+}

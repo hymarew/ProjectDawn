@@ -1,0 +1,9 @@
+{
+    "id": 2001,
+    "name": "Heal Pack",
+    "type": "Heal",
+    "rarity": "Common",
+    "healAmount": 10.0,
+    "model": "asset\\model\\HealBox.obj",
+    "icon": ""
+}

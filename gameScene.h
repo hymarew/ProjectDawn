@@ -5,6 +5,10 @@
 #include "pauseMenu.h"
 #include "tutorialOverlay.h"
 #include "stageData.h"
+#include "itemPickupSystem.h"
+#include "pickupNotificationUI.h"
+#include "pickupEffectPlayer.h"
+#include "pendingWeapons.h"
 #include <string>
 
 // =====================================================
@@ -30,6 +34,15 @@ private:
     WeaponUI        m_WeaponUI;
     PauseMenu       m_PauseMenu;
     TutorialOverlay m_Tutorial;
+
+    // ---- 武器収集・アイテムドロップシステム ----
+    ItemPickupSystem     m_PickupSystem;   // 接触判定 → 取得処理 → イベント発行
+    PickupNotificationUI m_PickupNotify;   // 取得トースト（EventBus リスナー）
+    PickupEffectPlayer   m_PickupEffect;   // 取得エフェクト（EventBus リスナー）
+
+    // ステージ中の仮取得武器。クリアで Inventory へ正式取得、
+    // ゲームオーバー・途中終了では Uninit の Discard で失われる
+    PendingWeapons       m_PendingWeapons;
     bool            m_IsPaused   = false;
     bool            m_FreeCursor = false;  // 2キー: 広報・スクショ用カーソル解放
     float           m_PlayTime   = 0.0f;  // ポーズ中は停止するゲーム内経過時間（秒）

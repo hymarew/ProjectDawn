@@ -109,11 +109,11 @@ namespace ParticlePreset
     {
         ParticleSetting s{};
         s.MinLife  = 0.5f;  s.MaxLife  = 0.9f;
-        s.MinSpeed = 15.0f; s.MaxSpeed = 32.0f; // 高圧で押し出される初速
+        s.MinSpeed = 45.0f; s.MaxSpeed = 96.0f; // 高圧で押し出される初速
         s.StartSize = 0.8f; s.EndSize  = 4.5f;  // 急速に体積が増える
         s.StartColor = { 1.0f, 0.9f, 0.5f, 1.0f }; // 黄白（火球）
         s.EndColor   = { 0.5f, 0.1f, 0.02f, 0.0f }; // 赤黒く焦げてフェード
-        s.EmitterLife = 0.15f; s.SpawnPerSec = 400; // 一瞬でまとめて噴き出すバースト
+        s.EmitterLife = 0.15f; s.SpawnPerSec = 40000; // 一瞬でまとめて噴き出すバースト
         s.TexturePath = L"asset\\texture\\smoke.png";
         s.Drag           = 3.0f;  // 約0.3秒で勢いが急減する時定数
         s.Turbulence     = 6.0f;  // 強い渦で輪郭が乱れる
@@ -130,11 +130,11 @@ namespace ParticlePreset
     {
         return {
             0.05f, 0.1f,
-            2.0f, 5.0f,
+            6.0f, 15.0f,
             0.3f, 0.8f,
             { 1.0f, 1.0f, 0.8f, 1.0f },
             { 1.0f, 1.0f, 1.0f, 0.0f },
-            0.1f, 30,
+            0.1f, 3000,
             L"asset\\texture\\particle.png"
         };
     }
@@ -144,11 +144,11 @@ namespace ParticlePreset
     {
         return {
             0.1f, 0.3f,
-            3.0f, 8.0f,
+            9.0f, 24.0f,
             0.2f, 0.5f,
             { 1.0f, 1.0f, 1.0f, 1.0f },
             { 1.0f, 1.0f, 1.0f, 0.0f },
-            0.2f, 20,
+            0.2f, 2000,
             L"asset\\texture\\particle.png"
         };
     }
@@ -161,11 +161,11 @@ namespace ParticlePreset
     {
         ParticleSetting s{};
         s.MinLife  = 3.0f; s.MaxLife  = 5.0f;
-        s.MinSpeed = 6.0f; s.MaxSpeed = 16.0f; // 爆風で勢いよく吹き飛ぶ初速
+        s.MinSpeed = 18.0f; s.MaxSpeed = 48.0f; // 爆風で勢いよく吹き飛ぶ初速
         s.StartSize = 1.2f; s.EndSize  = 9.0f; // 膨張してボリュームが増える
         s.StartColor = { 0.85f, 0.82f, 0.78f, 0.9f }; // 密度のある煙
         s.EndColor   = { 0.15f, 0.15f, 0.15f, 0.0f }; // 薄く透明にフェードアウト
-        s.EmitterLife = 0.3f; s.SpawnPerSec = 25;
+        s.EmitterLife = 0.3f; s.SpawnPerSec = 2500;
         s.TexturePath = L"asset\\texture\\smoke.png";
         s.Drag           = 1.2f;  // 速度が急激に落ちる（爆発本体より緩やか）
         s.Turbulence     = 3.5f;  // 渦同士がぶつかり合うような乱流
@@ -178,17 +178,17 @@ namespace ParticlePreset
     }
 
     // 火花: 超短寿命・高速・全方向放出・オレンジ
-    // SpawnPerSec=5000 + EmitterLife=0.05 → 1フレームで約80個のバースト放出
+    // SpawnPerSec=500000 + EmitterLife=0.05 → 1フレームで約8000個のバースト放出
     // StartSize=0.8 → ParticleRenderer が p.Size をそのままスケールに使うため大きめに設定
     inline ParticleSetting Spark()
     {
         ParticleSetting s{};
         s.MinLife  = 0.2f;  s.MaxLife  = 0.5f;
-        s.MinSpeed = 8.0f;  s.MaxSpeed = 22.0f;
+        s.MinSpeed = 24.0f; s.MaxSpeed = 66.0f;
         s.StartSize = 0.8f; s.EndSize  = 0.8f; // ParticleRenderer のスケールに直結
         s.StartColor = { 1.0f, 0.6f, 0.1f, 1.0f }; // オレンジ
         s.EndColor   = { 1.0f, 0.2f, 0.0f, 1.0f }; // alpha=1固定: discard 対策
-        s.EmitterLife = 0.05f; s.SpawnPerSec = 5000; // 1フレームで約80個のバースト放出
+        s.EmitterLife = 0.05f; s.SpawnPerSec = 500000; // 1フレームで約8000個のバースト放出
         s.TexturePath = L"asset\\texture\\particle.png";
         s.Drag     = 2.0f;  // 空気抵抗で徐々に減速してから重力で落下する
         s.Additive = true;  // 火花は加算合成で明るく光らせる
@@ -200,11 +200,11 @@ namespace ParticlePreset
     {
         return {
             0.8f, 2.0f,
-            3.0f, 12.0f,
+            9.0f, 36.0f,
             0.8f, 4.0f,
             { 1.0f, 0.6f, 0.0f, 1.0f },
             { 0.5f, 0.0f, 0.0f, 0.0f },
-            1.0f, 100,
+            1.0f, 10000,
             L"asset\\texture\\particle.png"
         };
     }
@@ -214,11 +214,11 @@ namespace ParticlePreset
     {
         return {
             2.0f, 4.0f,
-            1.0f, 5.0f,
+            3.0f, 15.0f,
             2.0f, 8.0f,
             { 0.5f, 0.0f, 1.0f, 1.0f },
             { 0.1f, 0.0f, 0.3f, 0.0f },
-            2.0f, 30,
+            2.0f, 3000,
             L"asset\\texture\\particle.png"
         };
     }
@@ -229,11 +229,11 @@ namespace ParticlePreset
     {
         ParticleSetting s{};
         s.MinLife  = 1.5f; s.MaxLife  = 3.0f;
-        s.MinSpeed = 6.0f; s.MaxSpeed = 16.0f; // 放物線を描くための初速
+        s.MinSpeed = 18.0f; s.MaxSpeed = 48.0f; // 放物線を描くための初速
         s.StartSize = 0.3f; s.EndSize  = 0.3f; // 大きさは変化させず破片らしく保つ
         s.StartColor = { 0.35f, 0.30f, 0.25f, 1.0f }; // 焦げた土・岩の色
         s.EndColor   = { 0.20f, 0.17f, 0.15f, 0.0f }; // 徐々にフェードアウトして消える
-        s.EmitterLife = 0.15f; s.SpawnPerSec = 200; // 一瞬でまとめて飛び散るバースト
+        s.EmitterLife = 0.15f; s.SpawnPerSec = 20000; // 一瞬でまとめて飛び散るバースト
         s.TexturePath = L"asset\\texture\\particle.png";
         s.Drag            = 0.3f;  // 空気抵抗はごく弱い（重い破片のため）
         s.SpinSpeed       = 5.0f;  // 飛びながら不規則に回転する
@@ -403,7 +403,7 @@ namespace ParticlePreset
         s.StartSize = 1.0f; s.EndSize  = 20.0f; // 高速で拡大する爆風リング
         s.StartColor = { 1.0f, 0.9f, 0.7f, 0.8f }; // 白っぽい閃光
         s.EndColor   = { 1.0f, 0.5f, 0.2f, 0.0f }; // オレンジに変化しながら消える
-        s.EmitterLife = 0.05f; s.SpawnPerSec = 20; // 実質1枚だけ生成される
+        s.EmitterLife = 0.05f; s.SpawnPerSec = 2000; // 約100枚を重ねて生成する
         s.TexturePath = L"asset\\texture\\smoke.png";
         s.BuoyancyDelay  = 0.0f; s.BuoyancyForce = 0.0f; // 重力を実質無効化（地面に張り付いたまま）
         s.Additive       = true; // 加算合成で光るショックウェーブにする

@@ -1,0 +1,9 @@
+{
+    "id": 1109,
+    "name": "AR-9 Judgment",
+    "type": "Weapon",
+    "rarity": "Epic",
+    "weaponID": 109,
+    "model": "asset\\model\\crystal.obj",
+    "icon": ""
+}

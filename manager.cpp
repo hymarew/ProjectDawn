@@ -26,7 +26,8 @@
 #include "transitionManager.h"
 #include "saveManager.h"
 #include "particleManager.h"
-#include "healItem.h"
+#include "gameContext.h"
+#include "dropManager.h"
 #include "dynamicLightManager.h"
 
 //インスタンス
@@ -274,14 +275,17 @@ void Manager::ImGuiDraw()
 		Player* player = Manager::GetGameObject<Player>();
 		if (player)
 		{
-			int index = player->GetWeaponIndex();
-			auto& weapons = player->GetWeapons();
+			auto& equip = player->GetEquip();
 
-			// 所持武器をラジオボタンで一覧表示し、選択で切り替える
-			for (int i = 0; i < (int)weapons.size(); i++)
+			// 装備スロットの表示（ステージ中の装備変更は不可のため読み取り専用。
+			// アクティブ切替はホイール = WeaponEquip::SwitchSlot のみ）
+			for (int i = 0; i < (int)EquipSlot::Count; i++)
 			{
-				if (ImGui::RadioButton(weapons[i]->GetName(), &index, i))
-					player->SetWeaponIndex(i);
+				Weapon* w = equip.GetWeapon((EquipSlot)i);
+				bool active = ((EquipSlot)i == equip.GetActiveSlot());
+				ImGui::Text("%s %-9s : %s",
+					active ? ">" : " ",
+					EquipSlotToString((EquipSlot)i), w ? w->GetName() : "(none)");
 			}
 
 			// 現在の武器の状態を表示する
@@ -408,18 +412,31 @@ void Manager::ImGuiDraw()
 		ImGui::SameLine();
 		ImGui::Checkbox("Dynamic Lights (ALL)", &g_DynamicLightsEnabled);
 
-		ImGui::SeparatorText("Heal Item");
+		ImGui::SeparatorText("World Item");
 		if (ImGui::Button("Heal FX")) particleManager.EmitHeal(debugPos);
 		ImGui::SameLine();
 		// プレイヤーの前方3mに回復アイテムを配置する（取得テスト用）
-		if (ImGui::Button("Spawn HealItem"))
+		if (ImGui::Button("Spawn Heal"))
 		{
 			Player* p = Manager::GetGameObject<Player>();
 			if (p)
 			{
 				Vector3 pos = p->GetPosition();
 				pos.z += 3.0f;
-				Manager::AddGameObject<HealItem>()->SetPosition(pos);
+				GameContext::Instance().itemFactory.Spawn(ItemID(2001), pos);
+			}
+		}
+		ImGui::SameLine();
+		// ドロップ演出テスト: プレイヤー前方でスコーピオンのドロップ抽選を10回走らせる
+		if (ImGui::Button("Test Drop x10"))
+		{
+			Player* p = Manager::GetGameObject<Player>();
+			if (p)
+			{
+				Vector3 pos = p->GetPosition();
+				pos.z += 5.0f;
+				for (int i = 0; i < 10; i++)
+					g_DropManager.OnEnemyKilled("Scorpion", pos);
 			}
 		}
 	}

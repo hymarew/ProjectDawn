@@ -1,0 +1,9 @@
+{
+    "id": 1209,
+    "name": "RL-9 Colossus",
+    "type": "Weapon",
+    "rarity": "Epic",
+    "weaponID": 209,
+    "model": "asset\\model\\crystal.obj",
+    "icon": ""
+}

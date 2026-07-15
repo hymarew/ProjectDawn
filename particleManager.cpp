@@ -1,4 +1,4 @@
-// ===================================================
+﻿// ===================================================
 // particleManager.cpp
 // 全パーティクルと全エミッタを一元管理するクラス
 //
@@ -83,6 +83,7 @@ void ParticleManager::Uninit()
 // ---------------------------------------------------------
 void ParticleManager::Update(float dt)
 {
+
     const auto updateStart = DebugClock::now(); // 統計用: シミュレーション時間の計測開始
 
     // ---- 画面フラッシュのタイマーを更新 ----
@@ -114,14 +115,15 @@ void ParticleManager::Update(float dt)
             [](const std::unique_ptr<ParticleEmitter>& e) { return !e->IsAlive(); }),
         m_Emitters.end()
     );
-
     // ---- アクティブな全パーティクルの物理演算 ----
     // 書き込んだことのあるスロット（ハイウォーターマーク）までで走査を打ち切る。
     // 併せて「最後にアクティブだったスロット位置」を記録し、ループ後に走査範囲を縮める。
     // これがないと大量バースト後にプール末尾まで走査し続け、FPSが戻らなくなる
     int lastActive = -1;
+    int loop = 0;
     for (int i = 0; i < m_UsedSlots; i++)
     {
+        loop++;
         ParticleData& p = m_Pool[i];
         if (!p.Active) continue; // 非アクティブはスキップ
 
@@ -191,7 +193,6 @@ void ParticleManager::Update(float dt)
 
         lastActive = i; // ここまで生き残った = 走査が必要な末尾候補
     }
-
     // ---- 走査範囲の縮小 ----
     // 末尾側の死んだ領域を切り捨てる。大量バーストの粒子が消えれば
     // 走査範囲も自動で縮み、通常プレイのコストに戻る
@@ -199,6 +200,7 @@ void ParticleManager::Update(float dt)
 
     m_Stats.UpdateMs  = ElapsedMs(updateStart); // 統計用: シミュレーション時間を記録
     m_Stats.UsedSlots = m_UsedSlots;            // 統計用: 現在の走査範囲
+    m_NextFree = m_UsedSlots;
 }
 
 // ---------------------------------------------------------
@@ -321,7 +323,7 @@ void ParticleManager::EmitBigExplosion(Vector3 position)
 // ---------------------------------------------------------
 void ParticleManager::EmitHeal(Vector3 position)
 {
-    Emit(ParticlePreset::HealSparkle(GameConfig::HealItem::PARTICLE_COUNT), position);
+    Emit(ParticlePreset::HealSparkle(GameConfig::WorldItem::HEAL_PARTICLE_COUNT), position);
 }
 
 // ---------------------------------------------------------

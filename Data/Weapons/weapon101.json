@@ -1,0 +1,20 @@
+{
+    "id": 101,
+    "name": "AR-1 Vanguard",
+    "category": "AssaultRifle",
+    "rarity": "Common",
+    "damage": 35,
+    "fireRate": 0.10,
+    "reloadTime": 2.5,
+    "magazineSize": 90,
+    "bulletSpeed": 70.0,
+    "bulletLifeTime": 2.0,
+    "spreadAngle": 2.5,
+    "splashRadius": 0.0,
+    "knockbackPower": 0.0,
+    "singleShot": false,
+    "zoomRatio": 1.5,
+    "attackType": "StraightShot",
+    "model": "",
+    "icon": ""
+}

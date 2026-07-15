@@ -56,9 +56,10 @@ bool SaveManager::Load()
         if      (detectSection("stages"))       section = "stages";
         else if (detectSection("achievements")) section = "achievements";
         else if (detectSection("unlocks"))      section = "unlocks";
+        else if (detectSection("equipment"))    section = "equipment";
 
-        // "key": true/false パターンを探す
-        // 行例: `        "stage1": true,`
+        // "key": value パターンを探す
+        // 行例: `        "stage1": true,` / `        "primary": "weapon101",`
         auto colon = line.find(':');
         if (colon == std::string::npos) continue;
 
@@ -71,14 +72,26 @@ bool SaveManager::Load()
 
         std::string key = line.substr(q0 + 1, q1 - q0 - 1);
 
-        // コロン右側から true / false を検出
+        // セクション名自体の行（例: `"stages":` ）はキーとして誤検出されるのでスキップする
+        if (key == section) continue;
+
         std::string rhs = line.substr(colon + 1);
+
+        // ---- equipment セクションは文字列値（"primary": "weapon101"） ----
+        if (section == "equipment")
+        {
+            auto v0 = rhs.find('"');
+            auto v1 = (v0 != std::string::npos) ? rhs.find('"', v0 + 1) : std::string::npos;
+            if (v0 == std::string::npos || v1 == std::string::npos) continue;
+
+            m_Data.equipment[key] = rhs.substr(v0 + 1, v1 - v0 - 1);
+            continue;
+        }
+
+        // ---- それ以外のセクションは bool 値 ----
         bool hasTrue  = rhs.find("true")  != std::string::npos;
         bool hasFalse = rhs.find("false") != std::string::npos;
         if (!hasTrue && !hasFalse) continue;
-
-        // セクション名自体の行（例: `"stages":` ）はキーとして誤検出されるのでスキップする
-        if (key == section) continue;
 
         // true と false が両方含まれる行はありえないが、安全のため hasTrue 優先とする
         bool value = hasTrue;
@@ -147,6 +160,20 @@ bool SaveManager::Save()
         {
             if (!first) f << ",\n";
             f << Indent(2) << "\"" << kv.first << "\": " << BoolStr(kv.second);
+            first = false;
+        }
+    }
+    f << "\n" << Indent(1) << "},\n\n";
+
+    // ---- equipment（値が文字列のセクション） ----
+    f << Indent(1) << "\"equipment\":\n";
+    f << Indent(1) << "{\n";
+    {
+        bool first = true;
+        for (const auto& kv : m_Data.equipment)
+        {
+            if (!first) f << ",\n";
+            f << Indent(2) << "\"" << kv.first << "\": \"" << kv.second << "\"";
             first = false;
         }
     }

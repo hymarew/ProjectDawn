@@ -1,0 +1,20 @@
+{
+    "enemyType": "Boss",
+    "strategy": "Boss",
+    "dropRate": 1.0,
+    "rollCount": 3,
+    "entries": [
+        { "itemID": 1105, "weight": 8 },
+        { "itemID": 1106, "weight": 8 },
+        { "itemID": 1107, "weight": 8 },
+        { "itemID": 1205, "weight": 8 },
+        { "itemID": 1206, "weight": 8 },
+        { "itemID": 1207, "weight": 8 },
+        { "itemID": 1108, "weight": 5 },
+        { "itemID": 1109, "weight": 5 },
+        { "itemID": 1208, "weight": 5 },
+        { "itemID": 1209, "weight": 5 },
+        { "itemID": 1110, "weight": 2 },
+        { "itemID": 1210, "weight": 2 }
+    ]
+}

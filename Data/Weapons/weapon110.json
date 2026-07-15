@@ -1,0 +1,20 @@
+{
+    "id": 110,
+    "name": "AR-X Dawnbreaker",
+    "category": "AssaultRifle",
+    "rarity": "Legendary",
+    "damage": 65,
+    "fireRate": 0.07,
+    "reloadTime": 1.8,
+    "magazineSize": 140,
+    "bulletSpeed": 70.0,
+    "bulletLifeTime": 2.4,
+    "spreadAngle": 1.2,
+    "splashRadius": 0.0,
+    "knockbackPower": 0.0,
+    "singleShot": false,
+    "zoomRatio": 1.8,
+    "attackType": "StraightShot",
+    "model": "",
+    "icon": ""
+}

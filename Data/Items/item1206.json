@@ -1,0 +1,9 @@
+{
+    "id": 1206,
+    "name": "RL-6 Griffin",
+    "type": "Weapon",
+    "rarity": "Rare",
+    "weaponID": 206,
+    "model": "asset\\model\\crystal.obj",
+    "icon": ""
+}

@@ -4,6 +4,7 @@
 #include "titleScene.h"
 #include <cstdlib>
 #include "menuScene.h"
+#include "weaponSelectScene.h"
 #include "stageSelectScene.h"
 #include "storyCompleteScene.h"
 #include "gameScene.h"
@@ -131,8 +132,9 @@ std::unique_ptr<Scene> SceneManager::CreateScene(SceneID id)
 {
     switch (id)
     {
-    case SceneID::Title:       return std::make_unique<TitleScene>();
-    case SceneID::Menu:        return std::make_unique<MenuScene>();
+    case SceneID::Title:        return std::make_unique<TitleScene>();
+    case SceneID::Menu:         return std::make_unique<MenuScene>();
+    case SceneID::WeaponSelect: return std::make_unique<WeaponSelectScene>();
     case SceneID::StageSelect:   return std::make_unique<StageSelectScene>();
     case SceneID::Game:          return std::make_unique<GameScene>();
     case SceneID::Result:        return std::make_unique<ResultScene>();

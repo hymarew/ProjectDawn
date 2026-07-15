@@ -1,0 +1,9 @@
+{
+    "id": 1105,
+    "name": "AR-5 Tempest",
+    "type": "Weapon",
+    "rarity": "Rare",
+    "weaponID": 105,
+    "model": "asset\\model\\crystal.obj",
+    "icon": ""
+}

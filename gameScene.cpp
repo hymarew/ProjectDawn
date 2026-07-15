@@ -20,7 +20,9 @@
 #include "polygon2D.h"
 #include "field.h"
 #include "player.h"
-#include "healItem.h"
+#include "worldItem.h"
+#include "worldItemPool.h"
+#include "dropManager.h"
 #include "damageEffectManager.h"
 #include "dynamicLightManager.h"
 #include "enemy.h"
@@ -72,15 +74,23 @@ void GameScene::Init()
     Manager::AddGameObject<SKY>();
     Manager::AddGameObject<Field>();
 
-    Player* player = Manager::AddGameObject<Player>();
-
-    // 動作確認用の回復アイテム（接触で最大HPの10%回復）
-    Manager::AddGameObject<HealItem>()->SetPosition({ 5.0f, 0.0f, -5.0f });
-
     g_BulletPool.Init(1000);
     g_BulletManager.Init();
     ParticleManager::GetInstance().Init();
     g_EnemyProjectilePool.Init();
+
+    // ---- 武器収集・アイテムドロップシステム ----
+    // GameContext::Instance() の初回呼び出しで各 Database の JSON ロードが走る。
+    // Player::Init が装備復元で WeaponFactory を使うため、Player 生成より先に行う。
+    auto& itemCtx = GameContext::Instance();
+    g_WorldItemPool.Init(GameConfig::WorldItem::POOL_SIZE);
+    g_DropManager.Init(&itemCtx.dropDB, &itemCtx.itemFactory);
+    m_PendingWeapons.Discard();  // 前ステージの残りが万一あっても空から始める
+    m_PickupSystem.Init(&itemCtx.itemDB, &itemCtx.inventory, &m_PendingWeapons);
+    m_PickupNotify.Init();   // EventBus へ Subscribe
+    m_PickupEffect.Init();   // EventBus へ Subscribe
+
+    Player* player = Manager::AddGameObject<Player>();
 
     g_EnemyPool.Init(GameConfig::Game::SCORPION_NUM);
     g_EnemyPool.ResetKillCount();
@@ -136,17 +146,29 @@ void GameScene::Uninit()
     if (g_PlayerLog.deathCause.empty())
         g_PlayerLog.deathCause = "Clear";
 
-    // 武器使用率: Player の各武器から発射回数を収集
+    // 武器使用率: Player の装備スロットから発射回数を収集
     Player* player = Manager::GetGameObject<Player>();
     if (player)
     {
-        for (Weapon* w : player->GetWeapons())
-            g_PlayerLog.weaponShotsFired[w->GetName()] += w->GetFireCount();
+        for (int i = 0; i < (int)EquipSlot::Count; i++)
+        {
+            if (Weapon* w = player->GetEquip().GetWeapon((EquipSlot)i))
+                g_PlayerLog.weaponShotsFired[w->GetName()] += w->GetFireCount();
+        }
     }
 
     g_PlayerLog.Save();
 
     m_WaveManager.Uninit();
+
+    // ---- 武器収集・アイテムドロップシステムの後始末 ----
+    // 仮取得武器を破棄する。クリア時は Update 内の CommitTo で既に空のため無害。
+    // ゲームオーバー・リタイア・タイトル戻りは全てここを通るので、破棄漏れがない
+    m_PendingWeapons.Discard();
+
+    m_PickupNotify.Uninit();  // EventBus から Unsubscribe
+    m_PickupEffect.Uninit();
+    g_DropManager.Uninit();
 
     auto& list = Manager::GetGameObjectList();
     for (GameObject* obj : list) { obj->Uninit(); delete obj; }
@@ -159,6 +181,7 @@ void GameScene::Uninit()
     ParticleManager::GetInstance().Uninit();
     g_EnemyPool.Uninit();
     g_EnemyProjectilePool.Uninit();
+    g_WorldItemPool.Uninit();
 
     // ModelRenderer::UnloadAll() が MODEL* を全て破棄するため、
     // それらを static キャッシュしている各クラスも合わせてリセットする。
@@ -166,6 +189,7 @@ void GameScene::Uninit()
     Tree::ReleaseShaders();
     Scorpion::ReleaseShaders();
     Grass::ReleaseShaders();
+    WorldItem::ReleaseShaders();
 
     ModelRenderer::UnloadAll();
 }
@@ -261,6 +285,12 @@ void GameScene::Update(float dt)
     g_DamageVisualizer.Update(dt);
 
     Player* player = Manager::GetGameObject<Player>();
+
+    // ---- ワールドドロップの更新と取得判定 ----
+    g_WorldItemPool.Update(dt);                    // 浮遊アニメ・寿命
+    m_PickupSystem.Update(player, g_WorldItemPool); // 接触 → 取得 → イベント発行
+    m_PickupNotify.Update(dt);                     // 取得トーストの時間経過
+
     g_CollisionManager.CheckEnemyVsPlayer    (g_EnemyPool, player);
     g_CollisionManager.CheckObstacleVsEnemies(g_EnemyPool);
     g_CollisionManager.Update();
@@ -283,6 +313,10 @@ void GameScene::Update(float dt)
     // 全Wave クリア → STAGE CLEAR
     else if (m_WaveManager.IsAllWavesCleared())
     {
+        // 仮取得武器をここで正式取得する（クリア時のみ save.json に載る）。
+        // この行を通らずにシーンが終わると Uninit の Discard で失われる
+        m_PendingWeapons.CommitTo(GameContext::Instance().inventory);
+
         g_SceneManager.RequestChange(SceneID::Result);
     }
 }
@@ -295,6 +329,7 @@ void GameScene::Draw()
     for (GameObject* obj : Manager::GetGameObjectList()) obj->DrawShadow();
     for (Enemy* e : g_EnemyPool.GetActiveEnemies()) e->DrawShadow();
     g_BulletManager.DrawShadow(g_BulletPool);
+    g_WorldItemPool.DrawShadow();
     g_ShadowRenderer->End();
 
     // Main Pass
@@ -332,6 +367,7 @@ void GameScene::Draw()
             for (Enemy* e : g_EnemyPool.GetActiveEnemies()) e->Draw();
             g_BulletManager.Draw(g_BulletPool);
             g_EnemyProjectilePool.Draw();
+            g_WorldItemPool.Draw();
         }
         if (layer == 2)
         {
@@ -345,6 +381,9 @@ void GameScene::Draw()
 
     // WeaponUI（右下）
     m_WeaponUI.Draw(Manager::GetGameObject<Player>());
+
+    // アイテム取得トースト（左中段）
+    m_PickupNotify.Draw();
 
     // ポーズオーバーレイ（ポーズ中のみ）
     if (m_IsPaused)
@@ -514,7 +553,7 @@ void GameScene::DrawHUD()
         const float sz    = 18.0f;
         const float lineH = sz + 6.0f;
         const float x     = MX;
-        const float baseY = SCREEN_HEIGHT - MY - lineH * 3.0f;
+        const float baseY = SCREEN_HEIGHT - MY - lineH * 4.0f;
 
         char buf[64];
 
@@ -528,6 +567,13 @@ void GameScene::DrawHUD()
         snprintf(buf, sizeof(buf), "Wave    : %d / %d",
             m_WaveManager.GetCurrentWave(), m_WaveManager.GetTotalWaves());
         ShadowText(x, baseY+lineH*2, sz, IM_COL32(210,210,210,220), buf);
+
+        // 仮取得武器の数。クリアしないと失われるため、1本以上あるときは
+        // 金色で目立たせて「持ち帰り待ち」であることを伝える
+        snprintf(buf, sizeof(buf), "Found   : %d", m_PendingWeapons.GetCount());
+        ShadowText(x, baseY+lineH*3, sz,
+            (m_PendingWeapons.GetCount() > 0) ? IM_COL32(255,220,80,230)
+                                              : IM_COL32(210,210,210,220), buf);
     }
 
     // ========================================================
