@@ -26,6 +26,15 @@ public:
     bool IsStageUnlocked(const std::string& stageId) const;
     void SetStageUnlocked(const std::string& stageId, bool unlocked);
 
+    // オプション設定の取得・設定。キーが存在しない場合は defaultValue を返す。
+    // OptionsMenu / SoundManager / InputManager から呼ばれる。
+    float GetSettingFloat(const std::string& key, float defaultValue) const;
+    void  SetSettingFloat(const std::string& key, float value);
+
+    // 累計統計の取得・加算。AchievementManager から呼ばれる。
+    int  GetStat(const std::string& key) const;
+    void AddStat(const std::string& key, int amount);
+
 private:
     SaveData m_Data;
 

@@ -29,6 +29,9 @@ public:
 	void Play(bool Loop = false);
 	void Stop();
 
+	// 音量を設定する（0.0 = 無音, 1.0 = 原音量）。再生中でも即時反映される
+	void SetVolume(float volume);
+
 
 };
 

@@ -48,6 +48,8 @@
 #include "playerLog.h"
 #include <ctime>
 #include "gameContext.h"
+#include "achievementManager.h"
+#include "saveManager.h"
 
 static std::string GetCurrentTimeString()
 {
@@ -162,6 +164,14 @@ void GameScene::Uninit()
 
     g_PlayerLog.Save();
 
+    // 今回プレイ分のキル数を累計統計へ加算して保存する（実績のキル系判定に使う）
+    const int runKills = g_EnemyPool.GetKillCount();
+    if (runKills > 0)
+    {
+        g_SaveManager.AddStat("totalKills", runKills);
+        g_SaveManager.Save();
+    }
+
     m_WaveManager.Uninit();
 
     // ---- 武器収集・アイテムドロップシステムの後始末 ----
@@ -230,7 +240,9 @@ void GameScene::Update(float dt)
     }
 
     // ---- ESC でポーズトグル ----
-    if (Input::GetKeyTrigger(VK_ESCAPE))
+    // オプション画面表示中の ESC は OptionsMenu の「閉じる」操作なので、
+    // ここでのポーズ解除は行わない（PauseMenu::Update 内で処理される）
+    if (Input::GetKeyTrigger(VK_ESCAPE) && !m_PauseMenu.IsOptionsOpen())
     {
         m_IsPaused = !m_IsPaused;
         if (m_IsPaused)
@@ -305,6 +317,13 @@ void GameScene::Update(float dt)
 
     m_WaveManager.Update(dt);
 
+    // ---- 実績 ----
+    // 累計キル数 =（過去プレイの合計）+（今回プレイ分）。
+    // 今回分の加算保存は Uninit で行うため、判定はここで足し合わせて行う
+    g_AchievementManager.CheckKillMilestones(
+        g_SaveManager.GetStat("totalKills") + g_EnemyPool.GetKillCount());
+    g_AchievementManager.Update(dt);  // 解放トーストの時間経過
+
     // ---- 終了判定 ----
     // player は衝突判定で既に取得済みのため再宣言不要
     player = Manager::GetGameObject<Player>();
@@ -318,9 +337,23 @@ void GameScene::Update(float dt)
     // 全Wave クリア → STAGE CLEAR
     else if (m_WaveManager.IsAllWavesCleared())
     {
+        auto& ctx = GameContext::Instance();
+
+        // 実績: Legendary 武器の持ち帰り（正式取得の直前に仮取得リストで判定する）
+        for (WeaponID id : m_PendingWeapons.GetAll())
+        {
+            const WeaponData* data = ctx.weaponDB.Find(id);
+            if (data && data->rarity == Rarity::Legendary)
+                g_AchievementManager.Unlock("legendary");
+        }
+
         // 仮取得武器をここで正式取得する（クリア時のみ save.json に載る）。
         // この行を通らずにシーンが終わると Uninit の Discard で失われる
-        m_PendingWeapons.CommitTo(GameContext::Instance().inventory);
+        m_PendingWeapons.CommitTo(ctx.inventory);
+
+        // 実績: 全武器収集（正式取得後の所持数がマスタ全件に達したか）
+        if (ctx.inventory.GetWeaponCount() >= (int)ctx.weaponDB.GetAll().size())
+            g_AchievementManager.Unlock("collector");
 
         g_SceneManager.RequestChange(SceneID::Result);
     }
@@ -395,6 +428,9 @@ void GameScene::Draw()
 
     // アイテム取得トースト（左中段）
     m_PickupNotify.Draw();
+
+    // 実績解放トースト（上部中央）
+    g_AchievementManager.DrawToasts();
 
     // ポーズオーバーレイ（ポーズ中のみ）
     if (m_IsPaused)

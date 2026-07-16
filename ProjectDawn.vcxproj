@@ -212,6 +212,9 @@
     <ClCompile Include="stageID.cpp" />
     <ClCompile Include="stageLoader.cpp" />
     <ClCompile Include="pauseMenu.cpp" />
+    <ClCompile Include="optionsMenu.cpp" />
+    <ClCompile Include="achievementManager.cpp" />
+    <ClCompile Include="achievementScreen.cpp" />
     <ClCompile Include="tutorialOverlay.cpp" />
     <ClCompile Include="weaponUI.cpp" />
     <ClCompile Include="damageVisualizer.cpp" />
@@ -355,6 +358,9 @@
     <ClInclude Include="stageID.h" />
     <ClInclude Include="stageLoader.h" />
     <ClInclude Include="pauseMenu.h" />
+    <ClInclude Include="optionsMenu.h" />
+    <ClInclude Include="achievementManager.h" />
+    <ClInclude Include="achievementScreen.h" />
     <ClInclude Include="tutorialOverlay.h" />
     <ClInclude Include="weaponUI.h" />
     <ClInclude Include="damageVisualizer.h" />

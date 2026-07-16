@@ -6,6 +6,8 @@
 #include "inputManager.h"
 #include "manager.h"
 
+float InputManager::s_MouseSensitivityScale = 1.0f;
+
 void InputManager::Init()
 {
     // 現状は特に初期化処理なし
@@ -146,7 +148,7 @@ float InputManager::GetCameraMoveX()
 
     if (mouseX != 0)
     {
-        return mouseX * MOUSE_SENSITIVITY;
+        return mouseX * MOUSE_SENSITIVITY * s_MouseSensitivityScale;
     }
 
     float stickX = Gamepad::GetRightStickX();
@@ -177,7 +179,7 @@ float InputManager::GetCameraMoveY()
 
     if (mouseY != 0)
     {
-        return -mouseY * MOUSE_SENSITIVITY;
+        return -mouseY * MOUSE_SENSITIVITY * s_MouseSensitivityScale;
     }
 
     float stickY = Gamepad::GetRightStickY();

@@ -5,7 +5,8 @@
 // =====================================================
 // SaveData : セーブファイルに永続化するデータの構造体
 //
-// stages / achievements / unlocks / equipment の 4 カテゴリを保持する。
+// stages / achievements / unlocks / equipment / settings / stats
+// の 6 カテゴリを保持する。
 // =====================================================
 struct SaveData
 {
@@ -20,4 +21,10 @@ struct SaveData
 
     // 装備状態。"primary" / "secondary" → "weapon101" など（WeaponEquip と連携）
     std::unordered_map<std::string, std::string> equipment;
+
+    // オプション設定。"bgmVolume" / "seVolume" / "mouseSensitivity" など（OptionsMenu と連携）
+    std::unordered_map<std::string, float> settings;
+
+    // 累計統計。"totalKills" など（AchievementManager と連携）
+    std::unordered_map<std::string, int> stats;
 };

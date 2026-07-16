@@ -57,6 +57,8 @@ bool SaveManager::Load()
         else if (detectSection("achievements")) section = "achievements";
         else if (detectSection("unlocks"))      section = "unlocks";
         else if (detectSection("equipment"))    section = "equipment";
+        else if (detectSection("settings"))     section = "settings";
+        else if (detectSection("stats"))        section = "stats";
 
         // "key": value パターンを探す
         // 行例: `        "stage1": true,` / `        "primary": "weapon101",`
@@ -85,6 +87,18 @@ bool SaveManager::Load()
             if (v0 == std::string::npos || v1 == std::string::npos) continue;
 
             m_Data.equipment[key] = rhs.substr(v0 + 1, v1 - v0 - 1);
+            continue;
+        }
+
+        // ---- settings / stats セクションは数値（"bgmVolume": 0.8 / "totalKills": 120） ----
+        if (section == "settings" || section == "stats")
+        {
+            try
+            {
+                if (section == "settings") m_Data.settings[key] = std::stof(rhs);
+                else                       m_Data.stats[key]    = std::stoi(rhs);
+            }
+            catch (...) {} // 数値でない行（セクション見出し等）は無視する
             continue;
         }
 
@@ -177,6 +191,34 @@ bool SaveManager::Save()
             first = false;
         }
     }
+    f << "\n" << Indent(1) << "},\n\n";
+
+    // ---- settings（値が float のセクション） ----
+    f << Indent(1) << "\"settings\":\n";
+    f << Indent(1) << "{\n";
+    {
+        bool first = true;
+        for (const auto& kv : m_Data.settings)
+        {
+            if (!first) f << ",\n";
+            f << Indent(2) << "\"" << kv.first << "\": " << kv.second;
+            first = false;
+        }
+    }
+    f << "\n" << Indent(1) << "},\n\n";
+
+    // ---- stats（値が int のセクション） ----
+    f << Indent(1) << "\"stats\":\n";
+    f << Indent(1) << "{\n";
+    {
+        bool first = true;
+        for (const auto& kv : m_Data.stats)
+        {
+            if (!first) f << ",\n";
+            f << Indent(2) << "\"" << kv.first << "\": " << kv.second;
+            first = false;
+        }
+    }
     f << "\n" << Indent(1) << "}\n";
 
     f << "}\n";
@@ -204,4 +246,35 @@ void SaveManager::SetStageUnlocked(const std::string& stageId, bool unlocked)
     // Save() は呼び出し元（StageDatabase::UnlockStage）が責任を持って呼ぶ設計にすることで、
     // 複数フィールドをまとめて更新してから1度だけ保存するパターンに対応できる。
     m_Data.stages[stageId] = unlocked;
+}
+
+// ---------------------------------------------------------
+// GetSettingFloat / SetSettingFloat
+// オプション設定のアクセサ。Save() は呼び出し元が責任を持つ
+// （SetStageUnlocked と同じ方針）。
+// ---------------------------------------------------------
+float SaveManager::GetSettingFloat(const std::string& key, float defaultValue) const
+{
+    auto it = m_Data.settings.find(key);
+    return (it != m_Data.settings.end()) ? it->second : defaultValue;
+}
+
+void SaveManager::SetSettingFloat(const std::string& key, float value)
+{
+    m_Data.settings[key] = value;
+}
+
+// ---------------------------------------------------------
+// GetStat / AddStat
+// 累計統計のアクセサ。キーが存在しない場合は 0 扱い。
+// ---------------------------------------------------------
+int SaveManager::GetStat(const std::string& key) const
+{
+    auto it = m_Data.stats.find(key);
+    return (it != m_Data.stats.end()) ? it->second : 0;
+}
+
+void SaveManager::AddStat(const std::string& key, int amount)
+{
+    m_Data.stats[key] += amount;
 }

@@ -120,6 +120,16 @@ void Manager::Init()
 	// SceneManager::Init より前に呼ぶことで、初回シーン（TitleScene）表示前にデータが揃う。
 	g_SaveManager.Load();
 
+	// セーブ済みオプション設定（音量・マウス感度）を各システムへ反映する。
+	// g_SoundManager.Init() / InputManager::Init() より後、かつ Load() 直後に行う
+	{
+		using namespace GameConfig::Options;
+		g_SoundManager.SetBgmVolume(g_SaveManager.GetSettingFloat(KEY_BGM_VOLUME, DEFAULT_VOLUME));
+		g_SoundManager.SetSEVolume (g_SaveManager.GetSettingFloat(KEY_SE_VOLUME,  DEFAULT_VOLUME));
+		InputManager::SetMouseSensitivityScale(
+			g_SaveManager.GetSettingFloat(KEY_SENSITIVITY, DEFAULT_SENSITIVITY));
+	}
+
 	// シーン管理を初期化（TitleScene からスタート）
 	g_SceneManager.Init();
 }

@@ -17,12 +17,16 @@
 ## 2. 画面の流れ
 
 ```
-タイトル ─Enter→ モード選択(STORY / ENDLESS)
-              ↓
-        武器選択画面（装備を決める）
-              ↓
-   ステージ選択（STORYのみ）→ ゲーム本編 → リザルト
+タイトル ─Start→ モード選択(STORY / ENDLESS)
+   │              ↓
+   │        武器選択画面（装備を決める）
+   │              ↓
+   │     ステージ選択（STORYのみ）→ ゲーム本編 → リザルト
+   ├─ Achievements（実績一覧）
+   └─ Options（BGM/SE音量・マウス感度。save.json に保存）
 ```
+
+※ オプションはゲーム中のポーズメニュー（ESC）からも開けます。
 
 ## 3. 操作方法
 
@@ -56,7 +60,7 @@
 | R | リロード |
 | Space | ジャンプ |
 | Shift | ダッシュ |
-| ESC | ポーズメニュー（Resume / Retry / Title / Exit） |
+| ESC | ポーズメニュー（Resume / Retry / Options / Title / Exit） |
 
 ### ゲームパッド（XInput対応・ゲーム本編のみ）
 

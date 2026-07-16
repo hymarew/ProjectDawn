@@ -52,6 +52,12 @@ public:
     // BGMを停止する
     void StopBgm();
 
+    // 音量設定（0.0〜1.0）。OptionsMenu から呼ばれ、再生中の音にも即時反映される
+    void  SetBgmVolume(float volume);
+    void  SetSEVolume(float volume);
+    float GetBgmVolume() const { return m_BgmVolume; }
+    float GetSEVolume()  const { return m_SEVolume;  }
+
 private:
     // SE用（GameObjectに紐付かない用途のため Audio(nullptr) で構築する）
     std::unique_ptr<Audio> m_SEShotgunFire;
@@ -63,6 +69,9 @@ private:
     std::unique_ptr<Audio> m_BgmGame;
 
     BgmType m_CurrentBgm = BgmType::None;
+
+    float m_BgmVolume = 1.0f;  // 起動時に save.json の設定値で上書きされる
+    float m_SEVolume  = 1.0f;
 };
 
 // グローバルインスタンス（soundManager.cpp で定義）

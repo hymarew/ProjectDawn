@@ -256,6 +256,15 @@
     <ClCompile Include="pauseMenu.cpp">
       <Filter>UI</Filter>
     </ClCompile>
+    <ClCompile Include="optionsMenu.cpp">
+      <Filter>UI</Filter>
+    </ClCompile>
+    <ClCompile Include="achievementScreen.cpp">
+      <Filter>UI</Filter>
+    </ClCompile>
+    <ClCompile Include="achievementManager.cpp">
+      <Filter>Save</Filter>
+    </ClCompile>
     <ClCompile Include="tutorialOverlay.cpp">
       <Filter>UI</Filter>
     </ClCompile>
@@ -671,6 +680,15 @@
     </ClInclude>
     <ClInclude Include="pauseMenu.h">
       <Filter>UI</Filter>
+    </ClInclude>
+    <ClInclude Include="optionsMenu.h">
+      <Filter>UI</Filter>
+    </ClInclude>
+    <ClInclude Include="achievementScreen.h">
+      <Filter>UI</Filter>
+    </ClInclude>
+    <ClInclude Include="achievementManager.h">
+      <Filter>Save</Filter>
     </ClInclude>
     <ClInclude Include="tutorialOverlay.h">
       <Filter>UI</Filter>

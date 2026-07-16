@@ -25,6 +25,9 @@ private:
     static constexpr float MOUSE_SENSITIVITY = 0.002f;
     static constexpr float STICK_SENSITIVITY = 0.03f;
 
+    // オプション設定によるマウス感度倍率（MOUSE_SENSITIVITY に乗算する）
+    static float s_MouseSensitivityScale;
+
 public:
     static void Init();
     static void Update();
@@ -43,4 +46,8 @@ public:
     // 追加：カメラの回転量を取得 (-1.0f ～ 1.0f)
     static float GetCameraMoveX(); // 視点左右 (左: 負, 右: 正)
     static float GetCameraMoveY(); // 視点上下 (下: 負, 上: 正)
+
+    // マウス感度倍率（オプション設定）。OptionsMenu と Manager::Init から呼ばれる
+    static void  SetMouseSensitivityScale(float scale) { s_MouseSensitivityScale = scale; }
+    static float GetMouseSensitivityScale()            { return s_MouseSensitivityScale; }
 };

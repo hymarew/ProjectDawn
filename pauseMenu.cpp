@@ -37,6 +37,13 @@ void PauseMenu::Update()
     m_TitleReq  = false;
     m_ExitReq   = false;
 
+    // オプション画面表示中は全入力を OptionsMenu へ委譲する
+    if (m_Options.IsOpen())
+    {
+        m_Options.Update();
+        return;
+    }
+
     // カーソル移動（↑ W / ↓ S）
     if (Input::GetKeyTrigger(VK_UP)   || Input::GetKeyTrigger('W'))
     {
@@ -52,10 +59,11 @@ void PauseMenu::Update()
     {
         switch (m_SelectedIndex)
         {
-        case 0: m_ResumeReq = true; break;
-        case 1: m_RetryReq  = true; break;
-        case 2: m_TitleReq  = true; break;
-        case 3: m_ExitReq   = true; break;
+        case 0: m_ResumeReq = true;  break;
+        case 1: m_RetryReq  = true;  break;
+        case 2: m_Options.Open();    break;
+        case 3: m_TitleReq  = true;  break;
+        case 4: m_ExitReq   = true;  break;
         }
     }
 }
@@ -65,6 +73,13 @@ void PauseMenu::Update()
 // -------------------------------------------------------
 void PauseMenu::Draw()
 {
+    // オプション画面表示中はそちらだけを描画する
+    if (m_Options.IsOpen())
+    {
+        m_Options.Draw();
+        return;
+    }
+
     // ForegroundDrawList を使うことでクロスヘア・ダメージ表示より前面に描画される
     ImDrawList* dl = ImGui::GetForegroundDrawList();
 
@@ -76,7 +91,7 @@ void PauseMenu::Draw()
 
     // ---- パネル ----
     constexpr float PANEL_W = 300.0f;
-    constexpr float PANEL_H = 330.0f; // Exit 追加で1項目分（54px）増やした
+    constexpr float PANEL_H = 384.0f; // Options 追加で1項目分（54px）増やした
     const float panelX = (SCREEN_WIDTH  - PANEL_W) * 0.5f;
     const float panelY = (SCREEN_HEIGHT - PANEL_H) * 0.5f;
 
@@ -113,7 +128,7 @@ void PauseMenu::Draw()
         IM_COL32(80, 100, 180, 160), 1.0f);
 
     // ---- メニュー項目 ----
-    const char* labels[] = { "Resume", "Retry", "Title", "Exit" };
+    const char* labels[] = { "Resume", "Retry", "Options", "Title", "Exit" };
     const float itemSz    = 28.0f;
     const float itemStart = panelY + 100.0f;
     const float itemStep  = 54.0f;
