@@ -1,0 +1,9 @@
+{
+    "id": 1208,
+    "name": "RL-8 Leviathan",
+    "type": "Weapon",
+    "rarity": "Epic",
+    "weaponID": 208,
+    "model": "asset\\model\\crystal.obj",
+    "icon": ""
+}

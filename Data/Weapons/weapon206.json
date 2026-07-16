@@ -1,0 +1,20 @@
+{
+    "id": 206,
+    "name": "RL-6 Griffin",
+    "category": "RocketLauncher",
+    "rarity": "Rare",
+    "damage": 160,
+    "fireRate": 1.4,
+    "reloadTime": 2.2,
+    "magazineSize": 2,
+    "bulletSpeed": 26.0,
+    "bulletLifeTime": 6.0,
+    "spreadAngle": 0.0,
+    "splashRadius": 5.0,
+    "knockbackPower": 500,
+    "singleShot": true,
+    "zoomRatio": 1.0,
+    "attackType": "SplashProjectile",
+    "model": "",
+    "icon": ""
+}

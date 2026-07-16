@@ -1,0 +1,20 @@
+{
+    "id": 209,
+    "name": "RL-9 Colossus",
+    "category": "RocketLauncher",
+    "rarity": "Epic",
+    "damage": 210,
+    "fireRate": 1.6,
+    "reloadTime": 2.2,
+    "magazineSize": 3,
+    "bulletSpeed": 22.0,
+    "bulletLifeTime": 6.0,
+    "spreadAngle": 0.0,
+    "splashRadius": 6.0,
+    "knockbackPower": 600,
+    "singleShot": true,
+    "zoomRatio": 1.0,
+    "attackType": "SplashProjectile",
+    "model": "",
+    "icon": ""
+}

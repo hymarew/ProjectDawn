@@ -1,0 +1,20 @@
+{
+    "id": 105,
+    "name": "AR-5 Tempest",
+    "category": "AssaultRifle",
+    "rarity": "Rare",
+    "damage": 38,
+    "fireRate": 0.075,
+    "reloadTime": 2.2,
+    "magazineSize": 120,
+    "bulletSpeed": 70.0,
+    "bulletLifeTime": 2.0,
+    "spreadAngle": 2.4,
+    "splashRadius": 0.0,
+    "knockbackPower": 0.0,
+    "singleShot": false,
+    "zoomRatio": 1.5,
+    "attackType": "StraightShot",
+    "model": "",
+    "icon": ""
+}

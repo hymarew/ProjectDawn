@@ -12,7 +12,8 @@ public:
 
     // グローバルプールへパーティクルを放出し、自身の寿命を消費する
     // nextFree はリングバッファの書き込み位置。ParticleManager が管理する
-    void Update(float dt, ParticleData* pool, int poolSize, int& nextFree);
+    // 戻り値: このフレームで放出した個数（Manager がハイウォーターマークの更新に使う）
+    int Update(float dt, ParticleData* pool, int poolSize, int& nextFree);
 
     bool IsAlive() const { return m_Life > 0.0f; }
 

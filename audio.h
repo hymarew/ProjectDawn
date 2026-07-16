@@ -25,8 +25,9 @@ public:
 
 	void Uninit();
 
-	void Load(const char *FileName);
+	void Load(const wchar_t *FileName);
 	void Play(bool Loop = false);
+	void Stop();
 
 
 };

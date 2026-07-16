@@ -30,7 +30,7 @@ void ParticleEmitter::Init(const ParticleSetting& setting, Vector3 position)
 // ---------------------------------------------------------
 // Update : 放出タイミングの管理とパーティクルの初期化
 // ---------------------------------------------------------
-void ParticleEmitter::Update(float dt, ParticleData* pool, int poolSize, int& nextFree)
+int ParticleEmitter::Update(float dt, ParticleData* pool, int poolSize, int& nextFree)
 {
     // ---- バースト放出 ----
     // BurstCount 指定がある場合はフレームレートに依存せず正確な個数を一度に放出し、
@@ -40,7 +40,7 @@ void ParticleEmitter::Update(float dt, ParticleData* pool, int poolSize, int& ne
         for (int i = 0; i < m_Setting.BurstCount; i++)
             EmitOne(pool, poolSize, nextFree);
         m_Life = 0.0f;
-        return;
+        return m_Setting.BurstCount;
     }
 
     // ---- エミッタの寿命を減らす ----
@@ -48,25 +48,28 @@ void ParticleEmitter::Update(float dt, ParticleData* pool, int poolSize, int& ne
 
     // 寿命が尽きたら何もしない（IsAlive() が false を返すので Manager が削除する）
     if (m_Life <= 0.0f)
-        return;
+        return 0;
 
     // ---- 放出タイマーを減らす ----
     m_SpawnTimer -= dt;
 
     // まだ放出タイミングでなければ待機
     if (m_SpawnTimer > 0.0f)
-        return;
+        return 0;
 
     const float interval = 1.0f / static_cast<float>(m_Setting.SpawnPerSec);
 
     // ---- while ループで1フレーム分まとめて放出 ----
     // SpawnPerSec が高いほど1フレームに多く放出される。
     // 例: SpawnPerSec=5000, dt=0.016 → 1フレームで約80個放出（バースト相当）
+    int emitted = 0;
     while (m_SpawnTimer <= 0.0f)
     {
         m_SpawnTimer += interval; // 次の放出タイミングを設定
         EmitOne(pool, poolSize, nextFree);
+        emitted++;
     }
+    return emitted;
 }
 
 // ---------------------------------------------------------

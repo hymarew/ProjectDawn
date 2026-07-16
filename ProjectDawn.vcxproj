@@ -216,21 +216,53 @@
     <ClCompile Include="weaponUI.cpp" />
     <ClCompile Include="damageVisualizer.cpp" />
     <ClCompile Include="weapon.cpp" />
-    <ClCompile Include="pistol.cpp" />
-    <ClCompile Include="shotgun.cpp" />
-    <ClCompile Include="assaultRifle.cpp" />
-    <ClCompile Include="rocketLauncher.cpp" />
+    <ClCompile Include="weaponFactory.cpp" />
+    <ClCompile Include="straightShotStrategy.cpp" />
+    <ClCompile Include="splashProjectileStrategy.cpp" />
+    <ClCompile Include="weaponDatabase.cpp" />
+    <ClCompile Include="weaponEquip.cpp" />
+    <ClCompile Include="equipLoadout.cpp" />
+    <ClCompile Include="weaponSelectScene.cpp" />
+    <ClCompile Include="inventory.cpp" />
+    <ClCompile Include="pendingWeapons.cpp" />
+    <ClCompile Include="itemDatabase.cpp" />
+    <ClCompile Include="itemFactory.cpp" />
+    <ClCompile Include="itemPickupEvent.cpp" />
+    <ClCompile Include="itemPickupSystem.cpp" />
+    <ClCompile Include="worldItem.cpp" />
+    <ClCompile Include="worldItemPool.cpp" />
+    <ClCompile Include="dropTableDatabase.cpp" />
+    <ClCompile Include="dropStrategy.cpp" />
+    <ClCompile Include="weightedDropStrategy.cpp" />
+    <ClCompile Include="bossDropStrategy.cpp" />
+    <ClCompile Include="dropManager.cpp" />
+    <ClCompile Include="pickupNotificationUI.cpp" />
+    <ClCompile Include="pickupEffectPlayer.cpp" />
+    <ClCompile Include="jsonParse.cpp" />
     <ClCompile Include="bulletManager.cpp" />
     <ClCompile Include="bulletPool.cpp" />
     <ClCompile Include="audio.cpp" />
+    <ClCompile Include="soundManager.cpp" />
+    <ClCompile Include="bloomPass.cpp" />
+    <ClCompile Include="riftMaterial.cpp" />
+    <ClCompile Include="distortionPass.cpp" />
+    <ClCompile Include="riftRenderer.cpp" />
+    <ClCompile Include="riftParticleEmitter.cpp" />
+    <ClCompile Include="riftController.cpp" />
+    <ClCompile Include="spaceRift.cpp" />
+    <ClCompile Include="spaceRiftDebug.cpp" />
+    <ClCompile Include="rainEmitter.cpp" />
+    <ClCompile Include="snowEmitter.cpp" />
+    <ClCompile Include="weatherRenderer.cpp" />
+    <ClCompile Include="weatherManager.cpp" />
     <ClCompile Include="box.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="explosion.cpp" />
     <ClCompile Include="field.cpp" />
-    <ClCompile Include="healItem.cpp" />
     <ClCompile Include="damageEffectManager.cpp" />
+    <ClCompile Include="dynamicLightManager.cpp" />
     <ClCompile Include="grass.cpp" />
     <ClCompile Include="modelRenderer.cpp" />
     <ClCompile Include="playerLog.cpp" />
@@ -327,17 +359,55 @@
     <ClInclude Include="weaponUI.h" />
     <ClInclude Include="damageVisualizer.h" />
     <ClInclude Include="weapon.h" />
-    <ClInclude Include="weaponParams.h" />
-    <ClInclude Include="pistol.h" />
-    <ClInclude Include="shotgun.h" />
-    <ClInclude Include="assaultRifle.h" />
-    <ClInclude Include="rocketLauncher.h" />
+    <ClInclude Include="weaponData.h" />
+    <ClInclude Include="weaponDatabase.h" />
+    <ClInclude Include="weaponFactory.h" />
+    <ClInclude Include="weaponEquip.h" />
+    <ClInclude Include="equipLoadout.h" />
+    <ClInclude Include="weaponSelectScene.h" />
+    <ClInclude Include="pendingWeapons.h" />
+    <ClInclude Include="attackStrategy.h" />
+    <ClInclude Include="straightShotStrategy.h" />
+    <ClInclude Include="splashProjectileStrategy.h" />
+    <ClInclude Include="inventory.h" />
+    <ClInclude Include="rarity.h" />
+    <ClInclude Include="itemData.h" />
+    <ClInclude Include="itemDatabase.h" />
+    <ClInclude Include="itemFactory.h" />
+    <ClInclude Include="itemPickupEvent.h" />
+    <ClInclude Include="itemPickupSystem.h" />
+    <ClInclude Include="worldItem.h" />
+    <ClInclude Include="worldItemPool.h" />
+    <ClInclude Include="dropTableData.h" />
+    <ClInclude Include="dropTableDatabase.h" />
+    <ClInclude Include="dropStrategy.h" />
+    <ClInclude Include="weightedDropStrategy.h" />
+    <ClInclude Include="bossDropStrategy.h" />
+    <ClInclude Include="dropManager.h" />
+    <ClInclude Include="pickupNotificationUI.h" />
+    <ClInclude Include="pickupEffectPlayer.h" />
+    <ClInclude Include="jsonParse.h" />
     <ClInclude Include="bullet.h" />
     <ClInclude Include="bulletManager.h" />
-    <ClInclude Include="bulletParams.h" />
     <ClInclude Include="bulletPool.h" />
     <ClInclude Include="DirectXTex.h" />
     <ClInclude Include="audio.h" />
+    <ClInclude Include="soundManager.h" />
+    <ClInclude Include="transform.h" />
+    <ClInclude Include="riftMaterial.h" />
+    <ClInclude Include="bloomPass.h" />
+    <ClInclude Include="distortionPass.h" />
+    <ClInclude Include="riftRenderer.h" />
+    <ClInclude Include="riftParticleEmitter.h" />
+    <ClInclude Include="riftController.h" />
+    <ClInclude Include="spaceRift.h" />
+    <ClInclude Include="spaceRiftDebug.h" />
+    <ClInclude Include="weatherSetting.h" />
+    <ClInclude Include="weatherEmitter.h" />
+    <ClInclude Include="rainEmitter.h" />
+    <ClInclude Include="snowEmitter.h" />
+    <ClInclude Include="weatherRenderer.h" />
+    <ClInclude Include="weatherManager.h" />
     <ClInclude Include="box.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -345,8 +415,8 @@
     <ClInclude Include="component.h" />
     <ClInclude Include="explosion.h" />
     <ClInclude Include="field.h" />
-    <ClInclude Include="healItem.h" />
     <ClInclude Include="damageEffectManager.h" />
+    <ClInclude Include="dynamicLightManager.h" />
     <ClInclude Include="GameConfig.h" />
     <ClInclude Include="gameObject.h" />
     <ClInclude Include="grass.h" />
@@ -374,6 +444,22 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </None>
     <None Include="shader\transitionCommon.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </None>
+    <None Include="shader\dynamicLights.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </None>
+    <None Include="shader\riftParams.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </None>
+    <None Include="shader\bloomParams.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </None>
+    <None Include="shader\weatherParams.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </None>
@@ -427,6 +513,22 @@
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.0</ShaderModel>
       <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">shader\%(Filename).cso</ObjectFileOutput>
     </FxCompile>
+    <FxCompile Include="shader\particleVS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">shader\%(Filename).cso</ObjectFileOutput>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.0</ShaderModel>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">shader\%(Filename).cso</ObjectFileOutput>
+    </FxCompile>
+    <FxCompile Include="shader\particlePS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">shader\%(Filename).cso</ObjectFileOutput>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.0</ShaderModel>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">shader\%(Filename).cso</ObjectFileOutput>
+    </FxCompile>
     <FxCompile Include="shader\wipePS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
@@ -452,6 +554,54 @@
       <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">shader\%(Filename).cso</ObjectFileOutput>
     </FxCompile>
     <FxCompile Include="shader\blurPS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">shader\%(Filename).cso</ObjectFileOutput>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.0</ShaderModel>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">shader\%(Filename).cso</ObjectFileOutput>
+    </FxCompile>
+    <FxCompile Include="shader\weatherVS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">shader\%(Filename).cso</ObjectFileOutput>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.0</ShaderModel>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">shader\%(Filename).cso</ObjectFileOutput>
+    </FxCompile>
+    <FxCompile Include="shader\weatherPS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">shader\%(Filename).cso</ObjectFileOutput>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.0</ShaderModel>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">shader\%(Filename).cso</ObjectFileOutput>
+    </FxCompile>
+    <FxCompile Include="shader\riftPS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">shader\%(Filename).cso</ObjectFileOutput>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.0</ShaderModel>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">shader\%(Filename).cso</ObjectFileOutput>
+    </FxCompile>
+    <FxCompile Include="shader\riftGroundPS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">shader\%(Filename).cso</ObjectFileOutput>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.0</ShaderModel>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">shader\%(Filename).cso</ObjectFileOutput>
+    </FxCompile>
+    <FxCompile Include="shader\bloomBlurPS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">shader\%(Filename).cso</ObjectFileOutput>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.0</ShaderModel>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">shader\%(Filename).cso</ObjectFileOutput>
+    </FxCompile>
+    <FxCompile Include="shader\bloomCompositePS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
       <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">shader\%(Filename).cso</ObjectFileOutput>

@@ -5,6 +5,16 @@
 #include <vector>
 #include <memory>
 
+// パーティクルシステムの統計情報（デバッグUI表示用）
+struct ParticleStats
+{
+    int   ActiveCount = 0;    // 現在アクティブなパーティクル数
+    int   UsedSlots   = 0;    // 現在の走査範囲（ハイウォーターマーク）
+    int   DrawCalls   = 0;    // 直近フレームのドローコール数
+    float UpdateMs    = 0.0f; // CPUシミュレーションにかかった時間（ミリ秒）
+    float DrawMs      = 0.0f; // 描画準備＋発行にかかったCPU時間（ミリ秒）
+};
+
 // 全パーティクルと全エミッタを一元管理するシングルトンクラス
 // 呼び出し側は Emit(EffectType, position) の1行でエフェクトを発生させられる
 // パーティクルのプールはこのクラスが単一で保持する（エミッタは持たない）
@@ -44,6 +54,9 @@ public:
     // 画面全体を一瞬明るくするフラッシュ（ImGui::Render() の直前に呼ぶ）
     void DrawScreenFlash();
 
+    // 直近フレームの統計（デバッグUI表示用）
+    const ParticleStats& GetStats() const { return m_Stats; }
+
 private:
     // 画面フラッシュ発生。EmitBigExplosion から呼ばれる
     void TriggerScreenFlash(float duration);
@@ -58,10 +71,18 @@ private:
     ParticleManager(const ParticleManager&)            = delete;
     ParticleManager& operator=(const ParticleManager&) = delete;
 
-    static constexpr int POOL_SIZE = 10000; // 同時に存在できるパーティクルの上限
+    // 同時に存在できるパーティクルの上限（調整は GameConfig::Particle::POOL_SIZE で行う）
+    static constexpr int POOL_SIZE = GameConfig::Particle::POOL_SIZE;
 
-    ParticleData m_Pool[POOL_SIZE]; // グローバルプール（エミッタ間で共有）
-    int          m_NextFree = 0;    // リングバッファの次の書き込み位置
+    // グローバルプール（エミッタ間で共有）
+    // 100万個 × 約150バイト ≒ 150MB になるため、静的領域ではなくヒープに置く
+    std::unique_ptr<ParticleData[]> m_Pool;
+    int m_NextFree = 0; // リングバッファの次の書き込み位置
+
+    // ハイウォーターマーク: これまでに書き込んだことのあるスロット数（上限 POOL_SIZE）。
+    // 更新・描画の走査はここまでで打ち切れるため、プール上限を100万にしても
+    // 通常プレイ（数千個程度）の走査コストは増えない
+    int m_UsedSlots = 0;
 
     std::vector<std::unique_ptr<ParticleEmitter>> m_Emitters; // アクティブなエミッタ一覧
 
@@ -76,4 +97,6 @@ private:
     // 画面フラッシュの状態
     float m_FlashTimer    = 0.0f; // 残り時間（秒）
     float m_FlashDuration = 0.0f; // 発生時の合計時間（秒）
+
+    ParticleStats m_Stats; // 直近フレームの統計（デバッグUI表示用）
 };

@@ -1,0 +1,20 @@
+{
+    "id": 208,
+    "name": "RL-8 Leviathan",
+    "category": "RocketLauncher",
+    "rarity": "Epic",
+    "damage": 280,
+    "fireRate": 2.4,
+    "reloadTime": 2.8,
+    "magazineSize": 1,
+    "bulletSpeed": 20.0,
+    "bulletLifeTime": 6.0,
+    "spreadAngle": 0.0,
+    "splashRadius": 7.0,
+    "knockbackPower": 700,
+    "singleShot": true,
+    "zoomRatio": 1.0,
+    "attackType": "SplashProjectile",
+    "model": "",
+    "icon": ""
+}

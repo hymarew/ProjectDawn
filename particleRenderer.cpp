@@ -2,57 +2,108 @@
 // particleRenderer.cpp
 // パーティクルのGPU描画をすべて担当するクラス
 //
-// 【役割】
-//   ParticleManager から全パーティクルのデータを受け取り、
-//   ビルボード方式でまとめて描画する。
+// 【GPUインスタンシングによる描画】
+//   旧実装: パーティクル1個ごとに
+//             テクスチャセット + 定数バッファ更新×2 + Draw(4,0)
+//           → 1万個で1万ドローコール（CPUのAPI呼び出しが律速）
+//
+//   新実装: 全パーティクルのインスタンスデータを毎フレーム1回のMapで転送し、
+//           (テクスチャ × ブレンド種別) のバケットごとに DrawInstanced を1回発行
+//           → 10万個でもドローコールは最大6回程度
+//
+// 【描画フロー】
+//   1. プールを走査し、アクティブな粒子をバケット（テクスチャ×ブレンド）へ振り分け
+//   2. インスタンスバッファを Map(WRITE_DISCARD) し、
+//      「通常合成 → 加算合成」の順にバケットを詰めて書き込む
+//   3. バケットごとにテクスチャ/ブレンドをセットして DrawInstanced
 //
 // 【ビルボードとは】
 //   板ポリゴンが常にカメラの方を向く技術。
-//   木や煙、パーティクルなどに使われる。
-//
-// 【テクスチャキャッシュについて】
-//   同じパスのテクスチャを何度もロードしないよう、
-//   一度ロードしたテクスチャを map に保存して使いまわす。
+//   行列の組み立ては particleVS.hlsl がGPU側で行う。
 // ===================================================
 
 #include "main.h"
 #include "manager.h"
 #include "renderer.h"
-#include "camera.h"
 #include "particleRenderer.h"
 #include "DirectXTex.h"
+#include <cassert>
+#include <cstdio>
+#include <io.h>
+
+namespace
+{
+    // 共有板ポリの頂点（位置とUVだけの最小構成）
+    struct QuadVertex
+    {
+        XMFLOAT3 Position;
+        XMFLOAT2 TexCoord;
+    };
+}
 
 // ---------------------------------------------------------
 // Init : GPUリソースの確保とデフォルトテクスチャの読み込み
 // ---------------------------------------------------------
-void ParticleRenderer::Init()
+void ParticleRenderer::Init(int maxInstances)
 {
-    // ---- 板ポリゴンの頂点データを作る ----
-    // 中心を原点とした1×1の四角形。
-    // 全パーティクルがこの1枚の板を共有し、ワールド行列でサイズと位置を変える。
-    VERTEX_3D vertex[4];
-    //              座標(X, Y, Z)         法線(X, Y, Z)      色(R,G,B,A)     UV座標(U, V)
-    vertex[0] = { XMFLOAT3(-0.5f,  0.5f, 0.0f), XMFLOAT3(0,0,-1), XMFLOAT4(1,1,1,1), XMFLOAT2(0,0) }; // 左上
-    vertex[1] = { XMFLOAT3( 0.5f,  0.5f, 0.0f), XMFLOAT3(0,0,-1), XMFLOAT4(1,1,1,1), XMFLOAT2(1,0) }; // 右上
-    vertex[2] = { XMFLOAT3(-0.5f, -0.5f, 0.0f), XMFLOAT3(0,0,-1), XMFLOAT4(1,1,1,1), XMFLOAT2(0,1) }; // 左下
-    vertex[3] = { XMFLOAT3( 0.5f, -0.5f, 0.0f), XMFLOAT3(0,0,-1), XMFLOAT4(1,1,1,1), XMFLOAT2(1,1) }; // 右下
+    m_MaxInstances = maxInstances;
 
-    // ---- 頂点バッファをGPUに作成 ----
+    // ---- 板ポリゴンの頂点データを作る ----
+    // 中心を原点とした1×1の四角形。全パーティクルがこの1枚を共有し、
+    // インスタンスデータ（スロット1）でサイズ・位置・回転を変える。
+    QuadVertex vertex[4];
+    vertex[0] = { XMFLOAT3(-0.5f,  0.5f, 0.0f), XMFLOAT2(0, 0) }; // 左上
+    vertex[1] = { XMFLOAT3( 0.5f,  0.5f, 0.0f), XMFLOAT2(1, 0) }; // 右上
+    vertex[2] = { XMFLOAT3(-0.5f, -0.5f, 0.0f), XMFLOAT2(0, 1) }; // 左下
+    vertex[3] = { XMFLOAT3( 0.5f, -0.5f, 0.0f), XMFLOAT2(1, 1) }; // 右下
+
     D3D11_BUFFER_DESC bd{};
-    bd.Usage          = D3D11_USAGE_DEFAULT;
-    bd.ByteWidth      = sizeof(VERTEX_3D) * 4;
-    bd.BindFlags      = D3D11_BIND_VERTEX_BUFFER;
-    bd.CPUAccessFlags = 0;
+    bd.Usage     = D3D11_USAGE_DEFAULT;
+    bd.ByteWidth = sizeof(QuadVertex) * 4;
+    bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 
     D3D11_SUBRESOURCE_DATA sd{};
     sd.pSysMem = vertex;
 
-    Renderer::GetDevice()->CreateBuffer(&bd, &sd, &m_VertexBuffer);
+    Renderer::GetDevice()->CreateBuffer(&bd, &sd, &m_QuadVertexBuffer);
 
-    // ---- シェーダーの読み込み ----
-    // ライティングなしでテクスチャをそのまま表示する unlit シェーダーを使用
-    Renderer::CreateVertexShader(&m_VertexShader, &m_VertexLayout, "shader\\unlitTextureVS.cso");
-    Renderer::CreatePixelShader(&m_PixelShader, "shader\\unlitTexturePS.cso");
+    // ---- インスタンスバッファ（毎フレームCPUから書き込む） ----
+    // まずは最小容量で確保し、粒子数が増えたら EnsureInstanceCapacity が拡張する
+    EnsureInstanceCapacity(MIN_INSTANCE_CAPACITY);
+
+    // ---- シェーダーの読み込みと入力レイアウトの作成 ----
+    // スロット0（共有板ポリ）とスロット1（インスタンスデータ）の
+    // 2ストリーム構成なので、Renderer の共通ヘルパーは使わず自前で作る
+    {
+        FILE* file = fopen("shader\\particleVS.cso", "rb");
+        assert(file);
+
+        long fsize = _filelength(_fileno(file));
+        unsigned char* buffer = new unsigned char[fsize];
+        fread(buffer, fsize, 1, file);
+        fclose(file);
+
+        Renderer::GetDevice()->CreateVertexShader(buffer, fsize, nullptr, &m_VertexShader);
+
+        D3D11_INPUT_ELEMENT_DESC layout[] =
+        {
+            // スロット0: 共有板ポリ（1頂点ごとに変わる）
+            { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,    0,  0, D3D11_INPUT_PER_VERTEX_DATA,   0 },
+            { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,       0, 12, D3D11_INPUT_PER_VERTEX_DATA,   0 },
+
+            // スロット1: インスタンスデータ（1パーティクルごとに変わる）
+            { "TEXCOORD", 1, DXGI_FORMAT_R32G32B32A32_FLOAT, 1,  0, D3D11_INPUT_PER_INSTANCE_DATA, 1 }, // Position.xyz + Size
+            { "TEXCOORD", 2, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 16, D3D11_INPUT_PER_INSTANCE_DATA, 1 }, // Color
+            { "TEXCOORD", 3, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 32, D3D11_INPUT_PER_INSTANCE_DATA, 1 }, // Rotation + GroundAligned
+        };
+
+        Renderer::GetDevice()->CreateInputLayout(layout, ARRAYSIZE(layout),
+            buffer, fsize, &m_InputLayout);
+
+        delete[] buffer;
+    }
+
+    Renderer::CreatePixelShader(&m_PixelShader, "shader\\particlePS.cso");
 
     // ---- デフォルトテクスチャを読み込んでキャッシュに登録 ----
     // 他のテクスチャの読み込みに失敗したときのフォールバックとして使う
@@ -64,10 +115,11 @@ void ParticleRenderer::Init()
 // ---------------------------------------------------------
 void ParticleRenderer::Uninit()
 {
-    m_VertexBuffer->Release();
-    m_VertexLayout->Release();
-    m_VertexShader->Release();
-    m_PixelShader->Release();
+    if (m_QuadVertexBuffer) { m_QuadVertexBuffer->Release(); m_QuadVertexBuffer = nullptr; }
+    if (m_InstanceBuffer)   { m_InstanceBuffer->Release();   m_InstanceBuffer   = nullptr; }
+    if (m_InputLayout)      { m_InputLayout->Release();      m_InputLayout      = nullptr; }
+    if (m_VertexShader)     { m_VertexShader->Release();     m_VertexShader     = nullptr; }
+    if (m_PixelShader)      { m_PixelShader->Release();      m_PixelShader      = nullptr; }
 
     // テクスチャキャッシュの全エントリを解放
     for (auto& entry : m_TextureCache)
@@ -75,6 +127,9 @@ void ParticleRenderer::Uninit()
         if (entry.second) entry.second->Release();
     }
     m_TextureCache.clear();
+    m_DefaultTexture = nullptr;
+
+    m_Buckets.clear();
 }
 
 // ---------------------------------------------------------
@@ -111,29 +166,175 @@ ID3D11ShaderResourceView* ParticleRenderer::GetOrLoadTexture(const wchar_t* path
 }
 
 // ---------------------------------------------------------
-// Draw : アクティブな全パーティクルをビルボード描画
+// EnsureInstanceCapacity : インスタンスバッファの容量管理
+// 拡張: 必要数が容量を超えたら2倍ずつ増やして作り直す（最大 m_MaxInstances）
+// 縮小: 容量の1/8未満しか使わない状態が SHRINK_IDLE_FRAMES 続いたら
+//       最小容量まで戻す（ストレステスト後に通常プレイへ戻ったときの回収）
+// ---------------------------------------------------------
+void ParticleRenderer::EnsureInstanceCapacity(int needed)
+{
+    int target = m_InstanceCapacity;
+
+    if (needed > m_InstanceCapacity)
+    {
+        // ---- 拡張 ----
+        target = (m_InstanceCapacity > 0) ? m_InstanceCapacity : MIN_INSTANCE_CAPACITY;
+        while (target < needed)
+            target *= 2;
+        if (target > m_MaxInstances) target = m_MaxInstances;
+        m_ShrinkCounter = 0;
+    }
+    else if (m_InstanceCapacity > MIN_INSTANCE_CAPACITY && needed < m_InstanceCapacity / 8)
+    {
+        // ---- 縮小（すぐには行わず、余裕のある状態がしばらく続いてから） ----
+        m_ShrinkCounter++;
+        if (m_ShrinkCounter < SHRINK_IDLE_FRAMES)
+            return;
+
+        target = MIN_INSTANCE_CAPACITY;
+        while (target < needed)
+            target *= 2;
+        m_ShrinkCounter = 0;
+
+        // バケット側の vector が抱えたままの大きな capacity も一緒に返す
+        for (auto& bucket : m_Buckets)
+            bucket.Instances.shrink_to_fit();
+    }
+    else
+    {
+        m_ShrinkCounter = 0;
+        return;
+    }
+
+    if (target == m_InstanceCapacity)
+        return;
+
+    // ---- バッファを作り直す ----
+    // DYNAMIC + WRITE_DISCARD で、フレームに1回だけ Map してまとめて転送する
+    if (m_InstanceBuffer)
+    {
+        m_InstanceBuffer->Release();
+        m_InstanceBuffer = nullptr;
+    }
+
+    D3D11_BUFFER_DESC ibd{};
+    ibd.Usage          = D3D11_USAGE_DYNAMIC;
+    ibd.ByteWidth      = sizeof(ParticleInstance) * target;
+    ibd.BindFlags      = D3D11_BIND_VERTEX_BUFFER;
+    ibd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+
+    Renderer::GetDevice()->CreateBuffer(&ibd, nullptr, &m_InstanceBuffer);
+    m_InstanceCapacity = target;
+}
+
+// ---------------------------------------------------------
+// FindOrAddBucket : (テクスチャ, ブレンド) が一致するバケットを返す
+// バケット数はテクスチャ種×2程度しかないため線形探索で十分速い
+// ---------------------------------------------------------
+ParticleRenderer::Bucket& ParticleRenderer::FindOrAddBucket(
+    ID3D11ShaderResourceView* texture, bool additive)
+{
+    for (auto& bucket : m_Buckets)
+    {
+        if (bucket.Texture == texture && bucket.Additive == additive)
+            return bucket;
+    }
+
+    m_Buckets.push_back({ texture, additive, {} });
+    return m_Buckets.back();
+}
+
+// ---------------------------------------------------------
+// Draw : アクティブな全パーティクルをインスタンシングで一括描画
 // ---------------------------------------------------------
 void ParticleRenderer::Draw(const ParticleData* pool, int poolSize)
 {
-    // ---- シェーダーのセット ----
-    Renderer::GetDeviceContext()->IASetInputLayout(m_VertexLayout);
-    Renderer::GetDeviceContext()->VSSetShader(m_VertexShader, NULL, 0);
-    Renderer::GetDeviceContext()->PSSetShader(m_PixelShader, NULL, 0);
+    m_ActiveCount = 0;
+    m_DrawCalls   = 0;
 
-    // ---- ビルボード行列の計算 ----
-    // ビュー行列の逆行列から平行移動を除いた「回転だけの行列」を作る。
-    // これをワールド行列に使うと、板ポリゴンが常にカメラを向く。
-    Camera*  camera  = Manager::GetCamera();
-    XMMATRIX view    = camera->GetViewMatrix();
-    XMMATRIX invView = XMMatrixInverse(NULL, view);
-    invView.r[3].m128_f32[0] = 0.0f; // X方向の平行移動を消す
-    invView.r[3].m128_f32[1] = 0.0f; // Y方向の平行移動を消す
-    invView.r[3].m128_f32[2] = 0.0f; // Z方向の平行移動を消す
+    // ---- 1. バケットへの振り分け ----
+    // バケット自体（テクスチャ・ブレンドの組）は残したまま中身だけ空にする。
+    // vector の capacity が維持されるので毎フレームのメモリ再確保が起きない。
+    for (auto& bucket : m_Buckets)
+        bucket.Instances.clear();
 
-    // ---- 共通のGPUリソースをセット ----
-    UINT stride = sizeof(VERTEX_3D);
-    UINT offset = 0;
-    Renderer::GetDeviceContext()->IASetVertexBuffers(0, 1, &m_VertexBuffer, &stride, &offset);
+    // 同じエミッタ由来のパーティクルはプール上で連続していることが多いため、
+    // 直前に解決したテクスチャをキャッシュして map 検索の回数を減らす
+    const wchar_t*            lastPath = nullptr;
+    ID3D11ShaderResourceView* lastSrv  = nullptr;
+
+    for (int i = 0; i < poolSize; i++)
+    {
+        const ParticleData& p = pool[i];
+        if (!p.Active) continue; // 非アクティブはスキップ
+
+        ID3D11ShaderResourceView* srv;
+        if (p.TexturePath == lastPath && lastSrv != nullptr)
+        {
+            srv = lastSrv;
+        }
+        else
+        {
+            srv = p.TexturePath ? GetOrLoadTexture(p.TexturePath) : m_DefaultTexture;
+            lastPath = p.TexturePath;
+            lastSrv  = srv;
+        }
+
+        ParticleInstance inst;
+        inst.Position      = { p.Position.x, p.Position.y, p.Position.z };
+        inst.Size          = p.Size;
+        inst.Color         = p.Color;
+        inst.Rotation      = p.Rotation;
+        inst.GroundAligned = p.GroundAligned ? 1.0f : 0.0f;
+        inst.Pad           = { 0.0f, 0.0f };
+
+        FindOrAddBucket(srv, p.Additive).Instances.push_back(inst);
+        m_ActiveCount++;
+    }
+
+    if (m_ActiveCount == 0)
+        return; // 描くものがなければGPUステートに触らない
+
+    // アクティブ数に合わせてバッファ容量を調整（不足なら拡張、余りすぎなら縮小）
+    EnsureInstanceCapacity(m_ActiveCount);
+
+    // ---- 2. インスタンスバッファへ一括転送 ----
+    // 描画順（通常合成 → 加算合成）と同じ並びで書き込み、
+    // 各バケットの開始位置（StartInstanceLocation）を記録しておく
+    D3D11_MAPPED_SUBRESOURCE mapped{};
+    Renderer::GetDeviceContext()->Map(m_InstanceBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
+
+    ParticleInstance* dst    = static_cast<ParticleInstance*>(mapped.pData);
+    int               cursor = 0;
+
+    // pass 0: 通常合成のバケット / pass 1: 加算合成のバケット
+    std::vector<std::pair<Bucket*, int>> drawList; // (バケット, 開始インスタンス位置)
+    for (int pass = 0; pass < 2; pass++)
+    {
+        const bool additive = (pass == 1);
+        for (auto& bucket : m_Buckets)
+        {
+            if (bucket.Additive != additive || bucket.Instances.empty())
+                continue;
+
+            const int count = static_cast<int>(bucket.Instances.size());
+            memcpy(dst + cursor, bucket.Instances.data(), sizeof(ParticleInstance) * count);
+            drawList.push_back({ &bucket, cursor });
+            cursor += count;
+        }
+    }
+
+    Renderer::GetDeviceContext()->Unmap(m_InstanceBuffer, 0);
+
+    // ---- 3. バケットごとに DrawInstanced ----
+    Renderer::GetDeviceContext()->IASetInputLayout(m_InputLayout);
+    Renderer::GetDeviceContext()->VSSetShader(m_VertexShader, nullptr, 0);
+    Renderer::GetDeviceContext()->PSSetShader(m_PixelShader, nullptr, 0);
+
+    ID3D11Buffer* vbs[2]     = { m_QuadVertexBuffer, m_InstanceBuffer };
+    UINT          strides[2] = { sizeof(QuadVertex), sizeof(ParticleInstance) };
+    UINT          offsets[2] = { 0, 0 };
+    Renderer::GetDeviceContext()->IASetVertexBuffers(0, 2, vbs, strides, offsets);
     Renderer::GetDeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
     // 深度テストを無効化（パーティクルが壁の後ろに隠れないようにする）
@@ -143,53 +344,26 @@ void ParticleRenderer::Draw(const ParticleData* pool, int poolSize)
     bool additiveEnabled = false;
     Renderer::SetAdditiveBlend(false);
 
-    // ---- アクティブな全パーティクルを1つずつ描画 ----
-    // TODO: パーティクル数が増えてきたらテクスチャ種別でソートしてから描画し、
-    //       PSSetShaderResources の切り替え回数を減らすと良い
-    for (int i = 0; i < poolSize; i++)
+    for (auto& entry : drawList)
     {
-        const ParticleData& p = pool[i];
-        if (!p.Active) continue; // 非アクティブはスキップ
+        Bucket* bucket        = entry.first;
+        int     startInstance = entry.second;
 
-        // ---- 加算合成/通常合成の切り替え（爆炎・火花・爆風リングなど光るエフェクト用） ----
-        if (p.Additive != additiveEnabled)
+        if (bucket->Additive != additiveEnabled)
         {
-            additiveEnabled = p.Additive;
+            additiveEnabled = bucket->Additive;
             Renderer::SetAdditiveBlend(additiveEnabled);
         }
 
-        // ---- パーティクルごとのテクスチャをセット ----
-        ID3D11ShaderResourceView* texture =
-            p.TexturePath ? GetOrLoadTexture(p.TexturePath) : m_DefaultTexture;
-        Renderer::GetDeviceContext()->PSSetShaderResources(0, 1, &texture);
+        Renderer::GetDeviceContext()->PSSetShaderResources(0, 1, &bucket->Texture);
 
-        // ---- マテリアルに現在の色（アルファ含む）を反映 ----
-        MATERIAL material{};
-        material.Diffuse       = p.Color;   // パーティクルごとの色（フェードアウト中はアルファが下がる）
-        material.TextureEnable = true;
-        Renderer::SetMaterial(material);
-
-        // ---- ワールド行列の組み立て ----
-        // スケール × Z軸回転 × ビルボード回転 × 平行移動 の順に合成する。
-        // この順番が大切で、スケールを先に掛けることで「サイズ変更 → カメラ向き → 位置移動」になる。
-        XMMATRIX scale = XMMatrixScaling(p.Size, p.Size, p.Size);  // サイズ
-        XMMATRIX trans = XMMatrixTranslation(p.Position.x, p.Position.y, p.Position.z); // 位置
-        XMMATRIX world;
-
-        if (p.GroundAligned)
-        {
-            // ビルボードにせず、地面(XZ平面)に水平に寝かせて描画する（爆風リング用）
-            XMMATRIX groundRot = XMMatrixRotationX(XM_PIDIV2) * XMMatrixRotationY(p.Rotation);
-            world = scale * groundRot * trans;
-        }
-        else
-        {
-            XMMATRIX rot = XMMatrixRotationZ(p.Rotation); // Z軸回転（スピン）
-            world = scale * rot * invView * trans;
-        }
-
-        Renderer::SetWorldMatrix(world);
-        Renderer::GetDeviceContext()->Draw(4, 0); // 頂点4つで四角形を1枚描く
+        // 板ポリ4頂点 × バケット内の全インスタンスを1回のドローコールで描画
+        Renderer::GetDeviceContext()->DrawInstanced(
+            4,
+            static_cast<UINT>(bucket->Instances.size()),
+            0,
+            static_cast<UINT>(startInstance));
+        m_DrawCalls++;
     }
 
     // ブレンド・深度を元に戻す（他のオブジェクトの描画に影響しないよう）

@@ -1,0 +1,9 @@
+{
+    "id": 1103,
+    "name": "AR-3 Sentry",
+    "type": "Weapon",
+    "rarity": "Common",
+    "weaponID": 103,
+    "model": "asset\\model\\crystal.obj",
+    "icon": ""
+}

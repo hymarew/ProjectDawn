@@ -145,11 +145,17 @@ bool Camera::CheckInView(Vector3 pos, float margin)
 {
     XMMATRIX viewProj = m_View * m_Projection;
     XMVECTOR vPos     = XMVectorSet(pos.x, pos.y, pos.z, 1.0f);
-    XMVECTOR vClip    = XMVector3TransformCoord(vPos, viewProj);
+    XMVECTOR vClip    = XMVector4Transform(vPos, viewProj);
 
-    float x = XMVectorGetX(vClip);
-    float y = XMVectorGetY(vClip);
-    float z = XMVectorGetZ(vClip);
+    // w≒0（カメラ位置と同一の点など）で除算すると NaN になり、
+    // NaN は全ての比較が false になるため「画面内」と誤判定されてしまう。
+    // w が正でない = カメラの後方または同一位置なので視界外として扱う。
+    float w = XMVectorGetW(vClip);
+    if (w <= 0.0001f) return false;
+
+    float x = XMVectorGetX(vClip) / w;
+    float y = XMVectorGetY(vClip) / w;
+    float z = XMVectorGetZ(vClip) / w;
 
     if (z < 0.0f || z > 1.0f)         return false;
     if (x < -margin || x > margin)    return false;

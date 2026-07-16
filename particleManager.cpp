@@ -1,4 +1,4 @@
-// ===================================================
+﻿// ===================================================
 // particleManager.cpp
 // 全パーティクルと全エミッタを一元管理するクラス
 //
@@ -19,19 +19,39 @@
 #include "manager.h"
 #include "field.h"
 #include "explosion.h"
+#include <chrono>
+#include <algorithm>
+
+namespace
+{
+    // CPU処理時間の計測ヘルパー（デバッグUIの統計表示用）
+    using DebugClock = std::chrono::high_resolution_clock;
+
+    float ElapsedMs(DebugClock::time_point start)
+    {
+        return std::chrono::duration<float, std::milli>(DebugClock::now() - start).count();
+    }
+}
 
 // ---------------------------------------------------------
 // Init : プール・エミッタリストの初期化
 // ---------------------------------------------------------
 void ParticleManager::Init()
 {
+    // ---- グローバルプールの確保（初回のみ） ----
+    // 100万個 × 約150バイト ≒ 150MB あるためヒープに置く。
+    // シーンをまたいでも確保し直さず使い回す
+    if (!m_Pool)
+        m_Pool = std::make_unique<ParticleData[]>(POOL_SIZE);
+
     // ---- グローバルプールを全スロット「非アクティブ」で初期化 ----
     // アクティブなスロットだけが Update・Draw で処理される
     for (int i = 0; i < POOL_SIZE; i++)
         m_Pool[i].Active = false;
 
-    // リングバッファの書き込み位置をリセット
-    m_NextFree = 0;
+    // リングバッファの書き込み位置とハイウォーターマークをリセット
+    m_NextFree  = 0;
+    m_UsedSlots = 0;
 
     // エミッタのリストをクリア
     m_Emitters.clear();
@@ -42,7 +62,8 @@ void ParticleManager::Init()
     m_Gravity = { 0.0f, -GameConfig::Physics::GRAVITY / 10.0f, 0.0f };
 
     // 描画クラスの初期化（GPUリソースの確保）
-    m_Renderer.Init();
+    // インスタンスバッファはプール全量ぶんの容量を確保する
+    m_Renderer.Init(POOL_SIZE);
 }
 
 // ---------------------------------------------------------
@@ -62,6 +83,9 @@ void ParticleManager::Uninit()
 // ---------------------------------------------------------
 void ParticleManager::Update(float dt)
 {
+
+    const auto updateStart = DebugClock::now(); // 統計用: シミュレーション時間の計測開始
+
     // ---- 画面フラッシュのタイマーを更新 ----
     if (m_FlashTimer > 0.0f)
     {
@@ -71,8 +95,18 @@ void ParticleManager::Update(float dt)
 
     // ---- 全エミッタを更新 ----
     // 各エミッタが放出タイミングになっていたらグローバルプールにパーティクルを追加する
+    const int prevNextFree   = m_NextFree;
+    int       emittedTotal   = 0;
     for (auto& emitter : m_Emitters)
-        emitter->Update(dt, m_Pool, POOL_SIZE, m_NextFree);
+        emittedTotal += emitter->Update(dt, m_Pool.get(), POOL_SIZE, m_NextFree);
+
+    // ---- ハイウォーターマーク（走査範囲）を進める ----
+    // 書き込み位置がリングバッファを一周した場合は全域を使用中とみなす。
+    // そうでなければ「書き込み位置の末尾」まで走査範囲を広げる
+    if (emittedTotal >= POOL_SIZE || (emittedTotal > 0 && m_NextFree <= prevNextFree))
+        m_UsedSlots = POOL_SIZE;
+    else if (m_NextFree > m_UsedSlots)
+        m_UsedSlots = m_NextFree;
 
     // ---- 寿命が尽きたエミッタをまとめて削除 ----
     // remove_if でリストの末尾に「削除すべきもの」を集め、erase で一括削除する
@@ -81,10 +115,15 @@ void ParticleManager::Update(float dt)
             [](const std::unique_ptr<ParticleEmitter>& e) { return !e->IsAlive(); }),
         m_Emitters.end()
     );
-
     // ---- アクティブな全パーティクルの物理演算 ----
-    for (int i = 0; i < POOL_SIZE; i++)
+    // 書き込んだことのあるスロット（ハイウォーターマーク）までで走査を打ち切る。
+    // 併せて「最後にアクティブだったスロット位置」を記録し、ループ後に走査範囲を縮める。
+    // これがないと大量バースト後にプール末尾まで走査し続け、FPSが戻らなくなる
+    int lastActive = -1;
+    int loop = 0;
+    for (int i = 0; i < m_UsedSlots; i++)
     {
+        loop++;
         ParticleData& p = m_Pool[i];
         if (!p.Active) continue; // 非アクティブはスキップ
 
@@ -151,7 +190,17 @@ void ParticleManager::Update(float dt)
         float t = 1.0f - (p.LifeTime / p.MaxLifeTime);
         p.Size  = LerpF(p.StartSize, p.EndSize, t);
         p.Color = LerpColor(p.StartColor, p.EndColor, t);
+
+        lastActive = i; // ここまで生き残った = 走査が必要な末尾候補
     }
+    // ---- 走査範囲の縮小 ----
+    // 末尾側の死んだ領域を切り捨てる。大量バーストの粒子が消えれば
+    // 走査範囲も自動で縮み、通常プレイのコストに戻る
+    m_UsedSlots = lastActive + 1;
+
+    m_Stats.UpdateMs  = ElapsedMs(updateStart); // 統計用: シミュレーション時間を記録
+    m_Stats.UsedSlots = m_UsedSlots;            // 統計用: 現在の走査範囲
+    m_NextFree = m_UsedSlots;
 }
 
 // ---------------------------------------------------------
@@ -159,8 +208,16 @@ void ParticleManager::Update(float dt)
 // ---------------------------------------------------------
 void ParticleManager::Draw()
 {
+    const auto drawStart = DebugClock::now(); // 統計用: 描画CPU時間の計測開始
+
     // ParticleRenderer に全パーティクルの描画を任せる
-    m_Renderer.Draw(m_Pool, POOL_SIZE);
+    // （走査はハイウォーターマークまで。未使用領域は見に行かない）
+    m_Renderer.Draw(m_Pool.get(), m_UsedSlots);
+
+    // 統計を回収（デバッグUIが GetStats() で参照する）
+    m_Stats.DrawMs      = ElapsedMs(drawStart);
+    m_Stats.ActiveCount = m_Renderer.GetActiveCount();
+    m_Stats.DrawCalls   = m_Renderer.GetDrawCallCount();
 }
 
 // ---------------------------------------------------------
@@ -266,7 +323,7 @@ void ParticleManager::EmitBigExplosion(Vector3 position)
 // ---------------------------------------------------------
 void ParticleManager::EmitHeal(Vector3 position)
 {
-    Emit(ParticlePreset::HealSparkle(GameConfig::HealItem::PARTICLE_COUNT), position);
+    Emit(ParticlePreset::HealSparkle(GameConfig::WorldItem::HEAL_PARTICLE_COUNT), position);
 }
 
 // ---------------------------------------------------------

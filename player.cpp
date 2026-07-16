@@ -7,10 +7,7 @@
 #include "player.h"
 #include "camera.h"
 #include "weapon.h"
-#include "pistol.h"
-#include "shotgun.h"
-#include "assaultRifle.h"
-#include "rocketLauncher.h"
+#include "gameContext.h"
 #include "sphereCollider.h"
 #include "collisionManager.h"
 #include "GameConfig.h"
@@ -43,25 +40,10 @@ void Player::Init()
     Light.SpotLightParam.y = cosf(XMConvertToRadians(35.0f)); // outer
     LightMoveSpeed = 0.1f;    // ライト移動速度
 
-    // 所持武器を全部生成して m_Weapons に登録する
-    // 切り替えは SetWeaponIndex() で行う
-    Pistol* pistol = new Pistol();
-    pistol->Init(&g_BulletPool);
-    m_Weapons.push_back(pistol);
-
-    Shotgun* shotgun = new Shotgun();
-    shotgun->Init(&g_BulletPool);
-    m_Weapons.push_back(shotgun);
-
-    AssaultRifle* ar = new AssaultRifle();
-    ar->Init(&g_BulletPool);
-    m_Weapons.push_back(ar);
-
-    RocketLauncher* rl = new RocketLauncher();
-    rl->Init(&g_BulletPool);
-    m_Weapons.push_back(rl);
-
-    m_WeaponIndex = 2; // 初期装備はアサルトライフル（インデックス 2）
+    // 武器選択画面で決めた装備（EquipLoadout）から Weapon 実体を生成する。
+    // ステージ中の装備変更はできない（アクティブスロットの切替のみ可能）
+    auto& ctx = GameContext::Instance();
+    m_Equip.Init(&ctx.equipLoadout, &ctx.weaponFactory, &g_BulletPool);
 
     // コライダー登録
     auto* col = AddComponent<SphereCollider>(this);
@@ -85,12 +67,8 @@ void Player::Uninit()
     m_VertexShader->Release();
     m_PixelShader->Release();
 
-    // 所持している全武器を解放する
-    for (Weapon* w : m_Weapons)
-    {
-        w->Uninit();
-        delete w;
-    }
+    // 装備中の武器実体を解放する
+    m_Equip.Uninit();
 }
 
 void Player::Update(float dt)
@@ -199,25 +177,26 @@ void Player::Update(float dt)
     if (m_InvTimer > 0.0f)
         m_InvTimer -= dt;
 
-    // 現在の武器を取得（インデックスが範囲外なら nullptr）
+    // 現在の武器を取得（未装備なら nullptr）
     Weapon* currentWeapon = GetWeapon();
 
-    // 武器の時間管理（連射タイマー・リロードカウントダウン）を更新する
-    if (currentWeapon)
-        currentWeapon->Update(dt);
+    // 武器の時間管理（連射タイマー・リロードカウントダウン）を更新する。
+    // 非アクティブ側のスロットもリロードが進むよう両方更新する
+    for (int i = 0; i < (int)EquipSlot::Count; i++)
+    {
+        if (Weapon* w = m_Equip.GetWeapon((EquipSlot)i))
+            w->Update(dt);
+    }
 
     // リロード入力（R キー or ゲームパッド B）
     if (currentWeapon && InputManager::IsTriggered(Action::RELOAD))
         currentWeapon->StartReload();
 
-    // ホイールで武器サイクル（AR[2] → Shotgun[1] → Pistol[0] → AR[2] …）
-    // ホイール下（奥）= 次の武器、ホイール上（手前）= 前の武器
-    if (!m_Weapons.empty())
+    // ホイールで Primary ⇔ Secondary を切り替える
+    if (Mouse::GetScrollDown() || Mouse::GetScrollUp())
     {
-        int next = m_WeaponIndex;
-        if (Mouse::GetScrollDown()) next = (m_WeaponIndex - 1 + (int)m_Weapons.size()) % (int)m_Weapons.size();
-        if (Mouse::GetScrollUp())   next = (m_WeaponIndex + 1)                          % (int)m_Weapons.size();
-        if (next != m_WeaponIndex)  SetWeaponIndex(next);
+        m_Equip.SwitchSlot();
+        currentWeapon = GetWeapon();  // 切り替え後の武器を取り直す
     }
 
     // 攻撃入力があれば現在の武器に発射を委譲する
@@ -296,27 +275,6 @@ void Player::DrawShadow()
     // 基底クラスの DrawShadow() を呼ぶと、自分が持っている
     // 全てのコンポーネントの DrawShadow() が順番に呼ばれる。
     GameObject::DrawShadow();
-}
-
-// -------------------------------------------------------
-// GetWeapon : 現在装備中の武器を返す
-// -------------------------------------------------------
-Weapon* Player::GetWeapon() const
-{
-    if (m_Weapons.empty()) return nullptr;
-    if (m_WeaponIndex < 0 || m_WeaponIndex >= (int)m_Weapons.size()) return nullptr;
-    return m_Weapons[m_WeaponIndex];
-}
-
-// -------------------------------------------------------
-// SetWeaponIndex : 武器を切り替える
-// -------------------------------------------------------
-// ImGui のラジオボタンなど外部から呼ぶ。
-// 範囲外のインデックスは無視する。
-void Player::SetWeaponIndex(int index)
-{
-    if (index < 0 || index >= (int)m_Weapons.size()) return;
-    m_WeaponIndex = index;
 }
 
 // -------------------------------------------------------

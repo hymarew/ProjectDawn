@@ -80,6 +80,13 @@ extern bool g_CastShadow;
 extern bool g_ShowDebugUI;
 extern bool g_ShowColliderDebug;
 
+// ---- ロケット演出のデバッグトグル（影ちかつき等の原因切り分け用） ----
+extern bool g_RocketSparkEnabled;     // 飛行中の火花
+extern bool g_RocketMuzzleEnabled;    // 発射時マズルフラッシュ+煙
+extern bool g_RocketLightEnabled;     // ロケット追従ポイントライト（噴射炎）
+extern bool g_ExplosionLightEnabled;  // 爆発時の瞬間ポイントライト
+extern bool g_DynamicLightsEnabled;   // 動的ポイントライト全体のマスタースイッチ
+
 class BulletPool;
 class BulletManager;
 extern BulletPool    g_BulletPool;

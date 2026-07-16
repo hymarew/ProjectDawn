@@ -1,0 +1,9 @@
+{
+    "id": 1210,
+    "name": "RL-X Ragnarok",
+    "type": "Weapon",
+    "rarity": "Legendary",
+    "weaponID": 210,
+    "model": "asset\\model\\crystal.obj",
+    "icon": ""
+}

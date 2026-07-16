@@ -1,0 +1,20 @@
+{
+    "id": 205,
+    "name": "RL-5 Ogre",
+    "category": "RocketLauncher",
+    "rarity": "Rare",
+    "damage": 220,
+    "fireRate": 2.2,
+    "reloadTime": 2.6,
+    "magazineSize": 1,
+    "bulletSpeed": 20.0,
+    "bulletLifeTime": 6.0,
+    "spreadAngle": 0.0,
+    "splashRadius": 6.0,
+    "knockbackPower": 600,
+    "singleShot": true,
+    "zoomRatio": 1.0,
+    "attackType": "SplashProjectile",
+    "model": "",
+    "icon": ""
+}

@@ -1,0 +1,9 @@
+{
+    "id": 1104,
+    "name": "AR-4 Longhorn",
+    "type": "Weapon",
+    "rarity": "Common",
+    "weaponID": 104,
+    "model": "asset\\model\\crystal.obj",
+    "icon": ""
+}

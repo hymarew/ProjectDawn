@@ -10,6 +10,7 @@ enum class SceneID
 {
     Title,         // タイトル画面
     Menu,          // モード選択画面
+    WeaponSelect,  // 武器選択・装備画面（ゲーム開始前に装備を決める）
     StageSelect,   // ステージ選択画面（Story モード専用）
     Game,          // ゲーム本編
     Result,        // リザルト画面

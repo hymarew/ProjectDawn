@@ -1,0 +1,9 @@
+{
+    "id": 1110,
+    "name": "AR-X Dawnbreaker",
+    "type": "Weapon",
+    "rarity": "Legendary",
+    "weaponID": 110,
+    "model": "asset\\model\\crystal.obj",
+    "icon": ""
+}

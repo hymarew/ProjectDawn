@@ -1,0 +1,9 @@
+{
+    "id": 1101,
+    "name": "AR-1 Vanguard",
+    "type": "Weapon",
+    "rarity": "Common",
+    "weaponID": 101,
+    "model": "asset\\model\\crystal.obj",
+    "icon": ""
+}

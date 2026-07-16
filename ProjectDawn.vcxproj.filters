@@ -59,6 +59,9 @@
     <Filter Include="Weapon">
       <UniqueIdentifier>{0A28A145-0E89-46E2-9316-E04E90F9BDE1}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ItemSystem">
+      <UniqueIdentifier>{3B7E9C41-52D6-4A8F-B190-7C4E2D8A61F5}</UniqueIdentifier>
+    </Filter>
     <Filter Include="不要">
       <UniqueIdentifier>{df928ffb-bfe2-4c8b-ad79-9c2319bf5f85}</UniqueIdentifier>
     </Filter>
@@ -265,17 +268,74 @@
     <ClCompile Include="weapon.cpp">
       <Filter>Weapon</Filter>
     </ClCompile>
-    <ClCompile Include="pistol.cpp">
+    <ClCompile Include="weaponFactory.cpp">
       <Filter>Weapon</Filter>
     </ClCompile>
-    <ClCompile Include="shotgun.cpp">
+    <ClCompile Include="straightShotStrategy.cpp">
       <Filter>Weapon</Filter>
     </ClCompile>
-    <ClCompile Include="assaultRifle.cpp">
+    <ClCompile Include="splashProjectileStrategy.cpp">
       <Filter>Weapon</Filter>
     </ClCompile>
-    <ClCompile Include="rocketLauncher.cpp">
+    <ClCompile Include="weaponDatabase.cpp">
       <Filter>Weapon</Filter>
+    </ClCompile>
+    <ClCompile Include="weaponEquip.cpp">
+      <Filter>Weapon</Filter>
+    </ClCompile>
+    <ClCompile Include="equipLoadout.cpp">
+      <Filter>Weapon</Filter>
+    </ClCompile>
+    <ClCompile Include="weaponSelectScene.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="pendingWeapons.cpp">
+      <Filter>ItemSystem</Filter>
+    </ClCompile>
+    <ClCompile Include="pickupNotificationUI.cpp">
+      <Filter>UI</Filter>
+    </ClCompile>
+    <ClCompile Include="inventory.cpp">
+      <Filter>ItemSystem</Filter>
+    </ClCompile>
+    <ClCompile Include="itemDatabase.cpp">
+      <Filter>ItemSystem</Filter>
+    </ClCompile>
+    <ClCompile Include="itemFactory.cpp">
+      <Filter>ItemSystem</Filter>
+    </ClCompile>
+    <ClCompile Include="itemPickupEvent.cpp">
+      <Filter>ItemSystem</Filter>
+    </ClCompile>
+    <ClCompile Include="itemPickupSystem.cpp">
+      <Filter>ItemSystem</Filter>
+    </ClCompile>
+    <ClCompile Include="worldItem.cpp">
+      <Filter>ItemSystem</Filter>
+    </ClCompile>
+    <ClCompile Include="worldItemPool.cpp">
+      <Filter>ItemSystem</Filter>
+    </ClCompile>
+    <ClCompile Include="dropTableDatabase.cpp">
+      <Filter>ItemSystem</Filter>
+    </ClCompile>
+    <ClCompile Include="dropStrategy.cpp">
+      <Filter>ItemSystem</Filter>
+    </ClCompile>
+    <ClCompile Include="weightedDropStrategy.cpp">
+      <Filter>ItemSystem</Filter>
+    </ClCompile>
+    <ClCompile Include="bossDropStrategy.cpp">
+      <Filter>ItemSystem</Filter>
+    </ClCompile>
+    <ClCompile Include="dropManager.cpp">
+      <Filter>ItemSystem</Filter>
+    </ClCompile>
+    <ClCompile Include="pickupEffectPlayer.cpp">
+      <Filter>ItemSystem</Filter>
+    </ClCompile>
+    <ClCompile Include="jsonParse.cpp">
+      <Filter>Utility</Filter>
     </ClCompile>
     <ClCompile Include="bulletManager.cpp">
       <Filter>Weapon</Filter>
@@ -286,17 +346,56 @@
     <ClCompile Include="audio.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
+    <ClCompile Include="soundManager.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="bloomPass.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="riftMaterial.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="distortionPass.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="riftRenderer.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="riftParticleEmitter.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="riftController.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="spaceRift.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="spaceRiftDebug.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="rainEmitter.cpp">
+      <Filter>Particle</Filter>
+    </ClCompile>
+    <ClCompile Include="snowEmitter.cpp">
+      <Filter>Particle</Filter>
+    </ClCompile>
+    <ClCompile Include="weatherRenderer.cpp">
+      <Filter>Particle</Filter>
+    </ClCompile>
+    <ClCompile Include="weatherManager.cpp">
+      <Filter>Particle</Filter>
+    </ClCompile>
     <ClCompile Include="explosion.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="field.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="healItem.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
     <ClCompile Include="damageEffectManager.cpp">
       <Filter>UI</Filter>
+    </ClCompile>
+    <ClCompile Include="dynamicLightManager.cpp">
+      <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="grass.cpp">
       <Filter>ソース ファイル</Filter>
@@ -585,28 +684,94 @@
     <ClInclude Include="weapon.h">
       <Filter>Weapon</Filter>
     </ClInclude>
-    <ClInclude Include="weaponParams.h">
+    <ClInclude Include="weaponData.h">
       <Filter>Weapon</Filter>
     </ClInclude>
-    <ClInclude Include="pistol.h">
+    <ClInclude Include="weaponDatabase.h">
       <Filter>Weapon</Filter>
     </ClInclude>
-    <ClInclude Include="shotgun.h">
+    <ClInclude Include="weaponFactory.h">
       <Filter>Weapon</Filter>
     </ClInclude>
-    <ClInclude Include="assaultRifle.h">
+    <ClInclude Include="weaponEquip.h">
       <Filter>Weapon</Filter>
     </ClInclude>
-    <ClInclude Include="rocketLauncher.h">
+    <ClInclude Include="equipLoadout.h">
       <Filter>Weapon</Filter>
+    </ClInclude>
+    <ClInclude Include="weaponSelectScene.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="pendingWeapons.h">
+      <Filter>ItemSystem</Filter>
+    </ClInclude>
+    <ClInclude Include="attackStrategy.h">
+      <Filter>Weapon</Filter>
+    </ClInclude>
+    <ClInclude Include="straightShotStrategy.h">
+      <Filter>Weapon</Filter>
+    </ClInclude>
+    <ClInclude Include="splashProjectileStrategy.h">
+      <Filter>Weapon</Filter>
+    </ClInclude>
+    <ClInclude Include="pickupNotificationUI.h">
+      <Filter>UI</Filter>
+    </ClInclude>
+    <ClInclude Include="rarity.h">
+      <Filter>ItemSystem</Filter>
+    </ClInclude>
+    <ClInclude Include="inventory.h">
+      <Filter>ItemSystem</Filter>
+    </ClInclude>
+    <ClInclude Include="itemData.h">
+      <Filter>ItemSystem</Filter>
+    </ClInclude>
+    <ClInclude Include="itemDatabase.h">
+      <Filter>ItemSystem</Filter>
+    </ClInclude>
+    <ClInclude Include="itemFactory.h">
+      <Filter>ItemSystem</Filter>
+    </ClInclude>
+    <ClInclude Include="itemPickupEvent.h">
+      <Filter>ItemSystem</Filter>
+    </ClInclude>
+    <ClInclude Include="itemPickupSystem.h">
+      <Filter>ItemSystem</Filter>
+    </ClInclude>
+    <ClInclude Include="worldItem.h">
+      <Filter>ItemSystem</Filter>
+    </ClInclude>
+    <ClInclude Include="worldItemPool.h">
+      <Filter>ItemSystem</Filter>
+    </ClInclude>
+    <ClInclude Include="dropTableData.h">
+      <Filter>ItemSystem</Filter>
+    </ClInclude>
+    <ClInclude Include="dropTableDatabase.h">
+      <Filter>ItemSystem</Filter>
+    </ClInclude>
+    <ClInclude Include="dropStrategy.h">
+      <Filter>ItemSystem</Filter>
+    </ClInclude>
+    <ClInclude Include="weightedDropStrategy.h">
+      <Filter>ItemSystem</Filter>
+    </ClInclude>
+    <ClInclude Include="bossDropStrategy.h">
+      <Filter>ItemSystem</Filter>
+    </ClInclude>
+    <ClInclude Include="dropManager.h">
+      <Filter>ItemSystem</Filter>
+    </ClInclude>
+    <ClInclude Include="pickupEffectPlayer.h">
+      <Filter>ItemSystem</Filter>
+    </ClInclude>
+    <ClInclude Include="jsonParse.h">
+      <Filter>Utility</Filter>
     </ClInclude>
     <ClInclude Include="bullet.h">
       <Filter>Weapon</Filter>
     </ClInclude>
     <ClInclude Include="bulletManager.h">
-      <Filter>Weapon</Filter>
-    </ClInclude>
-    <ClInclude Include="bulletParams.h">
       <Filter>Weapon</Filter>
     </ClInclude>
     <ClInclude Include="bulletPool.h">
@@ -618,6 +783,54 @@
     <ClInclude Include="audio.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
+    <ClInclude Include="soundManager.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="transform.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="riftMaterial.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="bloomPass.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="distortionPass.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="riftRenderer.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="riftParticleEmitter.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="riftController.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="spaceRift.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="spaceRiftDebug.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="weatherSetting.h">
+      <Filter>Particle</Filter>
+    </ClInclude>
+    <ClInclude Include="weatherEmitter.h">
+      <Filter>Particle</Filter>
+    </ClInclude>
+    <ClInclude Include="rainEmitter.h">
+      <Filter>Particle</Filter>
+    </ClInclude>
+    <ClInclude Include="snowEmitter.h">
+      <Filter>Particle</Filter>
+    </ClInclude>
+    <ClInclude Include="weatherRenderer.h">
+      <Filter>Particle</Filter>
+    </ClInclude>
+    <ClInclude Include="weatherManager.h">
+      <Filter>Particle</Filter>
+    </ClInclude>
     <ClInclude Include="component.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
@@ -627,11 +840,11 @@
     <ClInclude Include="field.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="healItem.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
     <ClInclude Include="damageEffectManager.h">
       <Filter>UI</Filter>
+    </ClInclude>
+    <ClInclude Include="dynamicLightManager.h">
+      <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="GameConfig.h">
       <Filter>ヘッダー ファイル</Filter>
@@ -695,6 +908,18 @@
     <None Include="shader\transitionCommon.hlsl">
       <Filter>シェーダーファイル</Filter>
     </None>
+    <None Include="shader\riftParams.hlsl">
+      <Filter>シェーダーファイル</Filter>
+    </None>
+    <None Include="shader\bloomParams.hlsl">
+      <Filter>シェーダーファイル</Filter>
+    </None>
+    <None Include="shader\weatherParams.hlsl">
+      <Filter>シェーダーファイル</Filter>
+    </None>
+    <None Include="shader\dynamicLights.hlsl">
+      <Filter>シェーダーファイル</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="shader\ShadowDepthPS.hlsl">
@@ -730,6 +955,24 @@
     <FxCompile Include="shader\distortionPS.hlsl">
       <Filter>シェーダーファイル</Filter>
     </FxCompile>
+    <FxCompile Include="shader\riftPS.hlsl">
+      <Filter>シェーダーファイル</Filter>
+    </FxCompile>
+    <FxCompile Include="shader\weatherVS.hlsl">
+      <Filter>シェーダーファイル</Filter>
+    </FxCompile>
+    <FxCompile Include="shader\weatherPS.hlsl">
+      <Filter>シェーダーファイル</Filter>
+    </FxCompile>
+    <FxCompile Include="shader\riftGroundPS.hlsl">
+      <Filter>シェーダーファイル</Filter>
+    </FxCompile>
+    <FxCompile Include="shader\bloomBlurPS.hlsl">
+      <Filter>シェーダーファイル</Filter>
+    </FxCompile>
+    <FxCompile Include="shader\bloomCompositePS.hlsl">
+      <Filter>シェーダーファイル</Filter>
+    </FxCompile>
     <FxCompile Include="shader\pixelDissolvePS.hlsl">
       <Filter>シェーダーファイル</Filter>
     </FxCompile>
@@ -743,6 +986,12 @@
       <Filter>シェーダーファイル</Filter>
     </FxCompile>
     <FxCompile Include="shader\ScorpionPS.hlsl">
+      <Filter>シェーダーファイル</Filter>
+    </FxCompile>
+    <FxCompile Include="shader\particleVS.hlsl">
+      <Filter>シェーダーファイル</Filter>
+    </FxCompile>
+    <FxCompile Include="shader\particlePS.hlsl">
       <Filter>シェーダーファイル</Filter>
     </FxCompile>
   </ItemGroup>

@@ -1,0 +1,9 @@
+{
+    "id": 1203,
+    "name": "RL-3 Rhino",
+    "type": "Weapon",
+    "rarity": "Common",
+    "weaponID": 203,
+    "model": "asset\\model\\crystal.obj",
+    "icon": ""
+}

@@ -1,5 +1,19 @@
 #include "weapon.h"
+#include "attackStrategy.h"
 #include "bulletPool.h"
+
+Weapon::Weapon(const WeaponData& data, std::unique_ptr<IAttackStrategy> attackStrategy,
+               BulletPool* pool)
+    : m_Data(data)
+    , m_AttackStrategy(std::move(attackStrategy))
+    , m_BulletPool(pool)
+{
+    // 弾倉満タンで生成する（-1 は弾数無制限）
+    m_CurrentAmmo = (m_Data.magazineSize > 0) ? m_Data.magazineSize : 0;
+}
+
+// unique_ptr<IAttackStrategy> の完全型がここで見えるよう cpp 側に置く
+Weapon::~Weapon() = default;
 
 // -------------------------------------------------------
 // Update : 毎フレームの時間管理
@@ -19,27 +33,29 @@ void Weapon::Update(float dt)
         // タイマーが 0 以下になったらリロード完了
         if (m_ReloadTimer <= 0.0f)
         {
-            m_CurrentAmmo = m_WeaponParams.magazineSize; // 弾倉を満タンにする
+            m_CurrentAmmo = m_Data.magazineSize; // 弾倉を満タンにする
             m_IsReloading = false;
         }
     }
 }
 
 // -------------------------------------------------------
-// TryFire : 発射条件チェックをしてから Fire() を呼ぶ
+// TryFire : 発射条件チェックをしてから AttackStrategy へ委譲する
 // -------------------------------------------------------
 // Player は発射条件を知る必要がない。
 // 「攻撃ボタンが押された」ときにこれを呼ぶだけでよい。
 void Weapon::TryFire(const Vector3& origin, const Vector3& direction)
 {
+    if (!m_AttackStrategy || !m_BulletPool) return;
+
     // リロード中は発射できない
     if (m_IsReloading) return;
 
     // 前回の発射から発射間隔（fireRate）が経過していなければ発射できない
-    if (m_FireTimer < m_WeaponParams.fireRate) return;
+    if (m_FireTimer < m_Data.fireRate) return;
 
     // magazineSize == -1 は弾数無制限なので残弾チェックをスキップ
-    if (m_WeaponParams.magazineSize != -1)
+    if (m_Data.magazineSize != -1)
     {
         if (m_CurrentAmmo <= 0)
         {
@@ -55,11 +71,11 @@ void Weapon::TryFire(const Vector3& origin, const Vector3& direction)
 
     m_FireCount++;
 
-    // 派生クラスの発射処理（弾を BulletPool に Spawn する）を呼ぶ
-    Fire(origin, direction);
+    // 攻撃処理（弾を BulletPool に Spawn する）は Strategy に委譲する
+    m_AttackStrategy->Fire(origin, direction, m_Data, *m_BulletPool);
 
     // 発射後に残弾が0になったら自動でリロードを開始する
-    if (m_WeaponParams.magazineSize != -1 && m_CurrentAmmo <= 0)
+    if (m_Data.magazineSize != -1 && m_CurrentAmmo <= 0)
         StartReload();
 }
 
@@ -73,9 +89,9 @@ void Weapon::TryFire(const Vector3& origin, const Vector3& direction)
 void Weapon::StartReload()
 {
     if (m_IsReloading) return;
-    if (m_WeaponParams.magazineSize == -1) return;
-    if (m_CurrentAmmo == m_WeaponParams.magazineSize) return;
+    if (m_Data.magazineSize == -1) return;
+    if (m_CurrentAmmo == m_Data.magazineSize) return;
 
     m_IsReloading = true;
-    m_ReloadTimer = m_WeaponParams.reloadTime; // リロードタイマーをセット
+    m_ReloadTimer = m_Data.reloadTime; // リロードタイマーをセット
 }

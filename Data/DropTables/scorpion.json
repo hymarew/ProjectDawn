@@ -1,0 +1,23 @@
+{
+    "enemyType": "Scorpion",
+    "strategy": "Weighted",
+    "dropRate": 0.25,
+    "rollCount": 1,
+    "entries": [
+        { "itemID": 2001, "weight": 60 },
+        { "itemID": 1101, "weight": 6 },
+        { "itemID": 1102, "weight": 6 },
+        { "itemID": 1103, "weight": 6 },
+        { "itemID": 1104, "weight": 6 },
+        { "itemID": 1201, "weight": 4 },
+        { "itemID": 1202, "weight": 4 },
+        { "itemID": 1203, "weight": 4 },
+        { "itemID": 1204, "weight": 4 },
+        { "itemID": 1105, "weight": 2 },
+        { "itemID": 1106, "weight": 2 },
+        { "itemID": 1107, "weight": 2 },
+        { "itemID": 1205, "weight": 2 },
+        { "itemID": 1206, "weight": 2 },
+        { "itemID": 1207, "weight": 2 }
+    ]
+}

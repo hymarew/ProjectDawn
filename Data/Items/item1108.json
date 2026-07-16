@@ -1,0 +1,9 @@
+{
+    "id": 1108,
+    "name": "AR-8 Hurricane",
+    "type": "Weapon",
+    "rarity": "Epic",
+    "weaponID": 108,
+    "model": "asset\\model\\crystal.obj",
+    "icon": ""
+}

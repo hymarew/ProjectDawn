@@ -1,0 +1,9 @@
+{
+    "id": 1102,
+    "name": "AR-2 Falcon",
+    "type": "Weapon",
+    "rarity": "Common",
+    "weaponID": 102,
+    "model": "asset\\model\\crystal.obj",
+    "icon": ""
+}

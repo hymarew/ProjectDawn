@@ -1,0 +1,20 @@
+{
+    "id": 210,
+    "name": "RL-X Ragnarok",
+    "category": "RocketLauncher",
+    "rarity": "Legendary",
+    "damage": 320,
+    "fireRate": 1.8,
+    "reloadTime": 2.0,
+    "magazineSize": 2,
+    "bulletSpeed": 24.0,
+    "bulletLifeTime": 6.0,
+    "spreadAngle": 0.0,
+    "splashRadius": 8.0,
+    "knockbackPower": 800,
+    "singleShot": true,
+    "zoomRatio": 1.0,
+    "attackType": "SplashProjectile",
+    "model": "",
+    "icon": ""
+}

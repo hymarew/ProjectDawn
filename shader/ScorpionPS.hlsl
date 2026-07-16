@@ -1,5 +1,6 @@
 #include "common.hlsl"
 #include "commonFanc.hlsl"
+#include "dynamicLights.hlsl"
 
 Texture2D g_Texture : register(t0);
 SamplerState g_SamplerState : register(s0);
@@ -81,6 +82,9 @@ void main(in PS_IN In, out float4 outDiffuse : SV_Target)
     float shadowFactor = CalcShadowFactor(In.ShadowPos);
 
     float3 finalColor = (diffuse + specular + fresnelGlow + rimLight) * shadowFactor + emissive;
+
+    // ロケットの噴射炎・爆発フラッシュ等の動的ポイントライトを加算する
+    finalColor += visibleBase * CalcDynamicLights(In.WorldPosition.xyz, N);
 
     // --- ヒットフラッシュ ---
     // 被弾した瞬間だけモデル全体を白へ寄せる（FlashIntensity は毎フレーム減衰する）

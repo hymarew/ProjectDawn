@@ -1,0 +1,20 @@
+{
+    "id": 106,
+    "name": "AR-6 Warden",
+    "category": "AssaultRifle",
+    "rarity": "Rare",
+    "damage": 60,
+    "fireRate": 0.14,
+    "reloadTime": 2.3,
+    "magazineSize": 80,
+    "bulletSpeed": 70.0,
+    "bulletLifeTime": 2.2,
+    "spreadAngle": 1.5,
+    "splashRadius": 0.0,
+    "knockbackPower": 0.0,
+    "singleShot": false,
+    "zoomRatio": 1.5,
+    "attackType": "StraightShot",
+    "model": "",
+    "icon": ""
+}

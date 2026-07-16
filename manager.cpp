@@ -26,7 +26,12 @@
 #include "transitionManager.h"
 #include "saveManager.h"
 #include "particleManager.h"
-#include "healItem.h"
+#include "soundManager.h"
+#include "spaceRiftDebug.h"
+#include "weatherManager.h"
+#include "gameContext.h"
+#include "dropManager.h"
+#include "dynamicLightManager.h"
 
 //インスタンス
 std::list<GameObject*> Manager::m_GameObject;
@@ -38,6 +43,13 @@ CollisionManager g_CollisionManager;
 bool g_CastShadow        = true;
 bool g_ShowDebugUI       = false;
 bool g_ShowColliderDebug = false;
+
+// ロケット演出のデバッグトグル（影ちかつき等の原因切り分け用。全てONが通常状態）
+bool g_RocketSparkEnabled    = true;
+bool g_RocketMuzzleEnabled   = true;
+bool g_RocketLightEnabled    = true;
+bool g_ExplosionLightEnabled = true;
+bool g_DynamicLightsEnabled  = true;
 Camera* Manager::m_Camera = nullptr;
 
 // ---------------------------------------------------------
@@ -94,10 +106,15 @@ void Manager::Init()
 	g_ShadowRenderer->Init();
 	InputManager::Init();
 	Audio::InitMaster();
+	g_SoundManager.Init();
+	g_SpaceRiftDebug.Init();
 
 	// トランジション（Fade等）のGPUリソースを用意する。
 	// SceneManager::Init() が起動直後にFadeInを再生するため、それより前に呼ぶ必要がある。
 	g_TransitionManager.Init();
+
+	// 動的ポイントライト（ロケットの噴射炎・爆発フラッシュ等）のGPUリソースを用意する
+	g_DynamicLightManager.Init();
 
 	// セーブデータをロードする。ファイルがなければデフォルト値で新規生成して保存する。
 	// SceneManager::Init より前に呼ぶことで、初回シーン（TitleScene）表示前にデータが揃う。
@@ -113,9 +130,12 @@ void Manager::Uninit()
 	g_SceneManager.Uninit();
 
 	g_TransitionManager.Uninit();
+	g_DynamicLightManager.Uninit();
 
 	g_ShadowRenderer->Uninit();
 	delete g_ShadowRenderer;
+	g_SpaceRiftDebug.Uninit();
+	g_SoundManager.Uninit();
 	Audio::UninitMaster();
 
 	Renderer::Uninit();
@@ -128,8 +148,14 @@ void Manager::Update(float dt)
 	// 現在のシーンを更新
 	g_SceneManager.Update(dt);
 
+	// 動的ポイントライト（寿命付きの爆発フラッシュ等）の時間管理
+	g_DynamicLightManager.Update(dt);
+
 	// トランジションデバッグボタンの自動往復（Out完了→0.5秒待機→In）
 	UpdateDebugTransitionAutoReturn(dt);
+
+	// SpaceRiftデバッグデモ（Spawn済みの間だけ時間経過・パーティクル放出を進める）
+	g_SpaceRiftDebug.Update(dt);
 }
 
 void Manager::Draw()
@@ -259,14 +285,17 @@ void Manager::ImGuiDraw()
 		Player* player = Manager::GetGameObject<Player>();
 		if (player)
 		{
-			int index = player->GetWeaponIndex();
-			auto& weapons = player->GetWeapons();
+			auto& equip = player->GetEquip();
 
-			// 所持武器をラジオボタンで一覧表示し、選択で切り替える
-			for (int i = 0; i < (int)weapons.size(); i++)
+			// 装備スロットの表示（ステージ中の装備変更は不可のため読み取り専用。
+			// アクティブ切替はホイール = WeaponEquip::SwitchSlot のみ）
+			for (int i = 0; i < (int)EquipSlot::Count; i++)
 			{
-				if (ImGui::RadioButton(weapons[i]->GetName(), &index, i))
-					player->SetWeaponIndex(i);
+				Weapon* w = equip.GetWeapon((EquipSlot)i);
+				bool active = ((EquipSlot)i == equip.GetActiveSlot());
+				ImGui::Text("%s %-9s : %s",
+					active ? ">" : " ",
+					EquipSlotToString((EquipSlot)i), w ? w->GetName() : "(none)");
 			}
 
 			// 現在の武器の状態を表示する
@@ -302,6 +331,62 @@ void Manager::ImGuiDraw()
 		ImGui::Text("Spawn Position: (%.1f, %.1f, %.1f)", debugPos.x, debugPos.y, debugPos.z);
 
 		auto& particleManager = ParticleManager::GetInstance();
+
+		// ---- GPUインスタンシングの統計表示 ----
+		// 旧実装は「1パーティクル=1ドローコール」だったため、
+		// Active数に対してDraw Callsが数回で済んでいることが効果の証明になる
+		ImGui::SeparatorText("GPU Instancing Stats");
+		{
+			const ParticleStats& stats = particleManager.GetStats();
+			ImGui::Text("Active Particles : %d / %d", stats.ActiveCount, GameConfig::Particle::POOL_SIZE);
+			ImGui::Text("Scan Range       : %d", stats.UsedSlots); // 走査範囲（粒子が消えると自動で縮む）
+			ImGui::Text("Draw Calls       : %d", stats.DrawCalls);
+			ImGui::Text("Update CPU       : %.3f ms", stats.UpdateMs);
+			ImGui::Text("Draw   CPU       : %.3f ms", stats.DrawMs);
+		}
+
+		// ---- ストレステスト ----
+		// 大量パーティクルへの耐性を実演するための負荷試験。
+		ImGui::SeparatorText("Stress Test");
+		{
+			// 爆発一式（フラッシュ・火球・火花・デブリ・煙・リング）を周囲へ一斉発生
+			static int stressExplosions = 10;
+			ImGui::SliderInt("Explosions", &stressExplosions, 1, 50);
+			if (ImGui::Button("Burst Explosions"))
+			{
+				for (int i = 0; i < stressExplosions; i++)
+				{
+					Vector3 pos = debugPos;
+					pos.x += (rand() / (float)RAND_MAX - 0.5f) * 40.0f;
+					pos.z += (rand() / (float)RAND_MAX - 0.5f) * 40.0f;
+					particleManager.EmitBigExplosion(pos);
+				}
+			}
+
+			// プールを一気に埋める火花の洪水（純粋な描画数の上限テスト）
+			// 選んだ個数を5ヶ所に分けてバースト放出する（寿命は3〜6秒に延長）
+			static int floodCount = 100000;
+			ImGui::RadioButton("10万",  &floodCount, 100000);  ImGui::SameLine();
+			ImGui::RadioButton("50万",  &floodCount, 500000);  ImGui::SameLine();
+			ImGui::RadioButton("100万", &floodCount, 1000000);
+			if (ImGui::Button("Flood Sparks"))
+			{
+				ParticleSetting s = ParticlePreset::Spark();
+				s.BurstCount = floodCount / 5;
+				s.MinLife    = 3.0f;
+				s.MaxLife    = 6.0f;
+				for (int i = 0; i < 5; i++)
+				{
+					Vector3 pos = debugPos;
+					pos.x += (rand() / (float)RAND_MAX - 0.5f) * 60.0f;
+					pos.y += 5.0f;
+					pos.z += (rand() / (float)RAND_MAX - 0.5f) * 60.0f;
+					particleManager.Emit(s, pos);
+				}
+			}
+		}
+
+		ImGui::SeparatorText("Effect Presets");
 		if (ImGui::Button("Explosion"))      particleManager.Emit(EffectType::Explosion,      debugPos);
 		ImGui::SameLine();
 		if (ImGui::Button("MuzzleFlash"))    particleManager.Emit(EffectType::MuzzleFlash,    debugPos);
@@ -326,21 +411,53 @@ void Manager::ImGuiDraw()
 		ImGui::SameLine();
 		if (ImGui::Button("Scorpion Death")) particleManager.EmitScorpionDeath(debugPos);
 
-		ImGui::SeparatorText("Heal Item");
+		ImGui::SeparatorText("Rocket FX Debug (flicker isolation)");
+		// 影のちかつき原因を切り分けるため、ロケット演出を個別にON/OFFできる
+		ImGui::Checkbox("Sparks",              &g_RocketSparkEnabled);
+		ImGui::SameLine();
+		ImGui::Checkbox("Muzzle Flash",        &g_RocketMuzzleEnabled);
+		ImGui::SameLine();
+		ImGui::Checkbox("Rocket Light",        &g_RocketLightEnabled);
+		ImGui::Checkbox("Explosion Light",     &g_ExplosionLightEnabled);
+		ImGui::SameLine();
+		ImGui::Checkbox("Dynamic Lights (ALL)", &g_DynamicLightsEnabled);
+
+		ImGui::SeparatorText("World Item");
 		if (ImGui::Button("Heal FX")) particleManager.EmitHeal(debugPos);
 		ImGui::SameLine();
 		// プレイヤーの前方3mに回復アイテムを配置する（取得テスト用）
-		if (ImGui::Button("Spawn HealItem"))
+		if (ImGui::Button("Spawn Heal"))
 		{
 			Player* p = Manager::GetGameObject<Player>();
 			if (p)
 			{
 				Vector3 pos = p->GetPosition();
 				pos.z += 3.0f;
-				Manager::AddGameObject<HealItem>()->SetPosition(pos);
+				GameContext::Instance().itemFactory.Spawn(ItemID(2001), pos);
+			}
+		}
+		ImGui::SameLine();
+		// ドロップ演出テスト: プレイヤー前方でスコーピオンのドロップ抽選を10回走らせる
+		if (ImGui::Button("Test Drop x10"))
+		{
+			Player* p = Manager::GetGameObject<Player>();
+			if (p)
+			{
+				Vector3 pos = p->GetPosition();
+				pos.z += 5.0f;
+				for (int i = 0; i < 10; i++)
+					g_DropManager.OnEnemyKilled("Scorpion", pos);
 			}
 		}
 	}
+
+	// ===== SpaceRift(空間の裂け目)デバッグ =====
+	// パネルの中身（Spawn/Destroy・パラメータ調整）は SpaceRiftDebugPanel が担当する
+	g_SpaceRiftDebug.DrawImGui();
+
+	// ===== 天候(雨・雪)デバッグ =====
+	// パネルの中身（ON/OFF・各種パラメータ調整）は WeatherManager が担当する
+	WeatherManager::GetInstance().DrawImGui();
 
 	// ===== トランジションデバッグ =====
 	// ボタン1つで Out再生→覆いきる→0.5秒待機→In再生 まで自動で行う。

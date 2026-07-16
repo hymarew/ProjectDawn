@@ -1,0 +1,20 @@
+{
+    "id": 202,
+    "name": "RL-2 Boar",
+    "category": "RocketLauncher",
+    "rarity": "Common",
+    "damage": 130,
+    "fireRate": 1.6,
+    "reloadTime": 2.2,
+    "magazineSize": 1,
+    "bulletSpeed": 20.0,
+    "bulletLifeTime": 6.0,
+    "spreadAngle": 0.0,
+    "splashRadius": 4.5,
+    "knockbackPower": 450,
+    "singleShot": true,
+    "zoomRatio": 1.0,
+    "attackType": "SplashProjectile",
+    "model": "",
+    "icon": ""
+}

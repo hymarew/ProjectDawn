@@ -11,6 +11,19 @@ namespace GameConfig
         constexpr float RESIST_DIVISOR = 20.0f;
     }
 
+    // =====================================================
+    // Particle : パーティクルシステムの調整値
+    // 描画はGPUインスタンシング（ドローコールはテクスチャ×ブレンド種別ごとに1回）
+    // のため、プール上限を上げても描画コストはほぼ増えない。
+    // 更新・描画は使用済みスロット数（ハイウォーターマーク）までしか
+    // 走査しないので、上限を大きくしても平常時の負荷は変わらない。
+    // =====================================================
+    namespace Particle
+    {
+        constexpr int POOL_SIZE = 1000000; // 同時に存在できるパーティクルの上限（100万）
+                                           // プール本体は約150MBをヒープに確保する
+    }
+
     namespace Player
     {
         constexpr float BULLET_SPEED          = 50.0f;
@@ -61,15 +74,32 @@ namespace GameConfig
     }
 
     // =====================================================
-    // HealItem : 回復アイテムの調整値
+    // WorldItem : ワールドドロップアイテムの調整値
+    // 回復量・ドロップ率などのバランス値は JSON（Data/Items, Data/DropTables）側で持つ。
+    // ここには見た目・判定などコードに近い調整値だけを置く。
     // =====================================================
-    namespace HealItem
+    namespace WorldItem
     {
-        constexpr float HEAL_RATIO      = 0.1f;  // 回復量 = 最大HP × この割合
-        constexpr float PICKUP_RADIUS   = 1.5f;  // 取得判定の半径（コライダー半径）
-        constexpr int   PARTICLE_COUNT  = 30;    // 回復エフェクトの粒子数（20〜40目安）
-        constexpr float MODEL_SCALE     = 3.0f;  // HealBox モデルの表示スケール
-        constexpr float DROP_RATE       = 0.1f;  // 敵撃破時にドロップする確率（0〜1）
+        // ドロップは時間経過では消えない（取得 or シーン終了のリセットのみ）。
+        // そのため POOL_SIZE はステージ1回分の総ドロップ数を賄える量にしておく
+        constexpr int   POOL_SIZE           = 512;   // 同時に存在できるドロップの上限
+        constexpr float PICKUP_RADIUS       = 1.5f;  // 取得判定の半径
+        constexpr float MODEL_SCALE         = 2.0f;  // 表示モデルのスケール
+        constexpr float HOVER_HEIGHT        = 1.0f;  // 地面からの浮遊基準高さ
+        constexpr float BOB_HEIGHT          = 0.25f; // 浮遊の上下振幅
+        constexpr float BOB_SPEED           = 2.0f;  // 浮遊の速さ（rad/秒）
+        constexpr float ROTATE_SPEED        = 1.5f;  // 水平回転速度（rad/秒）
+        constexpr float DROP_SCATTER_RADIUS = 1.5f;  // 複数ドロップ時に散らす半径
+        constexpr int   HEAL_PARTICLE_COUNT = 30;    // 回復エフェクトの粒子数（20〜40目安）
+    }
+
+    // =====================================================
+    // WeaponSystem : 武器収集システムの調整値
+    // =====================================================
+    namespace WeaponSystem
+    {
+        constexpr int STARTER_AR_ID = 101;  // 初回起動時に付与する初期アサルトライフル
+        constexpr int STARTER_RL_ID = 201;  // 初回起動時に付与する初期ロケットランチャー
     }
 
     // =====================================================
@@ -202,11 +232,11 @@ namespace GameConfig
         constexpr float SHAKE_DAMPING     = 0.9f;
         constexpr float FRAME_TIME        = 1.0f / 60.0f;
 
-        // EDF風TPS専用
-        constexpr float TPS_BACK_DIST    = 7.0f;    // 後方距離
-        constexpr float TPS_HEIGHT_EDF   = 4.0f;    // プレイヤーより上（高くするほど見下ろし角が強くなる）
-        constexpr float TPS_LOOKAT_AHEAD = 18.0f;   // 前方注視距離（遠くするほどプレイヤーが画面下へ）
-        constexpr float TPS_LOOKAT_UP    = 4.5f;    // 注視点の高さ補正（大きくするほどプレイヤーが画面下へ）
+        // EDF風TPS専用（身長約1.8mのプレイヤーモデル向けに調整）
+        constexpr float TPS_BACK_DIST    = 3.5f;    // 後方距離
+        constexpr float TPS_HEIGHT_EDF   = 2.2f;    // プレイヤーより上（高くするほど見下ろし角が強くなる）
+        constexpr float TPS_LOOKAT_AHEAD = 10.0f;   // 前方注視距離（遠くするほどプレイヤーが画面下へ）
+        constexpr float TPS_LOOKAT_UP    = 2.0f;    // 注視点の高さ補正（大きくするほどプレイヤーが画面下へ）
         constexpr float TPS_PITCH_MIN    = -1.047f; // -60°
         constexpr float TPS_PITCH_MAX    =  1.047f; // +60°
         constexpr float TPS_FOLLOW_SPEED = 0.05f;   // 追従補間率
@@ -224,6 +254,27 @@ namespace GameConfig
         constexpr float SPLASH_RADIUS    = 5.0f;   // 爆風半径 5m
         constexpr float KNOCKBACK_POWER  = 500.0f; // 爆発時に敵を外側へ吹き飛ばす力（40 * 2.5）
         constexpr float KNOCKBACK_DECAY  = 8.0f;   // 吹き飛び速度の減衰係数（大きいほど早く止まる）
+    }
+
+    // =====================================================
+    // RocketFX : ロケットランチャーの発射〜飛行〜爆発演出の調整値
+    // =====================================================
+    namespace RocketFX
+    {
+        // ---- 発射時マズルフラッシュ ----
+        constexpr float MUZZLE_FLASH_SIZE_MUL = 1.6f; // 通常武器のマズルフラッシュに対する倍率
+
+        // ---- ロケット本体の追従ポイントライト（噴射炎） ----
+        constexpr float TRAIL_LIGHT_RADIUS    = 3.0f; // 半径2〜4m
+        constexpr float TRAIL_LIGHT_INTENSITY = 0.4f; // 中程度の強さ（周囲の地形でちらついて見えないよう控えめに）
+
+        // ---- 飛行中の火花 ----
+        constexpr float SPARK_INTERVAL = 0.15f; // 火花も控えめな頻度で生成する
+
+        // ---- 爆発時の瞬間的なポイントライト ----
+        constexpr float EXPLOSION_LIGHT_RADIUS    = 10.0f; // 半径8〜12m
+        constexpr float EXPLOSION_LIGHT_INTENSITY = 3.0f;  // 通常より強め
+        constexpr float EXPLOSION_LIGHT_LIFE      = 0.12f; // 寿命0.08〜0.15秒
     }
 
     namespace Explosion

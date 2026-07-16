@@ -51,12 +51,13 @@ void MenuScene::Update(float dt)
         {
         case 0: // STORY
             GameContext::Instance().currentMode = GameMode::Story;
-            // Story はステージ選択を経由してから GameScene へ進む
-            g_SceneManager.RequestChange(SceneID::StageSelect);
+            // 武器選択 → ステージ選択 を経由してから GameScene へ進む
+            g_SceneManager.RequestChange(SceneID::WeaponSelect);
             break;
         case 1: // ENDLESS
             GameContext::Instance().currentMode = GameMode::Endless;
-            g_SceneManager.RequestChange(SceneID::Game);
+            // 武器選択を経由してから GameScene へ進む（WeaponSelect がモードで分岐する）
+            g_SceneManager.RequestChange(SceneID::WeaponSelect);
             break;
         case 2: // EXIT
             PostQuitMessage(0);

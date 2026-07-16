@@ -99,6 +99,10 @@ public:
 
 	static ID3D11Device* GetDevice( void ){ return m_Device; }
 	static ID3D11DeviceContext* GetDeviceContext( void ){ return m_DeviceContext; }
+
+	// Bloom等のMRT(複数レンダーターゲット)描画で使う。メインRTV/DSVをそのまま公開する
+	static ID3D11RenderTargetView* GetMainRenderTargetView( void ){ return m_RenderTargetView; }
+	static ID3D11DepthStencilView* GetDepthStencilView( void ){ return m_DepthStencilView; }
 	static void CreateVertexShader(ID3D11VertexShader** VertexShader, ID3D11InputLayout** VertexLayout, const char* FileName);
 	static void CreatePixelShader(ID3D11PixelShader** PixelShader, const char* FileName);
 

@@ -76,27 +76,9 @@ void SKY::Draw()
 
 void SKY::DrawShadow()
 {
-    Camera* camera = Manager::GetCamera();
-    if (!camera->CheckInView(m_Position, 3.0f))  //メインカメラで判定すると、影が不自然になるらしいから、マージン追加
-        return;
-    // ==================================================
-    // 1. 自分の「位置・回転・大きさ」からワールド行列を計算
-    // ==================================================
-    XMMATRIX world, scale, rot, trans;
-    scale = XMMatrixScaling(m_Scale.x, m_Scale.y, m_Scale.z);
-    rot = XMMatrixRotationRollPitchYaw(m_Rotation.x, m_Rotation.y, m_Rotation.z);
-    trans = XMMatrixTranslation(m_Position.x, m_Position.y, m_Position.z);
-    world = scale * rot * trans;
-
-    // ==================================================
-    // 2. GPUに「今から描くモデルはここ(world)に配置してね」と伝える
-    // ==================================================
-    Renderer::SetWorldMatrix(world);
-
-    // ==================================================
-    // 3. 実際のモデル(頂点)の描画は、コンポーネント(ModelRenderer)に委譲する
-    // ==================================================
-    // 基底クラスの DrawShadow() を呼ぶと、自分が持っている
-    // 全てのコンポーネントの DrawShadow() が順番に呼ばれる。
-    GameObject::DrawShadow();
+    // 空は影を落とさない（何も描かない）。
+    // 以前は CheckInView 判定付きでシャドウマップへ描画していたが、SKY の位置は常に
+    // カメラ位置と同一のため射影時に w≒0 となり、NaN 比較で判定結果が毎フレーム不安定だった。
+    // 判定が true になったフレームだけ巨大な空の球体がシャドウマップ全体を覆い、
+    // 「画面中の影がちかちかする」原因になっていた。
 }

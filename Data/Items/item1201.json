@@ -1,0 +1,9 @@
+{
+    "id": 1201,
+    "name": "RL-1 Mule",
+    "type": "Weapon",
+    "rarity": "Common",
+    "weaponID": 201,
+    "model": "asset\\model\\crystal.obj",
+    "icon": ""
+}

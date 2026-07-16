@@ -1,0 +1,9 @@
+{
+    "id": 1202,
+    "name": "RL-2 Boar",
+    "type": "Weapon",
+    "rarity": "Common",
+    "weaponID": 202,
+    "model": "asset\\model\\crystal.obj",
+    "icon": ""
+}

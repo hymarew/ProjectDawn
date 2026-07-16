@@ -1,0 +1,9 @@
+{
+    "id": 1107,
+    "name": "AR-7 Mirage",
+    "type": "Weapon",
+    "rarity": "Rare",
+    "weaponID": 107,
+    "model": "asset\\model\\crystal.obj",
+    "icon": ""
+}

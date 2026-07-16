@@ -1,7 +1,7 @@
 #include "main.h"
 #include "enemy.h"
 #include "manager.h"
-#include "healItem.h"
+#include "dropManager.h"
 #include "GameConfig.h"
 #include "playerLog.h"
 #include <algorithm>
@@ -53,13 +53,9 @@ void Enemy::Kill()
     ++s_KillCount;
     g_PlayerLog.enemyKills[GetTypeName()]++;
 
-    // 一定確率で回復アイテムをドロップする（倒れた場所の地面に配置）
-    if ((float)rand() / RAND_MAX < GameConfig::HealItem::DROP_RATE)
-    {
-        Vector3 dropPos = m_Position;
-        dropPos.y = 0.0f;
-        Manager::AddGameObject<HealItem>()->SetPosition(dropPos);
-    }
+    // ドロップ処理は DropManager へ委譲する。
+    // 敵側は TypeName と座標を渡すだけで、テーブル・抽選方法を知らない。
+    g_DropManager.OnEnemyKilled(GetTypeName(), m_Position);
 }
 
 // =====================================================
