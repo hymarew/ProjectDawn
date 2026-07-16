@@ -3,6 +3,7 @@
 #include "bulletPool.h"
 #include "particleManager.h"
 #include "manager.h"
+#include "soundManager.h"
 
 void SplashProjectileStrategy::Fire(const Vector3& origin, const Vector3& direction,
                                     const WeaponData& data, BulletPool& pool)
@@ -21,4 +22,6 @@ void SplashProjectileStrategy::Fire(const Vector3& origin, const Vector3& direct
         particleManager.Emit(ParticlePreset::RocketMuzzleFlash(), origin);
         particleManager.Emit(ParticlePreset::RocketMuzzleSmoke(), origin);
     }
+
+    g_SoundManager.PlaySE(SEType::RocketLauncher);
 }

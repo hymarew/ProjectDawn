@@ -41,6 +41,8 @@
 #include "sky.h"
 #include "explosion.h"
 #include "particleManager.h"
+#include "weatherManager.h"
+#include "spaceRiftDebug.h"
 
 #include <random>
 #include "playerLog.h"
@@ -77,6 +79,7 @@ void GameScene::Init()
     g_BulletPool.Init(1000);
     g_BulletManager.Init();
     ParticleManager::GetInstance().Init();
+    WeatherManager::GetInstance().Init();
     g_EnemyProjectilePool.Init();
 
     // ---- 武器収集・アイテムドロップシステム ----
@@ -179,6 +182,7 @@ void GameScene::Uninit()
     g_BulletPool.Uninit();
     g_BulletManager.Uninit();
     ParticleManager::GetInstance().Uninit();
+    WeatherManager::GetInstance().Uninit();
     g_EnemyPool.Uninit();
     g_EnemyProjectilePool.Uninit();
     g_WorldItemPool.Uninit();
@@ -282,6 +286,7 @@ void GameScene::Update(float dt)
     g_BulletPool.Update(dt, g_EnemyPool);
     g_EnemyProjectilePool.Update(dt, Manager::GetGameObject<Player>());
     ParticleManager::GetInstance().Update(dt);
+    WeatherManager::GetInstance().Update(dt);
     g_DamageVisualizer.Update(dt);
 
     Player* player = Manager::GetGameObject<Player>();
@@ -373,8 +378,14 @@ void GameScene::Draw()
         {
             // パーティクルは半透明オブジェクト扱い（レイヤー2）で描画
             ParticleManager::GetInstance().Draw();
+
+            // 天候（雨・雪）もパーティクルと同じ半透明レイヤーで描画する
+            WeatherManager::GetInstance().Draw();
         }
     }
+
+    // SpaceRift(空間の裂け目)デバッグデモ。ImGuiからSpawnした場合のみ描画される
+    g_SpaceRiftDebug.Draw();
 
     DrawHUD();
     DrawWaveAnnouncement();

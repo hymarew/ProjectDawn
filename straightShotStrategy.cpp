@@ -1,6 +1,7 @@
 #include "straightShotStrategy.h"
 #include "weaponData.h"
 #include "bulletPool.h"
+#include "soundManager.h"
 #include <cstdlib>
 
 // -------------------------------------------------------
@@ -26,4 +27,6 @@ void StraightShotStrategy::Fire(const Vector3& origin, const Vector3& direction,
 
     Vector3 vel = spread * data.bulletSpeed;
     pool.Spawn(origin, vel, data.bulletLifeTime, data.damage);
+
+    g_SoundManager.PlaySE(SEType::ShotgunFire);
 }

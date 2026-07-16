@@ -393,6 +393,44 @@ namespace ParticlePreset
         return s;
     }
 
+    // =====================================================
+    // SpaceRift（空間の裂け目）用パーティクル
+    // 裂け目の中心から放射状に飛び散る、寿命0.5〜2秒のエネルギー粒子。
+    // 青・白の2色をRiftParticleEmitterがランダムに選んで使い分ける。
+    // =====================================================
+
+    // 裂け目のエネルギー粒子（青）: 外周のOuterColorと同系統の青
+    inline ParticleSetting RiftEnergyBlue()
+    {
+        ParticleSetting s{};
+        s.MinLife  = 0.5f; s.MaxLife  = 2.0f;
+        s.MinSpeed = 1.5f; s.MaxSpeed = 6.0f; // 放射状にランダムな速さで飛び散る
+        s.StartSize = 0.25f; s.EndSize = 0.02f; // 徐々に小さくなって消える
+        s.StartColor = { 0.25f, 0.45f, 1.0f, 1.0f }; // 青
+        s.EndColor   = { 0.05f, 0.15f, 0.6f, 0.0f };
+        s.TexturePath = L"asset\\texture\\particle.png";
+        s.Drag         = 0.8f;  // 空間の抵抗でゆっくり減速する
+        s.SizeVariance = 0.4f;
+        s.Additive     = true;  // 加算合成でエネルギーが漏れ出る発光感を出す
+        return s;
+    }
+
+    // 裂け目のエネルギー粒子（白）: 中心のCenterColorに合わせた高輝度の粒
+    inline ParticleSetting RiftEnergyWhite()
+    {
+        ParticleSetting s{};
+        s.MinLife  = 0.5f; s.MaxLife  = 2.0f;
+        s.MinSpeed = 1.5f; s.MaxSpeed = 6.0f;
+        s.StartSize = 0.18f; s.EndSize = 0.02f;
+        s.StartColor = { 1.0f, 1.0f, 1.0f, 1.0f }; // 白
+        s.EndColor   = { 0.6f, 0.7f, 1.0f, 0.0f };  // わずかに青みがかってフェード
+        s.TexturePath = L"asset\\texture\\particle.png";
+        s.Drag         = 0.8f;
+        s.SizeVariance = 0.4f;
+        s.Additive     = true;
+        return s;
+    }
+
     // 爆風リング: 爆心地から地面を這うように高速で拡大し、一瞬で消えるショックウェーブ。
     // GroundAligned によりビルボードではなく地面に水平な板として描画される。
     inline ParticleSetting ShockwaveRing()

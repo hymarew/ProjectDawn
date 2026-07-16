@@ -26,6 +26,9 @@
 #include "transitionManager.h"
 #include "saveManager.h"
 #include "particleManager.h"
+#include "soundManager.h"
+#include "spaceRiftDebug.h"
+#include "weatherManager.h"
 #include "gameContext.h"
 #include "dropManager.h"
 #include "dynamicLightManager.h"
@@ -103,6 +106,8 @@ void Manager::Init()
 	g_ShadowRenderer->Init();
 	InputManager::Init();
 	Audio::InitMaster();
+	g_SoundManager.Init();
+	g_SpaceRiftDebug.Init();
 
 	// トランジション（Fade等）のGPUリソースを用意する。
 	// SceneManager::Init() が起動直後にFadeInを再生するため、それより前に呼ぶ必要がある。
@@ -129,6 +134,8 @@ void Manager::Uninit()
 
 	g_ShadowRenderer->Uninit();
 	delete g_ShadowRenderer;
+	g_SpaceRiftDebug.Uninit();
+	g_SoundManager.Uninit();
 	Audio::UninitMaster();
 
 	Renderer::Uninit();
@@ -146,6 +153,9 @@ void Manager::Update(float dt)
 
 	// トランジションデバッグボタンの自動往復（Out完了→0.5秒待機→In）
 	UpdateDebugTransitionAutoReturn(dt);
+
+	// SpaceRiftデバッグデモ（Spawn済みの間だけ時間経過・パーティクル放出を進める）
+	g_SpaceRiftDebug.Update(dt);
 }
 
 void Manager::Draw()
@@ -440,6 +450,14 @@ void Manager::ImGuiDraw()
 			}
 		}
 	}
+
+	// ===== SpaceRift(空間の裂け目)デバッグ =====
+	// パネルの中身（Spawn/Destroy・パラメータ調整）は SpaceRiftDebugPanel が担当する
+	g_SpaceRiftDebug.DrawImGui();
+
+	// ===== 天候(雨・雪)デバッグ =====
+	// パネルの中身（ON/OFF・各種パラメータ調整）は WeatherManager が担当する
+	WeatherManager::GetInstance().DrawImGui();
 
 	// ===== トランジションデバッグ =====
 	// ボタン1つで Out再生→覆いきる→0.5秒待機→In再生 まで自動で行う。

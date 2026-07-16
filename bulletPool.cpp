@@ -10,6 +10,7 @@
 #include "damageVisualizer.h"
 #include "GameConfig.h"
 #include "dynamicLightManager.h"
+#include "soundManager.h"
 
 void BulletPool::Init(int maxBullets)
 {
@@ -181,6 +182,7 @@ void BulletPool::ExplodeSplash(Bullet& bullet, EnemyPool& enemyPool)
 
     // 大爆発演出（発光フラッシュ・火球・火花・デブリ・煙・爆風リング）
     ParticleManager::GetInstance().EmitBigExplosion(bullet.position);
+    g_SoundManager.PlaySE(SEType::Explosion1);
 
     // 噴射炎の追従ライトは役目を終えたので先に解放する（AddFlashがスロット不足で
     // 取りこぼさないよう、爆発フラッシュを追加する前に解放しておく）

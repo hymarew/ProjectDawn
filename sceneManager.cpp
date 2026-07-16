@@ -11,9 +11,20 @@
 #include "resultScene.h"
 #include "input.h"
 #include "mouse.h"
+#include "soundManager.h"
 
 // グローバルインスタンス（extern 宣言は sceneManager.h にある）
 SceneManager g_SceneManager;
+
+// ---------------------------------------------------------
+// SceneIDToBgmType : シーン種別に応じたBGMを決める
+// ゲーム本編(Game)のみ専用BGM、それ以外(タイトル・メニュー・武器選択・
+// ステージ選択・リザルト等)は共通のMenu BGMを使う
+// ---------------------------------------------------------
+static BgmType SceneIDToBgmType(SceneID id)
+{
+    return (id == SceneID::Game) ? BgmType::Game : BgmType::Menu;
+}
 
 // ---------------------------------------------------------
 // PickRandomTransitionType : 登録されている全種別からランダムに1つ選ぶ
@@ -46,6 +57,8 @@ void SceneManager::Init()
 
     // 起動時はタイトルがフェードインして登場する（起動時だけは固定のFadeにしておく）
     g_TransitionManager.Play(TransitionType::Fade, TransitionMode::In);
+
+    g_SoundManager.PlayBgm(SceneIDToBgmType(SceneID::Title));
 }
 
 // ---------------------------------------------------------
@@ -123,6 +136,9 @@ void SceneManager::ApplyChange()
 
     m_CurrentScene = CreateScene(m_NextSceneID);
     m_CurrentScene->Init();
+
+    // シーン切り替えに合わせてBGMを切り替える（同じ種類が続く場合は継続再生される）
+    g_SoundManager.PlayBgm(SceneIDToBgmType(m_NextSceneID));
 }
 
 // ---------------------------------------------------------
