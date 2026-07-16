@@ -342,10 +342,20 @@ void Manager::ImGuiDraw()
 
 		auto& particleManager = ParticleManager::GetInstance();
 
-		// ---- GPUインスタンシングの統計表示 ----
+		// ---- シミュレーション実行先の切り替え（CPU/GPU比較デモ用） ----
+		// GPU: 生成・物理・描画リスト構築・描画数決定まで全てコンピュートシェーダー。
+		//      CPUの仕事はEmitRequestの発行のみで、Update CPUがほぼ0になるのが見どころ
+		ImGui::SeparatorText("Simulation");
+		{
+			bool useGPU = particleManager.IsUseGPU();
+			if (ImGui::Checkbox("GPU Simulation (Compute Shader)", &useGPU))
+				particleManager.SetUseGPU(useGPU);
+		}
+
+		// ---- 統計表示 ----
 		// 旧実装は「1パーティクル=1ドローコール」だったため、
 		// Active数に対してDraw Callsが数回で済んでいることが効果の証明になる
-		ImGui::SeparatorText("GPU Instancing Stats");
+		ImGui::SeparatorText(particleManager.IsUseGPU() ? "GPU Particle Stats" : "GPU Instancing Stats");
 		{
 			const ParticleStats& stats = particleManager.GetStats();
 			ImGui::Text("Active Particles : %d / %d", stats.ActiveCount, GameConfig::Particle::POOL_SIZE);

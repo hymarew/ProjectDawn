@@ -225,6 +225,13 @@ void GameScene::Update(float dt)
         Mouse::SetLocked(!m_FreeCursor);
     }
 
+    // 3キー: パーティクルのCPU/GPUシミュレーション切替（比較デモ用）
+    if (Input::GetKeyTrigger('3'))
+    {
+        auto& pm = ParticleManager::GetInstance();
+        pm.SetUseGPU(!pm.IsUseGPU());
+    }
+
     // ---- チュートリアルオーバーレイ（ゲーム開始時1回） ----
     if (m_Tutorial.IsActive())
     {

@@ -163,6 +163,9 @@
     <ClCompile Include="particleManager.cpp">
       <Filter>Particle</Filter>
     </ClCompile>
+    <ClCompile Include="particleSystemGPU.cpp">
+      <Filter>Particle</Filter>
+    </ClCompile>
     <ClCompile Include="particleRenderer.cpp">
       <Filter>Particle</Filter>
     </ClCompile>
@@ -564,6 +567,12 @@
     <ClInclude Include="particleManager.h">
       <Filter>Particle</Filter>
     </ClInclude>
+    <ClInclude Include="particleGPU.h">
+      <Filter>Particle</Filter>
+    </ClInclude>
+    <ClInclude Include="particleSystemGPU.h">
+      <Filter>Particle</Filter>
+    </ClInclude>
     <ClInclude Include="particleRenderer.h">
       <Filter>Particle</Filter>
     </ClInclude>
@@ -950,6 +959,12 @@
       <Filter>シェーダーファイル</Filter>
     </FxCompile>
     <FxCompile Include="shader\particleUpdateCS.hlsl">
+      <Filter>シェーダーファイル</Filter>
+    </FxCompile>
+    <FxCompile Include="shader\particleGPUVS.hlsl">
+      <Filter>シェーダーファイル</Filter>
+    </FxCompile>
+    <FxCompile Include="shader\particleGPUPS.hlsl">
       <Filter>シェーダーファイル</Filter>
     </FxCompile>
     <FxCompile Include="shader\ShadowDepthVS.hlsl">

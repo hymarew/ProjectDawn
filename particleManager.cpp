@@ -64,6 +64,11 @@ void ParticleManager::Init()
     // 描画クラスの初期化（GPUリソースの確保）
     // インスタンスバッファはプール全量ぶんの容量を確保する
     m_Renderer.Init(POOL_SIZE);
+
+    // GPUシミュレーション一式の初期化。
+    // 失敗した場合（リソース確保不能など）は m_UseGPU が常に false になり
+    // CPU経路のみで動作する（フォールバック）
+    m_GPU.Init(POOL_SIZE);
 }
 
 // ---------------------------------------------------------
@@ -73,6 +78,9 @@ void ParticleManager::Uninit()
 {
     // 描画クラスのGPUリソースを解放
     m_Renderer.Uninit();
+
+    // GPUシミュレーションのリソースを解放
+    m_GPU.Uninit();
 
     // エミッタのリストをクリア（unique_ptr が自動でメモリ解放）
     m_Emitters.clear();
@@ -91,6 +99,29 @@ void ParticleManager::Update(float dt)
     {
         m_FlashTimer -= dt;
         if (m_FlashTimer < 0.0f) m_FlashTimer = 0.0f;
+    }
+
+    // ---- GPUシミュレーション経路 ----
+    // エミッタは「何個出すか」を EmitRequest として積むだけで、
+    // 粒子の初期化・物理演算・描画リスト構築はすべて m_GPU（CS）が行う。
+    // ここで計測される UpdateMs は Dispatch の発行コストのみになる
+    if (m_UseGPU)
+    {
+        for (auto& emitter : m_Emitters)
+            emitter->UpdateGPU(dt, m_GPU);
+
+        m_Emitters.erase(
+            std::remove_if(m_Emitters.begin(), m_Emitters.end(),
+                [](const std::unique_ptr<ParticleEmitter>& e) { return !e->IsAlive(); }),
+            m_Emitters.end()
+        );
+
+        m_GPU.Update(dt, GetGroundY(), m_Gravity.y);
+
+        m_Stats.UpdateMs    = ElapsedMs(updateStart);
+        m_Stats.UsedSlots   = m_GPU.GetScanCount();
+        m_Stats.ActiveCount = m_GPU.GetActiveCount(); // 1〜2フレーム遅れの参考値
+        return;
     }
 
     // ---- 全エミッタを更新 ----
@@ -209,6 +240,15 @@ void ParticleManager::Update(float dt)
 void ParticleManager::Draw()
 {
     const auto drawStart = DebugClock::now(); // 統計用: 描画CPU時間の計測開始
+
+    if (m_UseGPU)
+    {
+        // GPU経路: 描画リストは Update CS が構築済み。間接描画を発行するだけ
+        m_GPU.Draw();
+        m_Stats.DrawMs    = ElapsedMs(drawStart);
+        m_Stats.DrawCalls = 2; // 通常合成 + 加算合成
+        return;
+    }
 
     // ParticleRenderer に全パーティクルの描画を任せる
     // （走査はハイウォーターマークまで。未使用領域は見に行かない）
