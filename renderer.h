@@ -106,6 +106,9 @@ public:
 	static void CreateVertexShader(ID3D11VertexShader** VertexShader, ID3D11InputLayout** VertexLayout, const char* FileName);
 	static void CreatePixelShader(ID3D11PixelShader** PixelShader, const char* FileName);
 
+	// コンピュートシェーダー（GPUパーティクル等のGPGPU処理用）
+	static void CreateComputeShader(ID3D11ComputeShader** ComputeShader, const char* FileName);
+
 	// 現在のバックバッファの内容を dest へコピーする（Mosaic/Blur/Distortion等の画面キャプチャ用）
 	static void CopyBackBufferTo(ID3D11Texture2D* dest);
 

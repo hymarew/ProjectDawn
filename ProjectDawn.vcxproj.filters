@@ -938,9 +938,18 @@
     <None Include="shader\dynamicLights.hlsl">
       <Filter>シェーダーファイル</Filter>
     </None>
+    <None Include="shader\particleGPUCommon.hlsl">
+      <Filter>シェーダーファイル</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="shader\ShadowDepthPS.hlsl">
+      <Filter>シェーダーファイル</Filter>
+    </FxCompile>
+    <FxCompile Include="shader\particleSpawnCS.hlsl">
+      <Filter>シェーダーファイル</Filter>
+    </FxCompile>
+    <FxCompile Include="shader\particleUpdateCS.hlsl">
       <Filter>シェーダーファイル</Filter>
     </FxCompile>
     <FxCompile Include="shader\ShadowDepthVS.hlsl">

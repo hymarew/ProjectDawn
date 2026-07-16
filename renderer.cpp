@@ -473,6 +473,30 @@ void Renderer::CreatePixelShader( ID3D11PixelShader** PixelShader, const char* F
 
 
 // ============================================================
+// コンピュートシェーダー作成
+// CreatePixelShader と同じ手順でコンパイル済み .cso を読み込む。
+// GPUパーティクルのSpawn/Update等のGPGPU処理で使う
+// ============================================================
+void Renderer::CreateComputeShader( ID3D11ComputeShader** ComputeShader, const char* FileName )
+{
+	FILE* file;
+	long int fsize;
+
+	file = fopen(FileName, "rb");
+	assert(file);
+
+	fsize = _filelength(_fileno(file));
+	unsigned char* buffer = new unsigned char[fsize];
+	fread(buffer, fsize, 1, file);
+	fclose(file);
+
+	m_Device->CreateComputeShader(buffer, fsize, NULL, ComputeShader);
+
+	delete[] buffer;
+}
+
+
+// ============================================================
 // ShadowMap用 DepthTexture 作成
 // ============================================================
 //
