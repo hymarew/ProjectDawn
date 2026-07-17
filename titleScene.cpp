@@ -18,24 +18,19 @@ void TitleScene::Uninit()
 
 void TitleScene::Update(float dt)
 {
-    // オーバーレイ表示中はそちらへ入力を委譲する
-    if (m_Options.IsOpen())      { m_Options.Update();      return; }
-    if (m_Achievements.IsOpen()) { m_Achievements.Update(); return; }
-
     // カーソル移動（↑ W / ↓ S）
     if (Input::GetKeyTrigger(VK_UP)   || Input::GetKeyTrigger('W'))
         m_SelectedIndex = (m_SelectedIndex - 1 + ITEM_COUNT) % ITEM_COUNT;
     if (Input::GetKeyTrigger(VK_DOWN) || Input::GetKeyTrigger('S'))
         m_SelectedIndex = (m_SelectedIndex + 1) % ITEM_COUNT;
 
-    // 決定
+    // 決定（Start で拠点メニューへ。実績・設定は MainMenu 側にある）
     if (Input::GetKeyTrigger(VK_RETURN))
     {
         switch (m_SelectedIndex)
         {
-        case 0: g_SceneManager.RequestChange(SceneID::Menu); break;
-        case 1: m_Achievements.Open(); break;
-        case 2: m_Options.Open();      break;
+        case 0: g_SceneManager.RequestChange(SceneID::MainMenu); break;
+        case 1: PostQuitMessage(0); break;
         }
     }
 }
@@ -66,8 +61,8 @@ void TitleScene::Draw()
     dl->AddText(font, titleSize, ImVec2(tx, ty),
         IM_COL32(255, 220, 50, 255), title);
 
-    // --- メニュー（Start / Achievements / Options） ---
-    const char* labels[] = { "Start", "Achievements", "Options" };
+    // --- メニュー（Start / Exit） ---
+    const char* labels[] = { "Start", "Exit" };
     const float itemSz    = 28.0f;
     const float itemStart = SCREEN_HEIGHT * 0.55f;
     const float itemStep  = 48.0f;
@@ -102,10 +97,6 @@ void TitleScene::Draw()
             ImVec2((SCREEN_WIDTH - hs.x) * 0.5f, SCREEN_HEIGHT * 0.88f),
             IM_COL32(140, 140, 150, 200), hint);
     }
-
-    // --- オーバーレイ（表示中のみ） ---
-    m_Options.Draw();
-    m_Achievements.Draw();
 
     // ImGui の描画データを GPU に送る
     ImGui::Render();

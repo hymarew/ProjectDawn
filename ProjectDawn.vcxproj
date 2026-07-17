@@ -185,7 +185,9 @@
     <ClCompile Include="rankingManager.cpp" />
     <ClCompile Include="gameContext.cpp" />
     <ClCompile Include="gameScene.cpp" />
-    <ClCompile Include="menuScene.cpp" />
+    <ClCompile Include="mainMenuScene.cpp" />
+    <ClCompile Include="extraScene.cpp" />
+    <ClCompile Include="unlockManager.cpp" />
     <ClCompile Include="resultScene.cpp" />
     <ClCompile Include="sceneManager.cpp" />
     <ClCompile Include="transitionBase.cpp" />
@@ -325,7 +327,9 @@
     <ClInclude Include="gameContext.h" />
     <ClInclude Include="gameMode.h" />
     <ClInclude Include="gameScene.h" />
-    <ClInclude Include="menuScene.h" />
+    <ClInclude Include="mainMenuScene.h" />
+    <ClInclude Include="extraScene.h" />
+    <ClInclude Include="unlockManager.h" />
     <ClInclude Include="resultScene.h" />
     <ClInclude Include="scene.h" />
     <ClInclude Include="sceneManager.h" />

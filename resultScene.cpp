@@ -13,7 +13,7 @@
 // -------------------------------------------------------
 // カーソル選択肢
 // -------------------------------------------------------
-static const char* s_Options[]   = { "Retry", "Stage Select" };
+static const char* s_Options[]   = { "Retry", "Main Menu" };
 static constexpr int s_OptCount  = 2;
 
 // -------------------------------------------------------
@@ -97,20 +97,20 @@ void ResultScene::Update(float dt)
             break;
         case 1:
         {
-            // 最終ステージ（次のステージが存在しない）クリア時だけ
-            // StoryComplete（エンディング演出）を挟んでから StageSelect へ戻る。
-            // それ以外は直接 StageSelect へ。
+            // Storyモードで最終ステージ（次のステージが存在しない）をクリアした時だけ
+            // StoryComplete（エンディング演出）を挟む。それ以外は拠点（MainMenu）へ戻る。
             auto&   db          = GameContext::Instance().stageDB;
             StageID cleared     = GameContext::Instance().currentStage;
+            bool    isStory     = (GameContext::Instance().currentMode == GameMode::Story);
             bool    isLastStage = (db.GetNextStage(cleared) == nullptr);
 
-            if (!g_StageManager.IsGameOver() && isLastStage)
+            if (!g_StageManager.IsGameOver() && isStory && isLastStage)
             {
                 g_SceneManager.RequestChange(SceneID::StoryComplete);
             }
             else
             {
-                g_SceneManager.RequestChange(SceneID::StageSelect);
+                g_SceneManager.RequestChange(SceneID::MainMenu);
             }
             break;
         }

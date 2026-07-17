@@ -1,13 +1,11 @@
 #pragma once
 #include "scene.h"
-#include "optionsMenu.h"
-#include "achievementScreen.h"
 
 // =====================================================
-// TitleScene : タイトル画面
-//   - Start / Achievements / Options の3項目メニュー
-//   - Start で MenuScene（モード選択）へ遷移
-//   - Achievements / Options はオーバーレイで開く
+// TitleScene : タイトル画面（起動の入口）
+//   - Start / Exit の2項目のみ。Start で MainMenu（拠点）へ遷移する
+//   - 実績・設定は拠点（MainMenuScene）側の項目へ移管した。
+//     タイトルの責務は「ゲームを開始するかどうか」だけにする
 // =====================================================
 class TitleScene : public Scene
 {
@@ -20,8 +18,5 @@ public:
 private:
     int m_SelectedIndex = 0;
 
-    OptionsMenu       m_Options;       // オプション設定オーバーレイ
-    AchievementScreen m_Achievements;  // 実績一覧オーバーレイ
-
-    static constexpr int ITEM_COUNT = 3; // Start / Achievements / Options
+    static constexpr int ITEM_COUNT = 2; // Start / Exit
 };

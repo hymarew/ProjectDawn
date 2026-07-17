@@ -13,7 +13,7 @@
 // =====================================================
 // GameContext : シーンをまたいで共有するゲーム状態
 //
-// MenuScene / StageSelectScene で設定した値を
+// MainMenuScene / ExtraScene / StageSelectScene で設定した値を
 // GameScene / ResultScene へ受け渡す目的でシングルトンにしている。
 // StageDatabase もここに置くことで、ResultScene での解放処理が
 // StageSelectScene の表示に即時反映される。
@@ -28,7 +28,7 @@ class GameContext
 public:
     static GameContext& Instance();
 
-    GameMode      currentMode  = GameMode::Story;   // MenuScene で設定される
+    GameMode      currentMode  = GameMode::Story;   // MainMenu(出撃=Story) / ExtraScene(Endless等) で設定される
     StageID       currentStage = StageID(1);        // StageSelectScene で設定される
     StageDatabase stageDB;                          // 解放状態を含むステージ一覧
 

@@ -75,19 +75,15 @@ void WeaponSelectScene::Update(float dt)
             ctx.equipLoadout.Equip(EquipSlot::Secondary, selected.data->id);
     }
 
-    // 決定: Primary が装備されていることを確認してから次のシーンへ。
-    // Story はステージ選択を経由し、Endless は直接ゲームへ進む
+    // 決定/ESC: 拠点（MainMenu）へ戻る。
+    // このシーンの責務は「装備武器を変更する」だけで、出撃の導線は持たない。
+    // 装備は EquipLoadout が即セーブ済みのため、受け渡し処理も不要。
+    // Primary 未装備のまま戻るのは防ぐ（ゲーム開始時に武器が無くなるため）
     if (Input::GetKeyTrigger(VK_RETURN) && ctx.equipLoadout.HasPrimary())
-    {
-        if (ctx.currentMode == GameMode::Story)
-            g_SceneManager.RequestChange(SceneID::StageSelect);
-        else
-            g_SceneManager.RequestChange(SceneID::Game);
-    }
+        g_SceneManager.RequestChange(SceneID::MainMenu);
 
-    // ESC でモード選択へ戻る
-    if (Input::GetKeyTrigger(VK_ESCAPE))
-        g_SceneManager.RequestChange(SceneID::Menu);
+    if (Input::GetKeyTrigger(VK_ESCAPE) && ctx.equipLoadout.HasPrimary())
+        g_SceneManager.RequestChange(SceneID::MainMenu);
 }
 
 // ---------------------------------------------------------
