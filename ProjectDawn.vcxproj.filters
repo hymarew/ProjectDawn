@@ -178,7 +178,16 @@
     <ClCompile Include="gameScene.cpp">
       <Filter>Scene</Filter>
     </ClCompile>
-    <ClCompile Include="menuScene.cpp">
+    <ClCompile Include="mainMenuScene.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="creditScreen.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="extraScene.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="unlockManager.cpp">
       <Filter>Scene</Filter>
     </ClCompile>
     <ClCompile Include="resultScene.cpp">
@@ -588,7 +597,16 @@
     <ClInclude Include="gameScene.h">
       <Filter>Scene</Filter>
     </ClInclude>
-    <ClInclude Include="menuScene.h">
+    <ClInclude Include="mainMenuScene.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="creditScreen.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="extraScene.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="unlockManager.h">
       <Filter>Scene</Filter>
     </ClInclude>
     <ClInclude Include="resultScene.h">

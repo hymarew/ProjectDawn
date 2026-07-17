@@ -2,12 +2,16 @@
 #include "storyCompleteScene.h"
 #include "sceneManager.h"
 #include "transitionManager.h"
+#include "unlockManager.h"
 #include "renderer.h"
 #include "input.h"
 
 void StoryCompleteScene::Init()
 {
     ShowCursor(TRUE);
+
+    // ストーリークリアを記録する（EXTRAコンテンツの解放条件。即セーブされる）
+    UnlockManager::MarkStoryCleared();
 }
 
 void StoryCompleteScene::Uninit()
@@ -16,15 +20,16 @@ void StoryCompleteScene::Uninit()
 
 void StoryCompleteScene::Update(float dt)
 {
-    // 任意キーまたはマウスクリックで StageSelect へ戻る。
+    // 任意キーまたはマウスクリックで拠点（MainMenu）へ戻る。
     // エンディング画面なので ESC も含めて「どのキーでも先へ進める」仕様にしている。
+    // 戻った拠点では EXTRA が解放されている（Init で記録済み）
     bool anyKey = ImGui::GetIO().MouseClicked[0]
                || Input::GetKeyTrigger(VK_RETURN)
                || Input::GetKeyTrigger(VK_SPACE)
                || Input::GetKeyTrigger(VK_ESCAPE);
 
     if (anyKey)
-        g_SceneManager.RequestChange(SceneID::StageSelect);
+        g_SceneManager.RequestChange(SceneID::MainMenu);
 }
 
 void StoryCompleteScene::Draw()

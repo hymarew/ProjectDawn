@@ -4,10 +4,11 @@
 #include "weaponData.h"
 
 // =====================================================
-// WeaponSelectScene : ゲーム開始前の武器選択・装備画面
+// WeaponSelectScene : 武器変更画面
 //
-// 遷移: Menu(モード選択) → ここ → Story: StageSelect / Endless: Game
+// 遷移: MainMenu(拠点) → ここ → MainMenu へ戻る
 //
+// 責務は「装備武器を変更する」だけ。出撃の導線は持たない。
 // 所持武器一覧（Inventory + WeaponDatabase）を表示し、
 // Primary / Secondary の装備を EquipLoadout へ書き込む。
 // 装備は即 save.json に保存されるため、シーンをまたぐ
@@ -16,8 +17,7 @@
 // 操作:
 //   W/S or ↑↓ : カーソル移動
 //   1 / 2      : Primary / Secondary に装備
-//   Enter      : 決定して次のシーンへ
-//   ESC        : モード選択へ戻る
+//   Enter/ESC  : 拠点（MainMenu）へ戻る
 // =====================================================
 class WeaponSelectScene : public Scene
 {

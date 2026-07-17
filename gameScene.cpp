@@ -284,7 +284,8 @@ void GameScene::Update(float dt)
         }
         else if (m_PauseMenu.IsTitleRequested())
         {
-            g_SceneManager.RequestChange(SceneID::Title);
+            // 中断して拠点（MainMenu）へ戻る（旧: タイトルへ直接戻っていた）
+            g_SceneManager.RequestChange(SceneID::MainMenu);
         }
         else if (m_PauseMenu.IsExitRequested())
         {

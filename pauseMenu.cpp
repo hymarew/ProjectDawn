@@ -128,7 +128,7 @@ void PauseMenu::Draw()
         IM_COL32(80, 100, 180, 160), 1.0f);
 
     // ---- メニュー項目 ----
-    const char* labels[] = { "Resume", "Retry", "Options", "Title", "Exit" };
+    const char* labels[] = { "Resume", "Retry", "Options", "Main Menu", "Exit" };
     const float itemSz    = 28.0f;
     const float itemStart = panelY + 100.0f;
     const float itemStep  = 54.0f;

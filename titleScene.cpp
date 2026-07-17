@@ -4,23 +4,36 @@
 #include "transitionManager.h"
 #include "renderer.h"
 #include "input.h"
+#include "DirectXTex.h"
 
 void TitleScene::Init()
 {
     ShowCursor(TRUE); // カーソルを表示する
     m_SelectedIndex = 0;
+
+    // ---- タイトルロゴの読み込み ----
+    // 失敗しても m_LogoSRV が nullptr のままになり、Draw がテキスト表示へフォールバックする
+    TexMetadata  metadata;
+    ScratchImage image;
+    if (SUCCEEDED(LoadFromWICFile(L"asset\\texture\\titleLogoDawn.png", WIC_FLAGS_NONE, &metadata, image)))
+    {
+        CreateShaderResourceView(Renderer::GetDevice(), image.GetImages(),
+            image.GetImageCount(), metadata, &m_LogoSRV);
+
+        if (metadata.height > 0)
+            m_LogoAspect = (float)metadata.width / (float)metadata.height;
+    }
 }
 
 void TitleScene::Uninit()
 {
-    // 解放するものなし
+    if (m_LogoSRV) { m_LogoSRV->Release(); m_LogoSRV = nullptr; }
 }
 
 void TitleScene::Update(float dt)
 {
-    // オーバーレイ表示中はそちらへ入力を委譲する
-    if (m_Options.IsOpen())      { m_Options.Update();      return; }
-    if (m_Achievements.IsOpen()) { m_Achievements.Update(); return; }
+    // クレジット表示中はそちらへ入力を委譲する
+    if (m_Credit.IsOpen()) { m_Credit.Update(); return; }
 
     // カーソル移動（↑ W / ↓ S）
     if (Input::GetKeyTrigger(VK_UP)   || Input::GetKeyTrigger('W'))
@@ -28,14 +41,14 @@ void TitleScene::Update(float dt)
     if (Input::GetKeyTrigger(VK_DOWN) || Input::GetKeyTrigger('S'))
         m_SelectedIndex = (m_SelectedIndex + 1) % ITEM_COUNT;
 
-    // 決定
+    // 決定（Start で拠点メニューへ。実績・設定は MainMenu 側にある）
     if (Input::GetKeyTrigger(VK_RETURN))
     {
         switch (m_SelectedIndex)
         {
-        case 0: g_SceneManager.RequestChange(SceneID::Menu); break;
-        case 1: m_Achievements.Open(); break;
-        case 2: m_Options.Open();      break;
+        case 0: g_SceneManager.RequestChange(SceneID::MainMenu); break;
+        case 1: m_Credit.Open(); break;
+        case 2: PostQuitMessage(0); break;
         }
     }
 }
@@ -53,21 +66,35 @@ void TitleScene::Draw()
         ImVec2((float)SCREEN_WIDTH, (float)SCREEN_HEIGHT),
         IM_COL32(0, 0, 0, 255));
 
-    // --- タイトル文字 ---
-    const char* title    = "Project Down";
-    const float titleSize = 60.0f;
-    ImVec2 tSize = font->CalcTextSizeA(titleSize, FLT_MAX, 0.0f, title);
-    float  tx    = (SCREEN_WIDTH  - tSize.x) * 0.5f;
-    float  ty    = SCREEN_HEIGHT  * 0.30f;
-    // 影
-    dl->AddText(font, titleSize, ImVec2(tx + 3, ty + 3),
-        IM_COL32(0, 0, 0, 200), title);
-    // 本体
-    dl->AddText(font, titleSize, ImVec2(tx, ty),
-        IM_COL32(255, 220, 50, 255), title);
+    // --- タイトルロゴ ---
+    if (m_LogoSRV)
+    {
+        // 画面幅の55%に収め、アスペクト比を保って中央上寄せに描く
+        const float logoW   = SCREEN_WIDTH * 0.55f;
+        const float logoH   = logoW / m_LogoAspect;
+        const float centerX = SCREEN_WIDTH  * 0.5f;
+        const float centerY = SCREEN_HEIGHT * 0.30f;
 
-    // --- メニュー（Start / Achievements / Options） ---
-    const char* labels[] = { "Start", "Achievements", "Options" };
+        dl->AddImage((ImTextureID)m_LogoSRV,
+            ImVec2(centerX - logoW * 0.5f, centerY - logoH * 0.5f),
+            ImVec2(centerX + logoW * 0.5f, centerY + logoH * 0.5f));
+    }
+    else
+    {
+        // ロゴの読み込みに失敗した場合のフォールバック（従来のテキスト表示）
+        const char* title    = "Project Dawn";
+        const float titleSize = 60.0f;
+        ImVec2 tSize = font->CalcTextSizeA(titleSize, FLT_MAX, 0.0f, title);
+        float  tx    = (SCREEN_WIDTH  - tSize.x) * 0.5f;
+        float  ty    = SCREEN_HEIGHT  * 0.30f;
+        dl->AddText(font, titleSize, ImVec2(tx + 3, ty + 3),
+            IM_COL32(0, 0, 0, 200), title);
+        dl->AddText(font, titleSize, ImVec2(tx, ty),
+            IM_COL32(255, 220, 50, 255), title);
+    }
+
+    // --- メニュー（Start / Credit / Exit） ---
+    const char* labels[] = { "Start", "Credit", "Exit" };
     const float itemSz    = 28.0f;
     const float itemStart = SCREEN_HEIGHT * 0.55f;
     const float itemStep  = 48.0f;
@@ -103,9 +130,8 @@ void TitleScene::Draw()
             IM_COL32(140, 140, 150, 200), hint);
     }
 
-    // --- オーバーレイ（表示中のみ） ---
-    m_Options.Draw();
-    m_Achievements.Draw();
+    // --- クレジットオーバーレイ（表示中のみ） ---
+    m_Credit.Draw();
 
     // ImGui の描画データを GPU に送る
     ImGui::Render();

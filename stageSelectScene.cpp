@@ -82,6 +82,13 @@ void StageSelectScene::Update(float dt)
     // 安全クランプ：解放数が減ることはないが念のため
     if (m_Selected >= count) m_Selected = count - 1;
 
+    // ESC で拠点（MainMenu）へ戻る
+    if (Input::GetKeyTrigger(VK_ESCAPE))
+    {
+        g_SceneManager.RequestChange(SceneID::MainMenu);
+        return;
+    }
+
     // 決定：GameContext にステージを書き込んでから GameScene へ遷移
     bool decide = Input::GetKeyTrigger(VK_RETURN) || ImGui::GetIO().MouseClicked[0];
     if (decide)
