@@ -4,16 +4,30 @@
 #include "transitionManager.h"
 #include "renderer.h"
 #include "input.h"
+#include "DirectXTex.h"
 
 void TitleScene::Init()
 {
     ShowCursor(TRUE); // カーソルを表示する
     m_SelectedIndex = 0;
+
+    // ---- タイトルロゴの読み込み ----
+    // 失敗しても m_LogoSRV が nullptr のままになり、Draw がテキスト表示へフォールバックする
+    TexMetadata  metadata;
+    ScratchImage image;
+    if (SUCCEEDED(LoadFromWICFile(L"asset\\texture\\titleLogoDawn.png", WIC_FLAGS_NONE, &metadata, image)))
+    {
+        CreateShaderResourceView(Renderer::GetDevice(), image.GetImages(),
+            image.GetImageCount(), metadata, &m_LogoSRV);
+
+        if (metadata.height > 0)
+            m_LogoAspect = (float)metadata.width / (float)metadata.height;
+    }
 }
 
 void TitleScene::Uninit()
 {
-    // 解放するものなし
+    if (m_LogoSRV) { m_LogoSRV->Release(); m_LogoSRV = nullptr; }
 }
 
 void TitleScene::Update(float dt)
@@ -48,18 +62,32 @@ void TitleScene::Draw()
         ImVec2((float)SCREEN_WIDTH, (float)SCREEN_HEIGHT),
         IM_COL32(0, 0, 0, 255));
 
-    // --- タイトル文字 ---
-    const char* title    = "Project Down";
-    const float titleSize = 60.0f;
-    ImVec2 tSize = font->CalcTextSizeA(titleSize, FLT_MAX, 0.0f, title);
-    float  tx    = (SCREEN_WIDTH  - tSize.x) * 0.5f;
-    float  ty    = SCREEN_HEIGHT  * 0.30f;
-    // 影
-    dl->AddText(font, titleSize, ImVec2(tx + 3, ty + 3),
-        IM_COL32(0, 0, 0, 200), title);
-    // 本体
-    dl->AddText(font, titleSize, ImVec2(tx, ty),
-        IM_COL32(255, 220, 50, 255), title);
+    // --- タイトルロゴ ---
+    if (m_LogoSRV)
+    {
+        // 画面幅の55%に収め、アスペクト比を保って中央上寄せに描く
+        const float logoW   = SCREEN_WIDTH * 0.55f;
+        const float logoH   = logoW / m_LogoAspect;
+        const float centerX = SCREEN_WIDTH  * 0.5f;
+        const float centerY = SCREEN_HEIGHT * 0.30f;
+
+        dl->AddImage((ImTextureID)m_LogoSRV,
+            ImVec2(centerX - logoW * 0.5f, centerY - logoH * 0.5f),
+            ImVec2(centerX + logoW * 0.5f, centerY + logoH * 0.5f));
+    }
+    else
+    {
+        // ロゴの読み込みに失敗した場合のフォールバック（従来のテキスト表示）
+        const char* title    = "Project Dawn";
+        const float titleSize = 60.0f;
+        ImVec2 tSize = font->CalcTextSizeA(titleSize, FLT_MAX, 0.0f, title);
+        float  tx    = (SCREEN_WIDTH  - tSize.x) * 0.5f;
+        float  ty    = SCREEN_HEIGHT  * 0.30f;
+        dl->AddText(font, titleSize, ImVec2(tx + 3, ty + 3),
+            IM_COL32(0, 0, 0, 200), title);
+        dl->AddText(font, titleSize, ImVec2(tx, ty),
+            IM_COL32(255, 220, 50, 255), title);
+    }
 
     // --- メニュー（Start / Exit） ---
     const char* labels[] = { "Start", "Exit" };
