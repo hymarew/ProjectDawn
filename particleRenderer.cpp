@@ -223,7 +223,25 @@ void ParticleRenderer::EnsureInstanceCapacity(int needed)
     ibd.BindFlags      = D3D11_BIND_VERTEX_BUFFER;
     ibd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 
-    Renderer::GetDevice()->CreateBuffer(&ibd, nullptr, &m_InstanceBuffer);
+    HRESULT hr = Renderer::GetDevice()->CreateBuffer(&ibd, nullptr, &m_InstanceBuffer);
+    if (FAILED(hr) || !m_InstanceBuffer)
+    {
+        // 確保失敗（VRAM不足・デバイスロスト等）。
+        // ここで容量を更新してしまうと「容量は足りている」と誤認したまま
+        // null バッファを Map してクラッシュするため、容量0に戻して
+        // 次フレーム以降に再試行させる（Draw側は null なら描画をスキップする）
+        char msg[160];
+        sprintf_s(msg, "ParticleRenderer: CreateBuffer failed hr=0x%08X removedReason=0x%08X size=%uMB\n",
+                  static_cast<unsigned>(hr),
+                  static_cast<unsigned>(Renderer::GetDevice()->GetDeviceRemovedReason()),
+                  static_cast<unsigned>(ibd.ByteWidth / (1024 * 1024)));
+        OutputDebugStringA(msg);
+
+        m_InstanceBuffer   = nullptr;
+        m_InstanceCapacity = 0;
+        return;
+    }
+
     m_InstanceCapacity = target;
 }
 
@@ -298,17 +316,27 @@ void ParticleRenderer::Draw(const ParticleData* pool, int poolSize)
     // アクティブ数に合わせてバッファ容量を調整（不足なら拡張、余りすぎなら縮小）
     EnsureInstanceCapacity(m_ActiveCount);
 
+    // バッファ確保に失敗している間は描画をスキップする（クラッシュさせない。
+    // 容量は0に戻されているため、次フレームの EnsureInstanceCapacity で再試行される）
+    if (!m_InstanceBuffer)
+        return;
+
     // ---- 2. インスタンスバッファへ一括転送 ----
     // 描画順（通常合成 → 加算合成）と同じ並びで書き込み、
     // 各バケットの開始位置（StartInstanceLocation）を記録しておく
     D3D11_MAPPED_SUBRESOURCE mapped{};
-    Renderer::GetDeviceContext()->Map(m_InstanceBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
+    HRESULT hr = Renderer::GetDeviceContext()->Map(m_InstanceBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
+    if (FAILED(hr) || !mapped.pData)
+        return; // デバイスロスト等でMapに失敗したフレームは描画を諦める
 
     ParticleInstance* dst    = static_cast<ParticleInstance*>(mapped.pData);
     int               cursor = 0;
 
+    // 1回のドローコール分の情報（バケット・開始位置・実際に書き込めた個数）
+    struct DrawEntry { Bucket* bucket; int start; int count; };
+    std::vector<DrawEntry> drawList;
+
     // pass 0: 通常合成のバケット / pass 1: 加算合成のバケット
-    std::vector<std::pair<Bucket*, int>> drawList; // (バケット, 開始インスタンス位置)
     for (int pass = 0; pass < 2; pass++)
     {
         const bool additive = (pass == 1);
@@ -317,9 +345,15 @@ void ParticleRenderer::Draw(const ParticleData* pool, int poolSize)
             if (bucket.Additive != additive || bucket.Instances.empty())
                 continue;
 
-            const int count = static_cast<int>(bucket.Instances.size());
+            // バッファ容量を超えて書き込まない（Mapped領域のオーバーランはヒープ破壊になる）
+            int count = static_cast<int>(bucket.Instances.size());
+            if (cursor + count > m_InstanceCapacity)
+                count = m_InstanceCapacity - cursor;
+            if (count <= 0)
+                break;
+
             memcpy(dst + cursor, bucket.Instances.data(), sizeof(ParticleInstance) * count);
-            drawList.push_back({ &bucket, cursor });
+            drawList.push_back({ &bucket, cursor, count });
             cursor += count;
         }
     }
@@ -346,8 +380,7 @@ void ParticleRenderer::Draw(const ParticleData* pool, int poolSize)
 
     for (auto& entry : drawList)
     {
-        Bucket* bucket        = entry.first;
-        int     startInstance = entry.second;
+        Bucket* bucket = entry.bucket;
 
         if (bucket->Additive != additiveEnabled)
         {
@@ -360,9 +393,9 @@ void ParticleRenderer::Draw(const ParticleData* pool, int poolSize)
         // 板ポリ4頂点 × バケット内の全インスタンスを1回のドローコールで描画
         Renderer::GetDeviceContext()->DrawInstanced(
             4,
-            static_cast<UINT>(bucket->Instances.size()),
+            static_cast<UINT>(entry.count),
             0,
-            static_cast<UINT>(startInstance));
+            static_cast<UINT>(entry.start));
         m_DrawCalls++;
     }
 

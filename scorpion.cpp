@@ -258,6 +258,38 @@ Vector3 Scorpion::GetTailPosition() const
 }
 
 // =====================================================
+// GetHitSpheres : 被弾判定球（マルチスフィア）
+//
+// 「横に長い胴体＋高く持ち上がった尻尾」の体型を5個の球で覆う。
+// オフセットは TAIL_OFFSET と同じくローカル空間のワールドスケール値
+// （前方=+Z、尻尾は-Z側から上へアーチ状に伸びて先端が(0, 9.2, -5)）。
+// 数値はコライダーデバッグ表示（g_ShowColliderDebug）で
+// モデルに重ねて確認しながら調整すること。
+// =====================================================
+namespace
+{
+    constexpr HitSphere kScorpionHitSpheres[] = {
+        { { 0.0f, 1.2f,  0.0f }, 2.2f }, // 胴体（低く幅広い本体）
+        { { 0.0f, 1.4f,  2.4f }, 1.6f }, // 頭・ハサミ（前方）
+        { { 0.0f, 3.2f, -3.6f }, 1.4f }, // 尻尾の付け根
+        { { 0.0f, 6.2f, -4.6f }, 1.3f }, // 尻尾の中間
+        { { 0.0f, 8.9f, -5.0f }, 1.4f }, // 尻尾の先端（毒針。TAIL_OFFSET付近）
+    };
+}
+
+const HitSphere* Scorpion::GetHitSpheres(int& outCount) const
+{
+    outCount = static_cast<int>(sizeof(kScorpionHitSpheres) / sizeof(kScorpionHitSpheres[0]));
+    return kScorpionHitSpheres;
+}
+
+float Scorpion::GetBroadPhaseRadius() const
+{
+    // 全HitSphereを包む半径（最遠の尻尾先端 |(0,8.9,-5)|≒10.2 + 半径1.4）
+    return 12.0f;
+}
+
+// =====================================================
 // UpdateIdle : 索敵 → Chase
 // =====================================================
 void Scorpion::UpdateIdle(float dt)

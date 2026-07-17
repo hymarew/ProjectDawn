@@ -142,4 +142,23 @@ void ColliderDebugRenderer::Draw(CollisionManager& colMgr, EnemyPool& enemyPool,
         DrawSphere(dl, vp, c.x, c.y, c.z, col->GetRadius(),
                    colorGreen, thickness, segments);
     }
+
+    // ---- 弾の被弾判定球（HitSphere / マルチスフィア）----
+    // 移動用コライダー（緑）と区別できるようシアンで描く。
+    // モデルに重ねて表示し、球の位置・半径の調整に使う
+    ImU32 colorCyan = IM_COL32(0, 220, 255, 200);
+    for (auto* e : enemyPool.GetActiveEnemies())
+    {
+        int count = 0;
+        const HitSphere* spheres = e->GetHitSpheres(count);
+        const float   yaw = e->GetRotation().y;
+        const Vector3 pos = e->GetPosition();
+
+        for (int i = 0; i < count; i++)
+        {
+            Vector3 c = pos + spheres[i].LocalOffset.RotatedAroundY(yaw);
+            DrawSphere(dl, vp, c.x, c.y, c.z, spheres[i].Radius,
+                       colorCyan, thickness, segments);
+        }
+    }
 }

@@ -5,6 +5,21 @@
 #include <vector>
 
 // =====================================================
+// HitSphere : 弾の被弾判定用の球1個分の定義
+//
+// 敵1体を複数の小さな球の組み合わせ（マルチスフィア）で覆うことで、
+// 「原点1点×大きな球1個」では当たらなかった尻尾・頭などの部位にも
+// 弾が正しく当たるようにする。オフセットは敵のローカル空間
+// （未回転・原点基準のワールドスケール値）で定義し、
+// 判定時にYaw回転と位置を適用する。
+// =====================================================
+struct HitSphere
+{
+    Vector3 LocalOffset; // 敵原点からのオフセット（ローカル空間）
+    float   Radius;      // 球の半径
+};
+
+// =====================================================
 // Enemy : 全エネミー共通の親クラス
 //
 // HP・物理・ノックバック・TakeDamage など
@@ -40,6 +55,22 @@ public:
 
     // 待機 → アクティブ への遷移（子クラスがオーバーライド）
     virtual void Alert() {}
+
+    // ---- 弾の被弾判定（マルチスフィア） ----
+
+    // この敵の被弾判定球の配列を返す（子クラスが体型に合わせてオーバーライドする）。
+    // 既定は「原点1個×SCORPION_RADIUS」で、従来の判定と同じ挙動になる
+    virtual const HitSphere* GetHitSpheres(int& outCount) const;
+
+    // 広域判定（バウンディング球）の半径。全HitSphereを包む大きさを子クラスが返す。
+    // 弾の大半はこの1回の距離比較で棄却されるため、詳細判定の負荷はほぼ増えない
+    virtual float GetBroadPhaseRadius() const;
+
+    // 弾道の線分 [from→to] がこの敵のHitSphere群に当たるか調べる。
+    // 点ではなく線分で判定することで、高速弾が細い部位（尻尾等）を
+    // すり抜けるトンネリングを防ぐ。命中時は outHitPos に最も手前の命中点が入る
+    bool TestHitSegment(const Vector3& from, const Vector3& to,
+                        float bulletRadius, Vector3& outHitPos) const;
 
     // ---- アクセサ ----
     float       GetHp()     const { return m_Hp; }

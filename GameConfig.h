@@ -153,42 +153,9 @@ namespace GameConfig
     namespace Collision
     {
         constexpr float SCORPION_RADIUS = 2.5f;
-        constexpr float SPIDER_RADIUS   = 2.0f;
         constexpr float PLAYER_RADIUS   = 0.8f;
         constexpr float TREE_RADIUS     = 0.5f; // 木の幹コライダー（SphereCollider）半径
         constexpr float BOX_HALF_SIZE   = 1.5f; // 箱コライダー（BoxCollider）の半サイズ（AABB 各軸）
-    }
-
-    // =====================================================
-    // Spider : 張り付き型の跳躍アリ。Chase中はScorpionより速く、
-    // 一定距離まで詰めるとジャンプで一気に距離を詰める。
-    // =====================================================
-    namespace Spider
-    {
-        constexpr float HP                = 80.0f;
-        constexpr float MOVE_SPEED        = 12.0f;
-        constexpr float SENSE_RADIUS      = 20.0f;  // Idle → Chase の索敵半径
-        constexpr float LOSE_RADIUS       = 30.0f;  // Chase → Search の見失い半径
-        constexpr float ALERT_RADIUS      = 22.0f;  // 発見通知の伝達半径
-        constexpr float CHASE_WEIGHT      =  0.7f;  // 追跡方向の重み
-        constexpr float SEPARATION_WEIGHT =  0.3f;  // 分離方向の重み
-        constexpr float SEPARATION_RADIUS =  4.0f;  // 近傍蜘蛛との分離半径
-        constexpr int   MAX_SEP_CHECKS    =  5;     // 分離計算で確認する近傍数の上限
-
-        constexpr float ATTACK_RANGE      =  8.0f;  // 糸攻撃の射程
-        constexpr float STRAFE_DIST       =  4.0f;  // 張り付きストレイフに切り替わる距離
-        constexpr float STRAFE_FLIP_TIME  =  0.8f;  // ストレイフの方向転換間隔（秒）
-        constexpr float ATTACK_COOLDOWN   =  1.5f;  // 糸攻撃のクールタイム（秒）
-        constexpr float SLOW_DURATION     =  2.0f;  // 糸によるスロー効果の持続時間（秒）
-        constexpr float SLOW_RATE         =  0.5f;  // スロー中の速度倍率
-
-        constexpr float JUMP_MIN_DIST     =  6.0f;  // ジャンプが発動する最小距離
-        constexpr float JUMP_MAX_DIST     = 15.0f;  // ジャンプが発動する最大距離
-        constexpr float JUMP_POWER        = 15.0f;  // ジャンプ初速（垂直方向）
-        constexpr float JUMP_SPEED        = 10.0f;  // ジャンプ中の水平移動速度
-        constexpr float JUMP_COOLDOWN     =  2.0f;  // 連続ジャンプ防止クールタイム（秒）
-
-        constexpr float SEARCH_DURATION   =  4.0f;  // Search ステートの持続時間（秒）
     }
 
     namespace Bullet

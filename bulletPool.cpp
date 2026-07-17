@@ -26,27 +26,41 @@ void BulletPool::Uninit()
 
 void BulletPool::Update(float dt, EnemyPool& enemyPool)
 {
-    constexpr float kHitDist  = GameConfig::Collision::SCORPION_RADIUS
-                               + GameConfig::Bullet::BULLET_RADIUS;
-    constexpr float kHitDist2 = kHitDist * kHitDist;
+    constexpr float kBulletRadius = GameConfig::Bullet::BULLET_RADIUS;
 
     for (auto& bullet : m_Pool)
     {
         if (!bullet.isActive) continue;
 
-        bullet.position += bullet.velocity * dt;
+        // 前フレーム位置を保存してから移動する（弾道の線分判定に使う）
+        bullet.prevPosition = bullet.position;
+        bullet.position    += bullet.velocity * dt;
+
+        // 1フレームの移動量。広域判定の半径に加えることで、
+        // 移動線分のどこかが敵のバウンディング球へ届く可能性を漏らさない
+        const float travelDist = (bullet.velocity * dt).Length();
 
         for (auto* e : enemyPool.GetActiveEnemies())
         {
             // 死亡演出中（HP0だがまだ消えていない）の敵は弾が素通りする
             if (e->GetHp() <= 0.0f) continue;
 
+            // ---- 広域判定（バウンディング球）----
+            // 大半の弾はここで棄却されるため、マルチスフィア判定の負荷はほぼ増えない
+            const float broad = e->GetBroadPhaseRadius() + kBulletRadius + travelDist;
             Vector3 diff = e->GetPosition() - bullet.position;
-            if (diff.LengthSq() < kHitDist2)
+            if (diff.LengthSq() >= broad * broad) continue;
+
+            // ---- 詳細判定（マルチスフィア × 弾道線分）----
+            // 体型に合わせた複数の球で、尻尾・頭にも正しく当たる。
+            // 線分判定なので高速弾が細い部位をすり抜けない
+            Vector3 hitPos;
+            if (e->TestHitSegment(bullet.prevPosition, bullet.position, kBulletRadius, hitPos))
             {
                 if (bullet.splashRadius > 0.0f)
                 {
                     // ロケット弾: 直撃地点で爆発（範囲ダメージ + 大爆発エフェクト）
+                    bullet.position = hitPos; // 爆心地を実際の命中点に合わせる
                     ExplodeSplash(bullet, enemyPool);
                 }
                 else
@@ -61,7 +75,8 @@ void BulletPool::Update(float dt, EnemyPool& enemyPool)
                     g_DamageVisualizer.Add(e->GetPosition(), bullet.damage);
 
                     // 通常弾: 硬い装甲に弾かれる被弾演出（火花・装甲片・粉・衝撃リング）。爆発はしない
-                    ParticleManager::GetInstance().EmitScorpionHit(bullet.position);
+                    // 発生位置は実際の命中点（尻尾に当たれば尻尾で火花が散る）
+                    ParticleManager::GetInstance().EmitScorpionHit(hitPos);
                     bullet.isActive = false;
                 }
                 break;
@@ -214,6 +229,7 @@ Bullet* BulletPool::Spawn(const Vector3& pos, const Vector3& velocity, float lif
         if (!bullet.isActive)
         {
             bullet.position       = pos;
+            bullet.prevPosition   = pos; // 生成フレームの線分判定は長さ0から始める
             bullet.velocity       = velocity;
             bullet.lifeTime       = lifeTime;
             bullet.damage         = damage;

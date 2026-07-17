@@ -28,6 +28,11 @@ public:
     const char* GetName()     override { return "Scorpion"; }
     const char* GetTypeName() const override { return "Scorpion"; }
 
+    // ---- 被弾判定（マルチスフィア） ----
+    // 胴体・頭・尻尾を複数の球で覆い、持ち上がった尻尾にも弾が当たるようにする
+    const HitSphere* GetHitSpheres(int& outCount) const override;
+    float            GetBroadPhaseRadius()        const override;
+
     static void ReleaseShaders();
 
 protected:
