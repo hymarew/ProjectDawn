@@ -151,12 +151,6 @@
     <ClCompile Include="scorpion.cpp">
       <Filter>Enemy</Filter>
     </ClCompile>
-    <ClCompile Include="spiderEnemy.cpp">
-      <Filter>Enemy</Filter>
-    </ClCompile>
-    <ClCompile Include="spiderPool.cpp">
-      <Filter>Enemy</Filter>
-    </ClCompile>
     <ClCompile Include="particleEmitter.cpp">
       <Filter>Particle</Filter>
     </ClCompile>
@@ -553,12 +547,6 @@
       <Filter>Enemy</Filter>
     </ClInclude>
     <ClInclude Include="scorpion.h">
-      <Filter>Enemy</Filter>
-    </ClInclude>
-    <ClInclude Include="spiderEnemy.h">
-      <Filter>Enemy</Filter>
-    </ClInclude>
-    <ClInclude Include="spiderPool.h">
       <Filter>Enemy</Filter>
     </ClInclude>
     <ClInclude Include="particleEmitter.h">

@@ -6,7 +6,7 @@
 // =====================================================
 // DropTableData : 敵1種分のドロップテーブル（JSON 1ファイル = 1テーブル）
 //
-// enemyTypeName は Enemy::GetTypeName()（"Scorpion" / "Spider" 等）と対応し、
+// enemyTypeName は Enemy::GetTypeName()（"Scorpion" 等）と対応し、
 // DropTableDatabase の検索キーになる。
 // 抽選アルゴリズム自体は strategyType で選ばれる IDropStrategy が担当する。
 // =====================================================

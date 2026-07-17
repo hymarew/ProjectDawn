@@ -177,8 +177,6 @@
     <ClCompile Include="enemyProjectilePool.cpp" />
     <ClCompile Include="enemySpawner.cpp" />
     <ClCompile Include="scorpion.cpp" />
-    <ClCompile Include="spiderEnemy.cpp" />
-    <ClCompile Include="spiderPool.cpp" />
     <ClCompile Include="particleEmitter.cpp" />
     <ClCompile Include="particleManager.cpp" />
     <ClCompile Include="particleRenderer.cpp" />
@@ -316,8 +314,6 @@
     <ClInclude Include="enemyProjectilePool.h" />
     <ClInclude Include="enemySpawner.h" />
     <ClInclude Include="scorpion.h" />
-    <ClInclude Include="spiderEnemy.h" />
-    <ClInclude Include="spiderPool.h" />
     <ClInclude Include="particleEmitter.h" />
     <ClInclude Include="particleManager.h" />
     <ClInclude Include="particleRenderer.h" />

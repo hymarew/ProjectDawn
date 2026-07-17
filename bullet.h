@@ -6,8 +6,9 @@
 // =====================================================
 struct Bullet
 {
-    Vector3 position    = {};
-    Vector3 velocity    = {};
+    Vector3 position     = {};
+    Vector3 prevPosition = {}; // 前フレームの位置。弾道の線分判定（すり抜け防止）に使う
+    Vector3 velocity     = {};
     float   lifeTime    = 0.0f;
     float   damage      = 0.0f;
     float   splashRadius   = 0.0f; // 0 = 直撃ダメージのみ、>0 = 着弾時に半径内全体にダメージ
