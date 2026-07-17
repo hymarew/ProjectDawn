@@ -8,6 +8,7 @@
 #include "renderer.h"
 #include "input.h"
 #include "playerLog.h"
+#include "achievementManager.h"
 
 // -------------------------------------------------------
 // カーソル選択肢
@@ -43,6 +44,17 @@ void ResultScene::Init()
 
         if (const StageData* next = db.GetNextStage(cleared))
             db.UnlockStage(next->id);
+
+        // ---- クリア時にのみ解放される実績 ----
+        g_AchievementManager.Unlock("firstClear");
+
+        // 最終ステージ（次のステージが存在しない）のクリアでストーリー完走
+        if (db.GetNextStage(cleared) == nullptr)
+            g_AchievementManager.Unlock("storyComplete");
+
+        // 無被弾クリア（GameScene::Uninit で確定した PlayerLog を参照する）
+        if (g_PlayerLog.totalDamageTaken <= 0.0f)
+            g_AchievementManager.Unlock("noDamageClear");
     }
 }
 
@@ -55,6 +67,9 @@ void ResultScene::Uninit()
 // -------------------------------------------------------
 void ResultScene::Update(float dt)
 {
+    // 実績解放トーストの時間経過（GameScene 中に解放された分もここで流れ続ける）
+    g_AchievementManager.Update(dt);
+
     if (Input::GetKeyTrigger(VK_UP)   || Input::GetKeyTrigger('W'))
         m_Selected = (m_Selected - 1 + s_OptCount) % s_OptCount;
     if (Input::GetKeyTrigger(VK_DOWN) || Input::GetKeyTrigger('S'))
@@ -293,6 +308,9 @@ void ResultScene::Draw()
             dl->AddText(font, sz, ImVec2(tx, oy), col, s_Options[i]);
         }
     }
+
+    // 実績解放トースト（上部中央）
+    g_AchievementManager.DrawToasts();
 
     ImGui::Render();
     ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());

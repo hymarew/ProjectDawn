@@ -12,6 +12,25 @@ namespace GameConfig
     }
 
     // =====================================================
+    // Options : オプション設定のセーブキーとデフォルト値・範囲
+    // save.json の "settings" セクションと OptionsMenu で共有する
+    // =====================================================
+    namespace Options
+    {
+        constexpr const char* KEY_BGM_VOLUME  = "bgmVolume";
+        constexpr const char* KEY_SE_VOLUME   = "seVolume";
+        constexpr const char* KEY_SENSITIVITY = "mouseSensitivity";
+
+        constexpr float DEFAULT_VOLUME      = 0.8f;  // 音量（0.0〜1.0）
+        constexpr float DEFAULT_SENSITIVITY = 1.0f;  // マウス感度倍率
+
+        constexpr float VOLUME_STEP      = 0.05f; // 音量の1目盛り
+        constexpr float SENSITIVITY_MIN  = 0.2f;
+        constexpr float SENSITIVITY_MAX  = 3.0f;
+        constexpr float SENSITIVITY_STEP = 0.1f;
+    }
+
+    // =====================================================
     // Particle : パーティクルシステムの調整値
     // 描画はGPUインスタンシング（ドローコールはテクスチャ×ブレンド種別ごとに1回）
     // のため、プール上限を上げても描画コストはほぼ増えない。

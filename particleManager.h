@@ -2,16 +2,18 @@
 #include "particleSetting.h"
 #include "particleEmitter.h"
 #include "particleRenderer.h"
+#include "particleSystemGPU.h"
 #include <vector>
 #include <memory>
 
 // パーティクルシステムの統計情報（デバッグUI表示用）
 struct ParticleStats
 {
-    int   ActiveCount = 0;    // 現在アクティブなパーティクル数
+    int   ActiveCount = 0;    // 現在アクティブなパーティクル数（GPU時は1〜2フレーム遅れ）
     int   UsedSlots   = 0;    // 現在の走査範囲（ハイウォーターマーク）
     int   DrawCalls   = 0;    // 直近フレームのドローコール数
-    float UpdateMs    = 0.0f; // CPUシミュレーションにかかった時間（ミリ秒）
+    float UpdateMs    = 0.0f; // シミュレーションにかかったCPU時間（ミリ秒）
+                              // GPU時はDispatch発行コストのみ＝ほぼ0になるのが見どころ
     float DrawMs      = 0.0f; // 描画準備＋発行にかかったCPU時間（ミリ秒）
 };
 
@@ -57,6 +59,11 @@ public:
     // 直近フレームの統計（デバッグUI表示用）
     const ParticleStats& GetStats() const { return m_Stats; }
 
+    // シミュレーション実行先の切り替え（デバッグUIから。CPU/GPU比較デモ用）
+    // GPU初期化に失敗している場合は true を渡しても CPU のまま
+    void SetUseGPU(bool useGPU) { m_UseGPU = useGPU && m_GPU.IsValid(); }
+    bool IsUseGPU() const       { return m_UseGPU; }
+
 private:
     // 画面フラッシュ発生。EmitBigExplosion から呼ばれる
     void TriggerScreenFlash(float duration);
@@ -86,7 +93,9 @@ private:
 
     std::vector<std::unique_ptr<ParticleEmitter>> m_Emitters; // アクティブなエミッタ一覧
 
-    ParticleRenderer m_Renderer;
+    ParticleRenderer  m_Renderer; // CPUシミュレーション用の描画（インスタンシング）
+    ParticleSystemGPU m_GPU;      // GPUシミュレーション一式（Spawn/Update CS + 間接描画）
+    bool              m_UseGPU = false; // true: 計算も描画もGPU経路を使う
 
     Vector3 m_Gravity; // 毎フレーム加算する重力加速度ベクトル
 

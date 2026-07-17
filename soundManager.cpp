@@ -45,12 +45,12 @@ void SoundManager::Uninit()
 // ---------------------------------------------------------
 void SoundManager::PlaySE(SEType type)
 {
-    //switch (type)
-    //{
-    //case SEType::ShotgunFire:    if (m_SEShotgunFire)    m_SEShotgunFire->Play(false);    break;
-    //case SEType::RocketLauncher: if (m_SERocketLauncher) m_SERocketLauncher->Play(false); break;
-    //case SEType::Explosion1:     if (m_SEExplosion1)     m_SEExplosion1->Play(false);     break;
-    //}
+    switch (type)
+    {
+    case SEType::ShotgunFire:    if (m_SEShotgunFire)    m_SEShotgunFire->Play(false);    break;
+    case SEType::RocketLauncher: if (m_SERocketLauncher) m_SERocketLauncher->Play(false); break;
+    case SEType::Explosion1:     if (m_SEExplosion1)     m_SEExplosion1->Play(false);     break;
+    }
 }
 
 // ---------------------------------------------------------
@@ -58,20 +58,20 @@ void SoundManager::PlaySE(SEType type)
 // ---------------------------------------------------------
 void SoundManager::PlayBgm(BgmType type)
 {
-    //if (type == m_CurrentBgm) return;
+    if (type == m_CurrentBgm) return;
 
-    //// 現在再生中のBGMを止めてから次のBGMを再生する
-    //if (m_CurrentBgm == BgmType::Menu && m_BgmMenu) m_BgmMenu->Stop();
-    //if (m_CurrentBgm == BgmType::Game && m_BgmGame) m_BgmGame->Stop();
+    // 現在再生中のBGMを止めてから次のBGMを再生する
+    if (m_CurrentBgm == BgmType::Menu && m_BgmMenu) m_BgmMenu->Stop();
+    if (m_CurrentBgm == BgmType::Game && m_BgmGame) m_BgmGame->Stop();
 
-    //switch (type)
-    //{
-    //case BgmType::Menu: if (m_BgmMenu) m_BgmMenu->Play(true); break;
-    //case BgmType::Game: if (m_BgmGame) m_BgmGame->Play(true); break;
-    //default: break;
-    //}
+    switch (type)
+    {
+    case BgmType::Menu: if (m_BgmMenu) m_BgmMenu->Play(true); break;
+    case BgmType::Game: if (m_BgmGame) m_BgmGame->Play(true); break;
+    default: break;
+    }
 
-    //m_CurrentBgm = type;
+    m_CurrentBgm = type;
 }
 
 // ---------------------------------------------------------
@@ -82,4 +82,22 @@ void SoundManager::StopBgm()
     if (m_CurrentBgm == BgmType::Menu && m_BgmMenu) m_BgmMenu->Stop();
     if (m_CurrentBgm == BgmType::Game && m_BgmGame) m_BgmGame->Stop();
     m_CurrentBgm = BgmType::None;
+}
+
+// ---------------------------------------------------------
+// SetBgmVolume / SetSEVolume : 音量を全ボイスへ即時反映する
+// ---------------------------------------------------------
+void SoundManager::SetBgmVolume(float volume)
+{
+    m_BgmVolume = volume;
+    if (m_BgmMenu) m_BgmMenu->SetVolume(volume);
+    if (m_BgmGame) m_BgmGame->SetVolume(volume);
+}
+
+void SoundManager::SetSEVolume(float volume)
+{
+    m_SEVolume = volume;
+    if (m_SEShotgunFire)    m_SEShotgunFire->SetVolume(volume);
+    if (m_SERocketLauncher) m_SERocketLauncher->SetVolume(volume);
+    if (m_SEExplosion1)     m_SEExplosion1->SetVolume(volume);
 }

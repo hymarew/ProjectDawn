@@ -120,6 +120,16 @@ void Manager::Init()
 	// SceneManager::Init より前に呼ぶことで、初回シーン（TitleScene）表示前にデータが揃う。
 	g_SaveManager.Load();
 
+	// セーブ済みオプション設定（音量・マウス感度）を各システムへ反映する。
+	// g_SoundManager.Init() / InputManager::Init() より後、かつ Load() 直後に行う
+	{
+		using namespace GameConfig::Options;
+		g_SoundManager.SetBgmVolume(g_SaveManager.GetSettingFloat(KEY_BGM_VOLUME, DEFAULT_VOLUME));
+		g_SoundManager.SetSEVolume (g_SaveManager.GetSettingFloat(KEY_SE_VOLUME,  DEFAULT_VOLUME));
+		InputManager::SetMouseSensitivityScale(
+			g_SaveManager.GetSettingFloat(KEY_SENSITIVITY, DEFAULT_SENSITIVITY));
+	}
+
 	// シーン管理を初期化（TitleScene からスタート）
 	g_SceneManager.Init();
 }
@@ -332,10 +342,20 @@ void Manager::ImGuiDraw()
 
 		auto& particleManager = ParticleManager::GetInstance();
 
-		// ---- GPUインスタンシングの統計表示 ----
+		// ---- シミュレーション実行先の切り替え（CPU/GPU比較デモ用） ----
+		// GPU: 生成・物理・描画リスト構築・描画数決定まで全てコンピュートシェーダー。
+		//      CPUの仕事はEmitRequestの発行のみで、Update CPUがほぼ0になるのが見どころ
+		ImGui::SeparatorText("Simulation");
+		{
+			bool useGPU = particleManager.IsUseGPU();
+			if (ImGui::Checkbox("GPU Simulation (Compute Shader)", &useGPU))
+				particleManager.SetUseGPU(useGPU);
+		}
+
+		// ---- 統計表示 ----
 		// 旧実装は「1パーティクル=1ドローコール」だったため、
 		// Active数に対してDraw Callsが数回で済んでいることが効果の証明になる
-		ImGui::SeparatorText("GPU Instancing Stats");
+		ImGui::SeparatorText(particleManager.IsUseGPU() ? "GPU Particle Stats" : "GPU Instancing Stats");
 		{
 			const ParticleStats& stats = particleManager.GetStats();
 			ImGui::Text("Active Particles : %d / %d", stats.ActiveCount, GameConfig::Particle::POOL_SIZE);

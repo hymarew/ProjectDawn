@@ -156,5 +156,11 @@ void Audio::Stop()
 	m_SourceVoice->Stop();
 }
 
+void Audio::SetVolume(float volume)
+{
+	if (m_SourceVoice)
+		m_SourceVoice->SetVolume(volume);
+}
+
 
 

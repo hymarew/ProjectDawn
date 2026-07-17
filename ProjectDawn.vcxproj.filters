@@ -163,6 +163,9 @@
     <ClCompile Include="particleManager.cpp">
       <Filter>Particle</Filter>
     </ClCompile>
+    <ClCompile Include="particleSystemGPU.cpp">
+      <Filter>Particle</Filter>
+    </ClCompile>
     <ClCompile Include="particleRenderer.cpp">
       <Filter>Particle</Filter>
     </ClCompile>
@@ -255,6 +258,15 @@
     </ClCompile>
     <ClCompile Include="pauseMenu.cpp">
       <Filter>UI</Filter>
+    </ClCompile>
+    <ClCompile Include="optionsMenu.cpp">
+      <Filter>UI</Filter>
+    </ClCompile>
+    <ClCompile Include="achievementScreen.cpp">
+      <Filter>UI</Filter>
+    </ClCompile>
+    <ClCompile Include="achievementManager.cpp">
+      <Filter>Save</Filter>
     </ClCompile>
     <ClCompile Include="tutorialOverlay.cpp">
       <Filter>UI</Filter>
@@ -555,6 +567,12 @@
     <ClInclude Include="particleManager.h">
       <Filter>Particle</Filter>
     </ClInclude>
+    <ClInclude Include="particleGPU.h">
+      <Filter>Particle</Filter>
+    </ClInclude>
+    <ClInclude Include="particleSystemGPU.h">
+      <Filter>Particle</Filter>
+    </ClInclude>
     <ClInclude Include="particleRenderer.h">
       <Filter>Particle</Filter>
     </ClInclude>
@@ -671,6 +689,15 @@
     </ClInclude>
     <ClInclude Include="pauseMenu.h">
       <Filter>UI</Filter>
+    </ClInclude>
+    <ClInclude Include="optionsMenu.h">
+      <Filter>UI</Filter>
+    </ClInclude>
+    <ClInclude Include="achievementScreen.h">
+      <Filter>UI</Filter>
+    </ClInclude>
+    <ClInclude Include="achievementManager.h">
+      <Filter>Save</Filter>
     </ClInclude>
     <ClInclude Include="tutorialOverlay.h">
       <Filter>UI</Filter>
@@ -920,9 +947,24 @@
     <None Include="shader\dynamicLights.hlsl">
       <Filter>シェーダーファイル</Filter>
     </None>
+    <None Include="shader\particleGPUCommon.hlsl">
+      <Filter>シェーダーファイル</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="shader\ShadowDepthPS.hlsl">
+      <Filter>シェーダーファイル</Filter>
+    </FxCompile>
+    <FxCompile Include="shader\particleSpawnCS.hlsl">
+      <Filter>シェーダーファイル</Filter>
+    </FxCompile>
+    <FxCompile Include="shader\particleUpdateCS.hlsl">
+      <Filter>シェーダーファイル</Filter>
+    </FxCompile>
+    <FxCompile Include="shader\particleGPUVS.hlsl">
+      <Filter>シェーダーファイル</Filter>
+    </FxCompile>
+    <FxCompile Include="shader\particleGPUPS.hlsl">
       <Filter>シェーダーファイル</Filter>
     </FxCompile>
     <FxCompile Include="shader\ShadowDepthVS.hlsl">
