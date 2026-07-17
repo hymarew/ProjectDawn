@@ -186,6 +186,7 @@
     <ClCompile Include="gameContext.cpp" />
     <ClCompile Include="gameScene.cpp" />
     <ClCompile Include="mainMenuScene.cpp" />
+    <ClCompile Include="creditScreen.cpp" />
     <ClCompile Include="extraScene.cpp" />
     <ClCompile Include="unlockManager.cpp" />
     <ClCompile Include="resultScene.cpp" />
@@ -328,6 +329,7 @@
     <ClInclude Include="gameMode.h" />
     <ClInclude Include="gameScene.h" />
     <ClInclude Include="mainMenuScene.h" />
+    <ClInclude Include="creditScreen.h" />
     <ClInclude Include="extraScene.h" />
     <ClInclude Include="unlockManager.h" />
     <ClInclude Include="resultScene.h" />

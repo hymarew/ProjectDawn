@@ -32,6 +32,9 @@ void TitleScene::Uninit()
 
 void TitleScene::Update(float dt)
 {
+    // クレジット表示中はそちらへ入力を委譲する
+    if (m_Credit.IsOpen()) { m_Credit.Update(); return; }
+
     // カーソル移動（↑ W / ↓ S）
     if (Input::GetKeyTrigger(VK_UP)   || Input::GetKeyTrigger('W'))
         m_SelectedIndex = (m_SelectedIndex - 1 + ITEM_COUNT) % ITEM_COUNT;
@@ -44,7 +47,8 @@ void TitleScene::Update(float dt)
         switch (m_SelectedIndex)
         {
         case 0: g_SceneManager.RequestChange(SceneID::MainMenu); break;
-        case 1: PostQuitMessage(0); break;
+        case 1: m_Credit.Open(); break;
+        case 2: PostQuitMessage(0); break;
         }
     }
 }
@@ -89,8 +93,8 @@ void TitleScene::Draw()
             IM_COL32(255, 220, 50, 255), title);
     }
 
-    // --- メニュー（Start / Exit） ---
-    const char* labels[] = { "Start", "Exit" };
+    // --- メニュー（Start / Credit / Exit） ---
+    const char* labels[] = { "Start", "Credit", "Exit" };
     const float itemSz    = 28.0f;
     const float itemStart = SCREEN_HEIGHT * 0.55f;
     const float itemStep  = 48.0f;
@@ -125,6 +129,9 @@ void TitleScene::Draw()
             ImVec2((SCREEN_WIDTH - hs.x) * 0.5f, SCREEN_HEIGHT * 0.88f),
             IM_COL32(140, 140, 150, 200), hint);
     }
+
+    // --- クレジットオーバーレイ（表示中のみ） ---
+    m_Credit.Draw();
 
     // ImGui の描画データを GPU に送る
     ImGui::Render();
