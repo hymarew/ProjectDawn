@@ -3,7 +3,7 @@
 #include "inputManager.h"
 #include "mouse.h"
 #include "renderer.h"
-#include "modelRenderer.h"
+#include "fbxModelRenderer.h"
 #include "player.h"
 #include "camera.h"
 #include "weapon.h"
@@ -18,12 +18,24 @@ void Player::Init()
     m_Layer = 1;
     m_Position = { 0.0f,0.0f,0.0f };
 
-    AddComponent<ModelRenderer>(this)->Load("asset\\model\\Playerble.obj");
+    // MixamoのFBXは実寸(cm相当)で書き出されているため、ゲーム内スケールに合わせて0.01倍する
+    m_Scale = { 0.01f, 0.01f, 0.01f };
+
+    // Idle.fbxはメッシュ・スキン・Idleアニメーションを1本にまとめて含んでいるため、
+    // メッシュ読み込みと再生アニメーションの両方をこのファイルから取る(バインドポーズの不一致が起きない)
+    m_ModelRenderer = AddComponent<FbxModelRenderer>(this);
+    m_ModelRenderer->Load("asset\\model\\fbx\\Idle.fbx");
+    m_ModelRenderer->PlayAnimation("asset\\model\\fbx\\Idle.fbx");
+
 
     //影を受けたり落とすために(ここら辺の細かい実験はまだ)
-    // シェーダー読込
+    // シェーダー読込(非スキニング用。IsSkinned()がfalseの場合のフォールバック)
     Renderer::CreateVertexShader(&m_VertexShader, &m_VertexLayout,
         "shader\\ShadowMapLightingVS.cso");
+
+    // スキニング用頂点シェーダー(BoneIndices/BoneWeights付きレイアウト)
+    Renderer::CreateVertexShaderSkinned(&m_SkinVertexShader, &m_SkinVertexLayout,
+        "shader\\SkinningVS.cso");
 
     Renderer::CreatePixelShader(&m_PixelShader,
         "shader\\ShadowMapLightingPS.cso");
@@ -111,17 +123,7 @@ void Player::Update(float dt)
     if (InputManager::IsTriggered(Action::JUMP))
     {
         m_Velocity.y += jumpForce;
-
-        m_Scale.y = 1.5f;
-        m_Scale.x = 0.5f;
-        m_Scale.z = 0.5f;
-
     }
-
-    m_Scale.x += (1.0f - m_Scale.x) * 0.1f;
-    m_Scale.y += (1.0f - m_Scale.y) * 0.1f;
-    m_Scale.z += (1.0f - m_Scale.z) * 0.1f;
-
 
     // ----------------------------------------------------
     // キャラクターの向き（回転）の更新
@@ -142,7 +144,6 @@ void Player::Update(float dt)
     // 計算された最終的な速度を使って座標（位置）を更新
     m_Position += m_Velocity * dt;
 
-    bool isOldGround = m_Ground;
     m_Ground = false;
 
 
@@ -156,22 +157,6 @@ void Player::Update(float dt)
         m_Velocity.y = 0.0f;
         m_Ground = true;
     }
-
-    if (!isOldGround && m_Ground)
-    {
-        m_Scale.y = 0.5f;
-        m_Scale.x = 1.5f;
-        m_Scale.z = 1.5f;
-    }
-
-    
-    if (m_Ground)
-    {
-        m_MoveAnimation += m_Velocity.Length() * dt;
-        m_Scale.y += sinf(m_MoveAnimation * 3.0f) * 0.02f;
-    }
-
-
 
     // 無敵タイマーを減算する
     if (m_InvTimer > 0.0f)
@@ -224,20 +209,58 @@ void Player::Update(float dt)
         currentWeapon->TryFire(muzzlePos, shootDir);
     }
 
+    // 見た目のアニメーション状態(待機/走行/ジャンプ)を移動状況に合わせて切り替える
+    UpdateAnimationState();
+
     // 基底クラスのUpdate呼び出し（コンポーネントなどの更新処理）
     GameObject::Update(dt);
 }
 
+
+// -------------------------------------------------------
+// UpdateAnimationState : 移動状況(接地/水平速度)に応じてPlayerAnimStateを切り替え、
+// 状態が変わった時だけPlayAnimation()を呼ぶ(毎フレーム呼ぶと再生位置が0へリセットされ続けてしまう)
+// -------------------------------------------------------
+void Player::UpdateAnimationState()
+{
+    if (!m_ModelRenderer) return;
+
+    // 水平方向の速さのみで走行判定する(Y方向の速度はジャンプ/落下で別途判定するため含めない)
+    float horizontalSpeedSq = m_Velocity.x * m_Velocity.x + m_Velocity.z * m_Velocity.z;
+    const float RUN_SPEED_THRESHOLD = GameConfig::Physics::PLAYER_SPEED * 0.05f;
+
+    PlayerAnimState desired;
+    if (!m_Ground)
+        desired = PlayerAnimState::Jump;
+    else if (horizontalSpeedSq > RUN_SPEED_THRESHOLD * RUN_SPEED_THRESHOLD)
+        desired = PlayerAnimState::Run;
+    else
+        desired = PlayerAnimState::Idle;
+
+    if (desired == m_AnimState) return;
+    m_AnimState = desired;
+
+    switch (desired)
+    {
+    case PlayerAnimState::Idle: m_ModelRenderer->PlayAnimation("asset\\model\\fbx\\Idle.fbx"); break;
+    case PlayerAnimState::Run:  m_ModelRenderer->PlayAnimation("asset\\model\\fbx\\Run.fbx");  break;
+    case PlayerAnimState::Jump: m_ModelRenderer->PlayAnimation("asset\\model\\fbx\\Jump.fbx"); break;
+    }
+}
+
 void Player::Draw()
 {
-    // 入力レイアウト設定
-    Renderer::GetDeviceContext()->IASetInputLayout(m_VertexLayout);
+    // モデルがボーン/スキニング情報を持つ場合はスキニング用VS+レイアウトを、
+    // 持たない場合は従来のShadowMapLightingVSを使う
+    bool skinned = m_ModelRenderer && m_ModelRenderer->IsSkinned();
+
+    Renderer::GetDeviceContext()->IASetInputLayout(skinned ? m_SkinVertexLayout : m_VertexLayout);
     // 追加: ImGuiの設定をライト構造体に反映させる
     Light.CastShadow = g_CastShadow;
     Renderer::SetLight(Light);    // ライト情報をシェーダーへ送る
 
     // シェーダ設定
-    Renderer::GetDeviceContext()->VSSetShader(m_VertexShader, NULL, 0);
+    Renderer::GetDeviceContext()->VSSetShader(skinned ? m_SkinVertexShader : m_VertexShader, NULL, 0);
     Renderer::GetDeviceContext()->PSSetShader(m_PixelShader, NULL, 0);
 
     //マトリクス設定
