@@ -9,37 +9,20 @@
 
 class Weapon;
 class SphereCollider;
-class FbxModelRenderer;
-
-// Playerの見た目のアニメーション状態(待機/走行/ジャンプ)
-enum class PlayerAnimState
-{
-    Idle,
-    Run,
-    Jump,
-};
 
 class Player :public GameObject
 {
 private:
     Vector3 m_Velocity{ 0.0f,0.0f,0.0f };
 
-    PlayerAnimState m_AnimState = PlayerAnimState::Idle;
-    void UpdateAnimationState();
-
     ID3D11InputLayout* m_VertexLayout;
     ID3D11VertexShader* m_VertexShader;
     ID3D11PixelShader* m_PixelShader;
 
-    // スキニングモデル(ボーン有りFBX)用。IsSkinned()がtrueのときはこちらをバインドする
-    ID3D11InputLayout*  m_SkinVertexLayout  = nullptr;
-    ID3D11VertexShader* m_SkinVertexShader  = nullptr;
-
-    FbxModelRenderer* m_ModelRenderer = nullptr;
-
     LIGHT Light;
     float LightMoveSpeed;
     bool m_Ground = true;
+    float m_MoveAnimation;
 
     // 装備武器の管理（Primary / Secondary）。
     // Weapon 実体の生成・所持チェック・装備保存は WeaponEquip が担当する

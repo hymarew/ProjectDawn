@@ -85,7 +85,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy /E /I /Y "$(ProjectDir)Data" "$(OutDir)Data\" &amp; xcopy /E /I /Y "$(ProjectDir)asset" "$(OutDir)asset\" &amp; xcopy /E /I /Y "$(ProjectDir)shader" "$(OutDir)shader\" &amp; xcopy /Y "$(ProjectDir)assimp-vc143-mt.dll" "$(OutDir)"</Command>
+      <Command>xcopy /E /I /Y "$(ProjectDir)Data" "$(OutDir)Data\" &amp; xcopy /E /I /Y "$(ProjectDir)asset" "$(OutDir)asset\" &amp; xcopy /E /I /Y "$(ProjectDir)shader" "$(OutDir)shader\"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -105,7 +105,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy /E /I /Y "$(ProjectDir)Data" "$(OutDir)Data\" &amp; xcopy /E /I /Y "$(ProjectDir)asset" "$(OutDir)asset\" &amp; xcopy /E /I /Y "$(ProjectDir)shader" "$(OutDir)shader\" &amp; xcopy /Y "$(ProjectDir)assimp-vc143-mt.dll" "$(OutDir)"</Command>
+      <Command>xcopy /E /I /Y "$(ProjectDir)Data" "$(OutDir)Data\" &amp; xcopy /E /I /Y "$(ProjectDir)asset" "$(OutDir)asset\" &amp; xcopy /E /I /Y "$(ProjectDir)shader" "$(OutDir)shader\"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -123,7 +123,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy /E /I /Y "$(ProjectDir)Data" "$(OutDir)Data\" &amp; xcopy /E /I /Y "$(ProjectDir)asset" "$(OutDir)asset\" &amp; xcopy /E /I /Y "$(ProjectDir)shader" "$(OutDir)shader\" &amp; xcopy /Y "$(ProjectDir)assimp-vc143-mt.dll" "$(OutDir)"</Command>
+      <Command>xcopy /E /I /Y "$(ProjectDir)Data" "$(OutDir)Data\" &amp; xcopy /E /I /Y "$(ProjectDir)asset" "$(OutDir)asset\" &amp; xcopy /E /I /Y "$(ProjectDir)shader" "$(OutDir)shader\"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -143,7 +143,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy /E /I /Y "$(ProjectDir)Data" "$(OutDir)Data\" &amp; xcopy /E /I /Y "$(ProjectDir)asset" "$(OutDir)asset\" &amp; xcopy /E /I /Y "$(ProjectDir)shader" "$(OutDir)shader\" &amp; xcopy /Y "$(ProjectDir)assimp-vc143-mt.dll" "$(OutDir)"</Command>
+      <Command>xcopy /E /I /Y "$(ProjectDir)Data" "$(OutDir)Data\" &amp; xcopy /E /I /Y "$(ProjectDir)asset" "$(OutDir)asset\" &amp; xcopy /E /I /Y "$(ProjectDir)shader" "$(OutDir)shader\"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -269,9 +269,6 @@
     <ClCompile Include="damageEffectManager.cpp" />
     <ClCompile Include="dynamicLightManager.cpp" />
     <ClCompile Include="grass.cpp" />
-    <ClCompile Include="animationClip.cpp" />
-    <ClCompile Include="fbxModelRenderer.cpp" />
-    <ClCompile Include="skeleton.cpp" />
     <ClCompile Include="modelRenderer.cpp" />
     <ClCompile Include="playerLog.cpp" />
     <ClCompile Include="polygon2D.cpp" />
@@ -434,9 +431,6 @@
     <ClInclude Include="GameConfig.h" />
     <ClInclude Include="gameObject.h" />
     <ClInclude Include="grass.h" />
-    <ClInclude Include="animationClip.h" />
-    <ClInclude Include="fbxModelRenderer.h" />
-    <ClInclude Include="skeleton.h" />
     <ClInclude Include="modelRenderer.h" />
     <ClInclude Include="playerLog.h" />
     <ClInclude Include="polygon2D.h" />
@@ -543,14 +537,6 @@
       <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">shader\%(Filename).cso</ObjectFileOutput>
     </FxCompile>
     <FxCompile Include="shader\ShadowMapLightingVS.hlsl">
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
-      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">shader\%(Filename).cso</ObjectFileOutput>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.0</ShaderModel>
-      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">shader\%(Filename).cso</ObjectFileOutput>
-    </FxCompile>
-    <FxCompile Include="shader\SkinningVS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
       <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">shader\%(Filename).cso</ObjectFileOutput>
