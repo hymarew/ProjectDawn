@@ -13,6 +13,20 @@ struct VERTEX_3D
 };
 
 
+// スキニング(ボーン変形)対応モデル専用の頂点構造体。
+// 既存のVERTEX_3D/CreateVertexShaderは他の全モデルが共有しているため変更せず、
+// GPUインスタンシング(CreateVertexShaderInstancing)と同じく専用の頂点フォーマット+専用関数で対応する。
+struct VERTEX_3D_SKIN
+{
+	XMFLOAT3 Position;
+	XMFLOAT3 Normal;
+	XMFLOAT4 Diffuse;
+	XMFLOAT2 TexCoord;
+	UINT     BoneIndices[4];
+	XMFLOAT4 BoneWeights;
+};
+
+
 
 struct MATERIAL
 {
@@ -127,5 +141,9 @@ public:
 
 	//ハードウェアインスタンシング
 	static void CreateVertexShaderInstancing(ID3D11VertexShader** VertexShader,
+		ID3D11InputLayout** VertexLayout, const char* FileName);
+
+	//スキニング(ボーン変形)モデル用。VERTEX_3D_SKIN(Position/Normal/Color/TexCoord + BoneIndices/BoneWeights)を入力とする
+	static void CreateVertexShaderSkinned(ID3D11VertexShader** VertexShader,
 		ID3D11InputLayout** VertexLayout, const char* FileName);
 };
