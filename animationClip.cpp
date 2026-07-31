@@ -1,3 +1,4 @@
+#include "main.h"
 #include "animationClip.h"
 
 #include "assimp/cimport.h"
@@ -12,9 +13,10 @@ std::vector<AnimationClip> LoadAnimationClips(const char* FileName)
 {
 	std::vector<AnimationClip> clips;
 
-	// Skeleton/FbxModelRendererと同じくDirectX(左手座標系)へ変換する。
-	// ここではキーフレーム(アニメーションカーブ)しか読まないため、メッシュの有無に関わらずTriangulate等は不要。
-	const aiScene* scene = aiImportFile(FileName, aiProcess_ConvertToLeftHanded);
+	// メッシュ・ボーン階層と同じ変換規約(Assimp右手系→DirectX左手系)を合わせるため、
+	// FbxModelRenderer::LoadModelと同じポストプロセスフラグでインポートする。
+	const aiScene* scene = aiImportFile(FileName,
+		aiProcess_Triangulate | aiProcess_ConvertToLeftHanded | aiProcess_GenNormals);
 
 	if (!scene || scene->mNumAnimations == 0)
 	{
@@ -26,11 +28,11 @@ std::vector<AnimationClip> LoadAnimationClips(const char* FileName)
 	{
 		aiAnimation* anim = scene->mAnimations[a];
 
-		// FBXにTicksPerSecondが記録されていない場合の一般的なフォールバック値
+		// mTicksPerSecondが0の場合(FBXでは稀に未設定)、Assimpの慣例に合わせ25fpsとみなす
 		double ticksPerSecond = (anim->mTicksPerSecond != 0.0) ? anim->mTicksPerSecond : 25.0;
 
 		AnimationClip clip;
-		clip.Name = (anim->mName.length > 0) ? anim->mName.C_Str() : FileName;
+		clip.Name     = anim->mName.C_Str();
 		clip.Duration = (float)(anim->mDuration / ticksPerSecond);
 
 		for (unsigned int c = 0; c < anim->mNumChannels; c++)
@@ -44,37 +46,36 @@ std::vector<AnimationClip> LoadAnimationClips(const char* FileName)
 			for (unsigned int k = 0; k < channel->mNumPositionKeys; k++)
 			{
 				const aiVectorKey& key = channel->mPositionKeys[k];
-				Vec3Key vk;
-				vk.Time = (float)(key.mTime / ticksPerSecond);
-				vk.Value = XMFLOAT3(key.mValue.x, key.mValue.y, key.mValue.z);
-				boneAnim.PositionKeys.push_back(vk);
+				Vec3Key posKey;
+				posKey.Time  = (float)(key.mTime / ticksPerSecond);
+				posKey.Value = XMFLOAT3(key.mValue.x, key.mValue.y, key.mValue.z);
+				boneAnim.PositionKeys.push_back(posKey);
 			}
 
 			boneAnim.RotationKeys.reserve(channel->mNumRotationKeys);
 			for (unsigned int k = 0; k < channel->mNumRotationKeys; k++)
 			{
 				const aiQuatKey& key = channel->mRotationKeys[k];
-				QuatKey qk;
-				qk.Time = (float)(key.mTime / ticksPerSecond);
-				// aiQuaternionは(w,x,y,z)の順で保持しているが、XMFLOAT4/XMVECTORの規約(x,y,z,w)に合わせる
-				qk.Value = XMFLOAT4(key.mValue.x, key.mValue.y, key.mValue.z, key.mValue.w);
-				boneAnim.RotationKeys.push_back(qk);
+				QuatKey rotKey;
+				rotKey.Time  = (float)(key.mTime / ticksPerSecond);
+				rotKey.Value = XMFLOAT4(key.mValue.x, key.mValue.y, key.mValue.z, key.mValue.w);
+				boneAnim.RotationKeys.push_back(rotKey);
 			}
 
 			boneAnim.ScaleKeys.reserve(channel->mNumScalingKeys);
 			for (unsigned int k = 0; k < channel->mNumScalingKeys; k++)
 			{
 				const aiVectorKey& key = channel->mScalingKeys[k];
-				Vec3Key vk;
-				vk.Time = (float)(key.mTime / ticksPerSecond);
-				vk.Value = XMFLOAT3(key.mValue.x, key.mValue.y, key.mValue.z);
-				boneAnim.ScaleKeys.push_back(vk);
+				Vec3Key scaleKey;
+				scaleKey.Time  = (float)(key.mTime / ticksPerSecond);
+				scaleKey.Value = XMFLOAT3(key.mValue.x, key.mValue.y, key.mValue.z);
+				boneAnim.ScaleKeys.push_back(scaleKey);
 			}
 
-			clip.BoneAnimations.push_back(std::move(boneAnim));
+			clip.BoneAnimations.push_back(boneAnim);
 		}
 
-		clips.push_back(std::move(clip));
+		clips.push_back(clip);
 	}
 
 	aiReleaseImport(scene);

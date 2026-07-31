@@ -10,6 +10,7 @@
 #include "storyCompleteScene.h"
 #include "gameScene.h"
 #include "resultScene.h"
+#include "fbxTestScene.h"
 #include "input.h"
 #include "mouse.h"
 #include "soundManager.h"
@@ -157,6 +158,7 @@ std::unique_ptr<Scene> SceneManager::CreateScene(SceneID id)
     case SceneID::Game:          return std::make_unique<GameScene>();
     case SceneID::Result:        return std::make_unique<ResultScene>();
     case SceneID::StoryComplete: return std::make_unique<StoryCompleteScene>();
+    case SceneID::FbxTest:       return std::make_unique<FbxTestScene>();
     default:              return std::make_unique<TitleScene>();
     }
 }

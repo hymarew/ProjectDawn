@@ -15,7 +15,7 @@ struct VERTEX_3D
 
 // スキニング(ボーン変形)対応モデル専用の頂点構造体。
 // 既存のVERTEX_3D/CreateVertexShaderは他の全モデルが共有しているため変更せず、
-// GPUインスタンシング(CreateVertexShaderInstancing)と同じく専用の頂点フォーマット+専用関数を追加する形で対応する。
+// GPUインスタンシング(CreateVertexShaderInstancing)と同じく専用の頂点フォーマット+専用関数で対応する。
 struct VERTEX_3D_SKIN
 {
 	XMFLOAT3 Position;

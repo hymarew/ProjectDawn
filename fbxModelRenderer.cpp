@@ -14,7 +14,6 @@
 #pragma comment(lib, "assimp-vc143-mt.lib")
 
 #include <vector>
-#include <cmath>
 
 using namespace DirectX;
 
@@ -23,19 +22,8 @@ std::unordered_map<std::string, MODEL*>       FbxModelRenderer::m_ModelPool;
 std::unordered_map<std::string, FbxSkinData*> FbxModelRenderer::m_SkinPool;
 
 
-// Assimpの列ベクトル規約(平行移動が最後の列)からDirectXの行ベクトル規約へ転置して変換する(skeleton.cppと同じ規約)。
-static XMMATRIX ToXMMatrix(const aiMatrix4x4& m)
-{
-	return XMMatrixSet(
-		m.a1, m.b1, m.c1, m.d1,
-		m.a2, m.b2, m.c2, m.d2,
-		m.a3, m.b3, m.c3, m.d3,
-		m.a4, m.b4, m.c4, m.d4);
-}
-
-
 //======================================================================
-// Phase4: アニメーション補間 + 階層をたどったワールド変換 + 最終スキニング行列の計算
+// Phase4: アニメーション補間(キーフレーム間の線形補間/球面線形補間)
 //======================================================================
 
 static XMVECTOR InterpolateVec3(const std::vector<Vec3Key>& keys, float time, XMVECTOR defaultValue)
@@ -74,8 +62,8 @@ static XMVECTOR InterpolateQuat(const std::vector<QuatKey>& keys, float time)
 			XMVECTOR b = XMLoadFloat4(&keys[i + 1].Value);
 
 			// クォータニオンはq/-qが同じ回転を表す(二重被覆)。符号が逆転していると
-			// XMQuaternionSlerpは最短経路ではなく遠回りの補間をしてしまい、
-			// 大きく動く脚などの関節で不自然に折れ曲がって見える。内積が負なら片方を反転して揃える。
+			// XMQuaternionSlerpは最短経路ではなく遠回りの補間をしてしまい、関節が不自然に折れ曲がって見える。
+			// 内積が負なら片方を反転して揃える。
 			if (XMVectorGetX(XMQuaternionDot(a, b)) < 0.0f)
 				b = XMVectorNegate(b);
 
@@ -87,15 +75,12 @@ static XMVECTOR InterpolateQuat(const std::vector<QuatKey>& keys, float time)
 
 
 // 指定ボーンのアニメーションチャンネルから、指定時刻におけるローカル変換(Scale * Rotation * Translation)を作る。
-// 既存コード(Player::Draw等)と同じ「scale * rot * trans」の順序(行ベクトル規約)。
 //
 // 位置・回転とも「バインドポーズ + (アニメーション先頭フレームからの変化量)」という差分方式で適用する。
-// 理由: FBXのピボット分解で、HipsのようなボーンではTranslationが、LeftUpLegのようなボーンではPreRotationが
-// それぞれ親側の補助ノード("$AssimpFbx$_Translation"/"$AssimpFbx$_PreRotation")へ逃がされており、
-// ボーン自身のバインド値は実質(0,0,0)/単位回転になっている。アニメーションの絶対値をそのまま使うと、
-// 親側の補助ノードが持つ静的な値と二重に加算/合成されてしまい、位置では手足が分解し、
-// 回転では脚が変な方向へ大きく折れ曲がる(PreRotationとほぼ同じ大きさの回転が二重にかかるため)。
-// 差分方式なら「アニメーション先頭フレームからの変化量」だけを取り出すため、この分解の違いに影響されない。
+// 理由: FBXのピボット分解で、Hipsのようなボーンでは位置が、他のボーンでは事前回転がそれぞれ親側の
+// 補助ノードへ逃がされており、ボーン自身のバインド値は実質(0,0,0)/単位回転になっている。
+// アニメーションの絶対値をそのまま使うと親側の補助ノードが持つ静的な値と二重に合成されてしまい、
+// 手足が分解したり関節が変な方向へ折れ曲がる。差分方式ならこの分解の違いに影響されない。
 static XMMATRIX ComposeLocalTransform(const BoneAnimation& anim, float time, const XMMATRIX& bindLocal)
 {
 	XMVECTOR bindTranslation = XMVectorSetW(bindLocal.r[3], 0.0f);
@@ -131,30 +116,31 @@ static XMMATRIX ComposeLocalTransform(const BoneAnimation& anim, float time, con
 }
 
 
-// Skeleton(バインドポーズ + 階層)とAnimationClip(省略時はバインドポーズのまま)から、
-// GPUへ送る最終スキニング行列配列(HLSLのBoneMatrices[MAX_BONES]用、Transpose済み)を計算する。
-static void ComputeSkinnedBoneMatrices(const Skeleton& skeleton, const AnimationClip* clip, float time, std::vector<XMMATRIX>& outGpuMatrices)
+//======================================================================
+// Skeleton(バインドポーズ + 階層)から、階層をたどって各ボーンのモデル空間ワールド変換を計算する。
+// clipがnullptrならバインドポーズのまま(Phase2相当)、指定されていれば指定時刻の再生姿勢(Phase4)。
+//======================================================================
+static void ComputeGlobalTransforms(const Skeleton& skeleton, const AnimationClip* clip, float time, std::vector<XMMATRIX>& outGlobalTransforms)
 {
-	std::vector<XMMATRIX> localTransforms(skeleton.Bones.size());
+	outGlobalTransforms.resize(skeleton.Bones.size());
 
+	// 親は必ず子より前のインデックスに格納されている(Skeleton::BuildFromSceneの構築順)
 	for (size_t i = 0; i < skeleton.Bones.size(); i++)
 	{
 		const Bone& bone = skeleton.Bones[i];
 		const BoneAnimation* boneAnim = clip ? clip->FindBoneAnimation(bone.Name) : nullptr;
 
-		localTransforms[i] = boneAnim ? ComposeLocalTransform(*boneAnim, time, bone.LocalBindMatrix) : bone.LocalBindMatrix;
-	}
+		XMMATRIX localTransform = boneAnim ? ComposeLocalTransform(*boneAnim, time, bone.LocalBindMatrix) : bone.LocalBindMatrix;
 
-	// 親は必ず子より前のインデックスに格納されている(Skeleton::BuildFromSceneの構築順)
-	std::vector<XMMATRIX> globalTransforms(skeleton.Bones.size());
-	for (size_t i = 0; i < skeleton.Bones.size(); i++)
-	{
-		const Bone& bone = skeleton.Bones[i];
-		globalTransforms[i] = (bone.ParentIndex < 0)
-			? localTransforms[i]
-			: localTransforms[i] * globalTransforms[bone.ParentIndex];
+		outGlobalTransforms[i] = (bone.ParentIndex < 0)
+			? localTransform
+			: localTransform * outGlobalTransforms[bone.ParentIndex];
 	}
+}
 
+
+static void ComputeGpuBoneMatrices(const Skeleton& skeleton, const std::vector<XMMATRIX>& globalTransforms, std::vector<XMMATRIX>& outGpuMatrices)
+{
 	outGpuMatrices.assign(FbxSkinData::MAX_BONES, XMMatrixIdentity());
 	for (size_t i = 0; i < skeleton.Bones.size(); i++)
 	{
@@ -166,6 +152,17 @@ static void ComputeSkinnedBoneMatrices(const Skeleton& skeleton, const Animation
 		// 他の行列(World/View/Projection等)と同様にアップロード前にTransposeする
 		outGpuMatrices[bone.GpuIndex] = XMMatrixTranspose(bone.OffsetMatrix * globalTransforms[i]);
 	}
+}
+
+
+// 一部のFBX(このY Bot含む)は、本体メッシュ(Alpha_Surface)とは別に、関節部分を覆う
+// 小さな補助メッシュ(Alpha_Joints)を持つ。両方を同時に描画すると、アニメーション中に
+// 脚が正しく曲がらず固まって見える不具合(おそらくZファイティング/重なり由来)を確認したため、
+// 名前に"Joint"を含むサブセットは補助メッシュとみなしてスキップする。
+// (本体メッシュだけでも見た目上の欠けは無いことを確認済み)
+static bool IsJointHelperSubset(const SUBSET& subset)
+{
+	return strstr(subset.Material.Name, "Joint") != nullptr;
 }
 
 
@@ -182,6 +179,8 @@ void FbxModelRenderer::Draw()
 
 	for (unsigned int i = 0; i < m_Model->SubsetNum; i++)
 	{
+		if (IsJointHelperSubset(m_Model->SubsetArray[i])) continue;
+
 		Renderer::SetMaterial(m_Model->SubsetArray[i].Material.Material);
 
 		if (m_Model->SubsetArray[i].Material.Texture)
@@ -194,9 +193,6 @@ void FbxModelRenderer::Draw()
 
 void FbxModelRenderer::DrawShadow()
 {
-	// シャドウパスは既存のShadowDepthVS(POSITION/NORMALのみ参照)を使い回すため、
-	// スキニング有無に関わらずVERTEX_3D_SKINの先頭レイアウトがVERTEX_3Dと一致していれば問題ない。
-	// (Phase2はバインドポーズ固定のため、影も静止ポーズのままで正しい)
 	UINT stride = m_SkinData ? sizeof(VERTEX_3D_SKIN) : sizeof(VERTEX_3D);
 	UINT offset = 0;
 	Renderer::GetDeviceContext()->IASetVertexBuffers(0, 1, &m_Model->VertexBuffer, &stride, &offset);
@@ -205,6 +201,8 @@ void FbxModelRenderer::DrawShadow()
 
 	for (unsigned int i = 0; i < m_Model->SubsetNum; i++)
 	{
+		if (IsJointHelperSubset(m_Model->SubsetArray[i])) continue;
+
 		Renderer::GetDeviceContext()->DrawIndexed(m_Model->SubsetArray[i].IndexNum, m_Model->SubsetArray[i].StartIndex, 0);
 	}
 }
@@ -229,9 +227,7 @@ void FbxModelRenderer::UnloadAll()
 	m_ModelPool.clear();
 
 	for (std::pair<const std::string, FbxSkinData*> pair : m_SkinPool)
-	{
 		delete pair.second;
-	}
 	m_SkinPool.clear();
 }
 
@@ -247,18 +243,54 @@ void FbxModelRenderer::Uninit()
 }
 
 
+bool FbxModelRenderer::GetCurrentBonePositions(std::vector<XMFLOAT3>& outPositions, std::vector<int>& outParentIndices, std::vector<bool>& outHasOffset) const
+{
+	if (!m_SkinData || m_LastGlobalTransforms.empty()) return false;
+
+	const Skeleton& skeleton = m_SkinData->Skeleton;
+
+	outPositions.resize(skeleton.Bones.size());
+	outParentIndices.resize(skeleton.Bones.size());
+	outHasOffset.resize(skeleton.Bones.size());
+
+	for (size_t i = 0; i < skeleton.Bones.size(); i++)
+	{
+		XMStoreFloat3(&outPositions[i], m_LastGlobalTransforms[i].r[3]);
+		outParentIndices[i] = skeleton.Bones[i].ParentIndex;
+		outHasOffset[i] = skeleton.Bones[i].HasOffset;
+	}
+
+	return true;
+}
+
+
 void FbxModelRenderer::Update(float dt)
 {
 	if (!m_SkinData || !m_HasAnimation) return;
 
 	m_AnimTime += dt;
 	if (m_CurrentClip.Duration > 0.0f)
-		m_AnimTime = fmodf(m_AnimTime, m_CurrentClip.Duration);
+		m_AnimTime = fmodf(m_AnimTime, m_CurrentClip.Duration); // ループ再生
+
+	ComputeGlobalTransforms(m_SkinData->Skeleton, &m_CurrentClip, m_AnimTime, m_LastGlobalTransforms);
 
 	std::vector<XMMATRIX> gpuMatrices;
-	ComputeSkinnedBoneMatrices(m_SkinData->Skeleton, &m_CurrentClip, m_AnimTime, gpuMatrices);
+	ComputeGpuBoneMatrices(m_SkinData->Skeleton, m_LastGlobalTransforms, gpuMatrices);
 
 	Renderer::GetDeviceContext()->UpdateSubresource(m_BoneMatrixBuffer, 0, nullptr, gpuMatrices.data(), 0, 0);
+}
+
+
+int FbxModelRenderer::GetMatchedAnimationBoneCount() const
+{
+	if (!m_SkinData || !m_HasAnimation) return 0;
+
+	int matched = 0;
+	for (const Bone& bone : m_SkinData->Skeleton.Bones)
+		if (m_CurrentClip.FindBoneAnimation(bone.Name) != nullptr)
+			matched++;
+
+	return matched;
 }
 
 
@@ -299,12 +331,14 @@ void FbxModelRenderer::Load(const char *FileName)
 			m_SkinPool[FileName] = skinData;
 	}
 
-	// ボーン行列バッファはインスタンス固有(同じモデルを複数のGameObjectが使っても
-	// 再生中のアニメーション・時刻はそれぞれ別に持つ必要があるため、プールせず毎回生成する)
+	// ボーン行列バッファはインスタンス固有(同じモデルを複数のGameObjectが使う場合、
+	// Phase3/4では再生中のアニメーション時刻がそれぞれ別になる必要があるため、プールせず毎回生成する)
 	if (m_SkinData)
 	{
+		ComputeGlobalTransforms(m_SkinData->Skeleton, nullptr, 0.0f, m_LastGlobalTransforms); // 初期状態はバインドポーズ
+
 		std::vector<XMMATRIX> gpuMatrices;
-		ComputeSkinnedBoneMatrices(m_SkinData->Skeleton, nullptr, 0.0f, gpuMatrices); // 初期状態はバインドポーズ
+		ComputeGpuBoneMatrices(m_SkinData->Skeleton, m_LastGlobalTransforms, gpuMatrices);
 
 		D3D11_BUFFER_DESC bd{};
 		bd.Usage = D3D11_USAGE_DEFAULT;
@@ -321,10 +355,10 @@ void FbxModelRenderer::Load(const char *FileName)
 
 void FbxModelRenderer::LoadModel(const char *FileName, MODEL *Model, FbxSkinData** OutSkinData)
 {
-	// aiProcess_Triangulate      : 全ポリゴンを三角形化(既存パイプラインは三角形リスト前提)
-	// aiProcess_ConvertToLeftHanded : DirectX(左手座標系)へ変換
-	// aiProcess_GenNormals       : 法線が無いメッシュに備える(保険)
-	// aiProcess_LimitBoneWeights : 頂点あたりのボーン影響数を4以下に制限・正規化する(VERTEX_3D_SKINの枠数と一致させる)
+	// aiProcess_Triangulate         : 全ポリゴンを三角形化(既存パイプラインは三角形リスト前提)
+	// aiProcess_ConvertToLeftHanded : Assimpの右手座標系からDirectXの左手座標系へ変換
+	// aiProcess_GenNormals          : 法線が無いメッシュに備える(保険)
+	// aiProcess_LimitBoneWeights    : 頂点あたりのボーン影響数を4以下に制限・正規化する(VERTEX_3D_SKINの枠数と一致させる)
 	const aiScene* scene = aiImportFile(FileName,
 		aiProcess_Triangulate | aiProcess_ConvertToLeftHanded | aiProcess_GenNormals | aiProcess_LimitBoneWeights);
 
@@ -344,10 +378,10 @@ void FbxModelRenderer::LoadModel(const char *FileName, MODEL *Model, FbxSkinData
 		if (scene->mMeshes[m]->mNumBones > 0)
 			hasBones = true;
 
-	// ==================================================
+	//==================================================
 	// スキニング情報(Skeleton)の構築。
 	// メッシュ本体より先に、各ボーンのGPU行列インデックスを確定させておく。
-	// ==================================================
+	//==================================================
 	Skeleton skeleton;
 	if (hasBones)
 	{
@@ -366,8 +400,12 @@ void FbxModelRenderer::LoadModel(const char *FileName, MODEL *Model, FbxSkinData
 				Bone& skelBone = skeleton.Bones[boneIndex];
 				if (!skelBone.HasOffset)
 				{
-					skelBone.HasOffset   = true;
-					skelBone.OffsetMatrix = ToXMMatrix(bone->mOffsetMatrix);
+					skelBone.HasOffset    = true;
+					skelBone.OffsetMatrix = XMMatrixSet(
+						bone->mOffsetMatrix.a1, bone->mOffsetMatrix.b1, bone->mOffsetMatrix.c1, bone->mOffsetMatrix.d1,
+						bone->mOffsetMatrix.a2, bone->mOffsetMatrix.b2, bone->mOffsetMatrix.c2, bone->mOffsetMatrix.d2,
+						bone->mOffsetMatrix.a3, bone->mOffsetMatrix.b3, bone->mOffsetMatrix.c3, bone->mOffsetMatrix.d3,
+						bone->mOffsetMatrix.a4, bone->mOffsetMatrix.b4, bone->mOffsetMatrix.c4, bone->mOffsetMatrix.d4);
 					skelBone.GpuIndex     = gpuIndex++;
 				}
 			}
@@ -461,7 +499,6 @@ void FbxModelRenderer::LoadModel(const char *FileName, MODEL *Model, FbxSkinData
 
 			// どのボーンにも属さない頂点(スキンウェイトを持たない孤立頂点)は、
 			// そのまま静止させるためウェイトをこのメッシュ自身のルート変換(単位行列)へ逃がす。
-			// (Y Botのような全身スキン済みメッシュでは基本的に発生しない安全策)
 			for (unsigned int v = 0; v < mesh->mNumVertices; v++)
 			{
 				VERTEX_3D_SKIN& vertex = vertexArraySkin[vertexOffset + v];
@@ -487,6 +524,8 @@ void FbxModelRenderer::LoadModel(const char *FileName, MODEL *Model, FbxSkinData
 		subset.StartIndex = indexOffset;
 		subset.IndexNum = mesh->mNumFaces * 3;
 		subset.Material.Texture = nullptr;
+		strncpy(subset.Material.Name, mesh->mName.C_Str(), sizeof(subset.Material.Name) - 1);
+		subset.Material.Name[sizeof(subset.Material.Name) - 1] = '\0';
 
 		//==============================
 		// マテリアル読み込み
@@ -503,10 +542,10 @@ void FbxModelRenderer::LoadModel(const char *FileName, MODEL *Model, FbxSkinData
 		material->Get(AI_MATKEY_COLOR_SPECULAR, specular);
 		material->Get(AI_MATKEY_SHININESS, shininess);
 
-		subset.Material.Material.Diffuse = XMFLOAT4(diffuse.r, diffuse.g, diffuse.b, diffuse.a);
-		subset.Material.Material.Ambient = XMFLOAT4(ambient.r, ambient.g, ambient.b, ambient.a);
-		subset.Material.Material.Specular = XMFLOAT4(specular.r, specular.g, specular.b, specular.a);
-		subset.Material.Material.Emission = XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
+		subset.Material.Material.Diffuse   = XMFLOAT4(diffuse.r, diffuse.g, diffuse.b, diffuse.a);
+		subset.Material.Material.Ambient   = XMFLOAT4(ambient.r, ambient.g, ambient.b, ambient.a);
+		subset.Material.Material.Specular  = XMFLOAT4(specular.r, specular.g, specular.b, specular.a);
+		subset.Material.Material.Emission  = XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
 		subset.Material.Material.Shininess = shininess;
 
 		//==============================
@@ -536,7 +575,7 @@ void FbxModelRenderer::LoadModel(const char *FileName, MODEL *Model, FbxSkinData
 			}
 			else
 			{
-				// 外部ファイル参照。FBXと同じフォルダにあるものとして解決する。
+				// 外部ファイル参照。FBXと同じフォルダにあるものとして解決する
 				char path[MAX_PATH];
 				strcpy(path, dir);
 				strcat(path, "\\");
@@ -600,7 +639,7 @@ void FbxModelRenderer::LoadModel(const char *FileName, MODEL *Model, FbxSkinData
 	delete[] indexArray;
 
 	// Skeleton(骨格の共有データ)はここで確定させる。
-	// GPUへ送るボーン行列バッファはインスタンスごとに再生状態が異なるため、Load()側で生成する。
+	// GPUへ送るボーン行列バッファはインスタンスごとに再生状態が異なりうるため、Load()側で生成する。
 	if (hasBones)
 	{
 		FbxSkinData* skinData = new FbxSkinData();

@@ -1,6 +1,6 @@
 #pragma once
 
-// FBXから読み込んだ1本のアニメーション(Idle/Run/Jumpなど)を保持する。
+// Phase3: FBXから読み込んだ1本のアニメーション(Idle等)を保持する。
 // メッシュ+スキンを読み込むFbxModelRendererとは独立した関数として提供する
 // (キャラクターによっては、メッシュ+スキン+アニメーションを1本のFBXにまとめて含む場合と、
 //  アニメーションだけを個別のFBXとして持つ場合の両方があるため)。
@@ -30,7 +30,7 @@ struct BoneAnimation
 	std::vector<Vec3Key>   ScaleKeys;
 };
 
-// 1つのアニメーションクリップ(例: "Idle", "Run")
+// 1つのアニメーションクリップ(例: "Idle")
 struct AnimationClip
 {
 	std::string                 Name;

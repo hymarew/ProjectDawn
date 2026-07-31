@@ -1,25 +1,23 @@
 #pragma once
 
-// FBXから読み込んだボーン階層を保持する最小限のSkeleton。
-// Phase 2(スキニング)ではバインドポーズ(ノードの初期ローカル行列)のみを使うが、
-// Phase 4のアニメーション再生でも同じ階層(ParentIndexでの親子関係)をそのまま使う
-// (fbxModelRenderer.cppのComputeSkinnedBoneMatricesがバインドポーズ/アニメーション両方の計算を担う)。
+// Phase2: FBXから読み込んだボーン階層を保持する最小限のSkeleton。
+// このPhaseではバインドポーズ(ノードの初期ローカル行列)のみを使い、
+// 再生中のアニメーションは持たない(Phase3/4で別途扱う)。
 
 #include <DirectXMath.h>
 #include <string>
 #include <vector>
 
 struct aiScene;
-struct aiNode;
 
 struct Bone
 {
 	std::string       Name;
 	DirectX::XMMATRIX LocalBindMatrix = DirectX::XMMatrixIdentity(); // バインドポーズ時のノードローカル変換
 	DirectX::XMMATRIX OffsetMatrix    = DirectX::XMMatrixIdentity(); // メッシュ空間→ボーン空間(スキニング行列の算出に使う)
-	int               ParentIndex    = -1;                          // 親のBoneIndex(このSkeleton内でのインデックス)。ルートは-1
-	bool              HasOffset      = false;                       // 実際にスキニングへ使われるボーンか(falseなら中間ノードなど)
-	int               GpuIndex       = -1;                          // HasOffsetがtrueの場合、GPUへ送るボーン行列配列でのインデックス
+	int               ParentIndex     = -1;                         // 親のBoneIndex(このSkeleton内でのインデックス)。ルートは-1
+	bool              HasOffset       = false;                      // 実際にスキニングへ使われるボーンか(falseなら中間ノードなど)
+	int               GpuIndex        = -1;                         // HasOffsetがtrueの場合、GPUへ送るボーン行列配列でのインデックス
 };
 
 struct Skeleton
@@ -36,6 +34,6 @@ struct Skeleton
 	}
 
 	// シーン全体のノード階層をそのままSkeletonへ取り込む。
-	// (どのノードが実際に肌重み(skin weight)を持つボーンかは、後からOffsetMatrixを設定して確定する)
+	// (どのノードが実際にスキンウェイトを持つボーンかは、後からOffsetMatrixを設定して確定する)
 	void BuildFromScene(const aiScene* scene);
 };
