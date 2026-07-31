@@ -35,13 +35,6 @@ void TitleScene::Update(float dt)
     // クレジット表示中はそちらへ入力を委譲する
     if (m_Credit.IsOpen()) { m_Credit.Update(); return; }
 
-    // [デバッグ用] F9でFBX読み込みPhase1の動作確認シーンへ(Phase1確認後は削除して問題ない)
-    if (Input::GetKeyTrigger(VK_F9))
-    {
-        g_SceneManager.RequestChange(SceneID::FbxTest);
-        return;
-    }
-
     // カーソル移動（↑ W / ↓ S）
     if (Input::GetKeyTrigger(VK_UP)   || Input::GetKeyTrigger('W'))
         m_SelectedIndex = (m_SelectedIndex - 1 + ITEM_COUNT) % ITEM_COUNT;
