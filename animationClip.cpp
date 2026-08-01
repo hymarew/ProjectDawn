@@ -1,83 +1,112 @@
 #include "main.h"
 #include "animationClip.h"
 
-#include "assimp/cimport.h"
-#include "assimp/scene.h"
-#include "assimp/postprocess.h"
-#pragma comment(lib, "assimp-vc143-mt.lib")
+#include <fbxsdk.h>
+#include <cmath>
+
+#pragma comment(lib, "libfbxsdk-mt.lib")
+#pragma comment(lib, "libxml2-mt.lib")
+#pragma comment(lib, "zlib-mt.lib")
 
 using namespace DirectX;
+
+
+static void CollectNodesRecursive(FbxNode* node, std::vector<FbxNode*>& outNodes)
+{
+	outNodes.push_back(node);
+	for (int i = 0; i < node->GetChildCount(); i++)
+		CollectNodesRecursive(node->GetChild(i), outNodes);
+}
 
 
 std::vector<AnimationClip> LoadAnimationClips(const char* FileName)
 {
 	std::vector<AnimationClip> clips;
 
-	// メッシュ・ボーン階層と同じ変換規約(Assimp右手系→DirectX左手系)を合わせるため、
-	// FbxModelRenderer::LoadModelと同じポストプロセスフラグでインポートする。
-	const aiScene* scene = aiImportFile(FileName,
-		aiProcess_Triangulate | aiProcess_ConvertToLeftHanded | aiProcess_GenNormals);
+	FbxManager* manager = FbxManager::Create();
+	FbxIOSettings* ioSettings = FbxIOSettings::Create(manager, IOSROOT);
+	manager->SetIOSettings(ioSettings);
 
-	if (!scene || scene->mNumAnimations == 0)
+	FbxImporter* importer = FbxImporter::Create(manager, "");
+	if (!importer->Initialize(FileName, -1, manager->GetIOSettings()))
 	{
-		if (scene) aiReleaseImport(scene);
+		importer->Destroy();
+		manager->Destroy();
 		return clips;
 	}
 
-	for (unsigned int a = 0; a < scene->mNumAnimations; a++)
-	{
-		aiAnimation* anim = scene->mAnimations[a];
+	FbxScene* scene = FbxScene::Create(manager, "AnimScene");
+	importer->Import(scene);
+	importer->Destroy();
 
-		// mTicksPerSecondが0の場合(FBXでは稀に未設定)、Assimpの慣例に合わせ25fpsとみなす
-		double ticksPerSecond = (anim->mTicksPerSecond != 0.0) ? anim->mTicksPerSecond : 25.0;
+	// メッシュ側(FbxModelRenderer::LoadModel)と同じ座標系・単位系に揃える。
+	// (揃えないと、ボーン名は一致してもローカル変換の基準がずれてしまう)
+	// ConvertScene()はハンドネス変更を正しく表現できないため、DeepConvertScene()を使う
+	// (fbxModelRenderer.cpp::LoadModelと同じ理由)。
+	FbxAxisSystem::DirectX.DeepConvertScene(scene);
+	FbxSystemUnit::m.ConvertScene(scene);
+
+	std::vector<FbxNode*> nodes;
+	CollectNodesRecursive(scene->GetRootNode(), nodes);
+
+	FbxAnimEvaluator* evaluator = scene->GetAnimationEvaluator();
+
+	const int stackCount = scene->GetSrcObjectCount<FbxAnimStack>();
+	for (int a = 0; a < stackCount; a++)
+	{
+		FbxAnimStack* stack = scene->GetSrcObject<FbxAnimStack>(a);
+		scene->SetCurrentAnimationStack(stack);
+
+		FbxTimeSpan span = stack->GetLocalTimeSpan();
+		double startSec = span.GetStart().GetSecondDouble();
+		double stopSec  = span.GetStop().GetSecondDouble();
+		double duration = stopSec - startSec;
+		if (duration <= 0.0) continue;
+
+		// サンプリング周波数(Hz)。生カーブを解析せず、一定間隔でローカル変換を焼き込む方式にすることで、
+		// FBXのピボット分解(PreRotation等)の解決をFbxAnimEvaluatorに任せられる。
+		const double sampleRate = 30.0;
+		const int sampleCount = (int)std::ceil(duration * sampleRate) + 1;
 
 		AnimationClip clip;
-		clip.Name     = anim->mName.C_Str();
-		clip.Duration = (float)(anim->mDuration / ticksPerSecond);
+		clip.Name     = stack->GetName();
+		clip.Duration = (float)duration;
+		clip.BoneAnimations.resize(nodes.size());
+		for (size_t n = 0; n < nodes.size(); n++)
+			clip.BoneAnimations[n].BoneName = nodes[n]->GetName();
 
-		for (unsigned int c = 0; c < anim->mNumChannels; c++)
+		for (int s = 0; s < sampleCount; s++)
 		{
-			aiNodeAnim* channel = anim->mChannels[c];
+			double t = startSec + (double)s / sampleRate;
+			if (t > stopSec) t = stopSec;
+			float localTime = (float)(t - startSec);
 
-			BoneAnimation boneAnim;
-			boneAnim.BoneName = channel->mNodeName.C_Str();
+			FbxTime fbxTime;
+			fbxTime.SetSecondDouble(t);
 
-			boneAnim.PositionKeys.reserve(channel->mNumPositionKeys);
-			for (unsigned int k = 0; k < channel->mNumPositionKeys; k++)
+			for (size_t n = 0; n < nodes.size(); n++)
 			{
-				const aiVectorKey& key = channel->mPositionKeys[k];
-				Vec3Key posKey;
-				posKey.Time  = (float)(key.mTime / ticksPerSecond);
-				posKey.Value = XMFLOAT3(key.mValue.x, key.mValue.y, key.mValue.z);
-				boneAnim.PositionKeys.push_back(posKey);
-			}
+				FbxAMatrix local = evaluator->GetNodeLocalTransform(nodes[n], fbxTime);
 
-			boneAnim.RotationKeys.reserve(channel->mNumRotationKeys);
-			for (unsigned int k = 0; k < channel->mNumRotationKeys; k++)
-			{
-				const aiQuatKey& key = channel->mRotationKeys[k];
-				QuatKey rotKey;
-				rotKey.Time  = (float)(key.mTime / ticksPerSecond);
-				rotKey.Value = XMFLOAT4(key.mValue.x, key.mValue.y, key.mValue.z, key.mValue.w);
-				boneAnim.RotationKeys.push_back(rotKey);
-			}
+				FbxVector4    pos   = local.GetT();
+				FbxQuaternion rot   = local.GetQ();
+				FbxVector4    scale = local.GetS();
 
-			boneAnim.ScaleKeys.reserve(channel->mNumScalingKeys);
-			for (unsigned int k = 0; k < channel->mNumScalingKeys; k++)
-			{
-				const aiVectorKey& key = channel->mScalingKeys[k];
-				Vec3Key scaleKey;
-				scaleKey.Time  = (float)(key.mTime / ticksPerSecond);
-				scaleKey.Value = XMFLOAT3(key.mValue.x, key.mValue.y, key.mValue.z);
-				boneAnim.ScaleKeys.push_back(scaleKey);
-			}
+				Vec3Key posKey;   posKey.Time   = localTime; posKey.Value = XMFLOAT3((float)pos[0], (float)pos[1], (float)pos[2]);
+				QuatKey rotKey;   rotKey.Time   = localTime; rotKey.Value = XMFLOAT4((float)rot[0], (float)rot[1], (float)rot[2], (float)rot[3]);
+				Vec3Key scaleKey; scaleKey.Time = localTime; scaleKey.Value = XMFLOAT3((float)scale[0], (float)scale[1], (float)scale[2]);
 
-			clip.BoneAnimations.push_back(boneAnim);
+				clip.BoneAnimations[n].PositionKeys.push_back(posKey);
+				clip.BoneAnimations[n].RotationKeys.push_back(rotKey);
+				clip.BoneAnimations[n].ScaleKeys.push_back(scaleKey);
+			}
 		}
 
-		clips.push_back(clip);
+		clips.push_back(std::move(clip));
 	}
 
-	aiReleaseImport(scene);
+	scene->Destroy();
+	manager->Destroy();
+
 	return clips;
 }

@@ -11,6 +11,8 @@
 // 「単一頂点/インデックスバッファ + サブセット」という既存の描画方式に合わせる。
 // スキニング専用の頂点フォーマット(VERTEX_3D_SKIN)・頂点シェーダー作成関数(Renderer::CreateVertexShaderSkinned)は
 // 既存のVERTEX_3D/CreateVertexShaderとは別に追加したもので、他のモデル描画には一切影響しない。
+//
+// メッシュ・ボーン・アニメーションの読み込みはAssimpではなく Autodesk FBX SDK を使用する。
 
 #include "component.h"
 #include "modelRenderer.h"
@@ -81,7 +83,7 @@ public:
 	int GetMatchedAnimationBoneCount() const;
 
 	// デバッグ表示用: 直近フレームで計算された全ボーンのモデル空間座標と、その親ボーンのインデックス(ルートは-1)、
-	// 実際にスキニングへ使われるボーンかどうか(false = $AssimpFbx$_Translation/PreRotation等の中間ノード)を取得する。
+	// 実際にスキニングへ使われるボーンかどうか(false = 中間ノード)を取得する。
 	// アニメーション再生中はその姿勢を反映する。IsSkinned()がfalseの場合は何もせずfalseを返す。
 	bool GetCurrentBonePositions(std::vector<DirectX::XMFLOAT3>& outPositions, std::vector<int>& outParentIndices, std::vector<bool>& outHasOffset) const;
 };

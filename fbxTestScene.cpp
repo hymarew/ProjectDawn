@@ -124,10 +124,8 @@ void FbxTestScene::Draw()
             const ImU32 jointColor = IM_COL32(255, 64, 64, 255);
 
             // 親子を結ぶ線
-            // ※ 骨格には$AssimpFbx$_Translation/$AssimpFbx$_PreRotationのような、実際のスキニングに
-            //   使われない中間ノード(常にバインドポーズ=モデル原点付近に固定)も挟まっている
-            //   (例: LeftUpLeg(実ボーン) → $AssimpFbx$_Translation → $AssimpFbx$_PreRotation → LeftLeg(実ボーン))。
-            //   直接の親を辿ると中間ノードで途切れる/原点付近へ紛らわしい線が伸びるため、
+            // ※ HasOffset==falseのノード(スキンウェイトを持たない中間/補助ノード)を挟んで
+            //   実ボーン同士がつながっているケースに備え、直接の親ではなく
             //   「実際にスキニングへ使われる直近の祖先ボーン」まで遡って接続する。
             for (size_t i = 0; i < bonePositions.size(); i++)
             {

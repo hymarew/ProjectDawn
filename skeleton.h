@@ -1,14 +1,15 @@
 #pragma once
 
-// Phase2: FBXから読み込んだボーン階層を保持する最小限のSkeleton。
-// このPhaseではバインドポーズ(ノードの初期ローカル行列)のみを使い、
-// 再生中のアニメーションは持たない(Phase3/4で別途扱う)。
+// FBXから読み込んだボーン階層(バインドポーズ + スキニングに必要なオフセット行列)を保持する。
 
 #include <DirectXMath.h>
 #include <string>
 #include <vector>
 
-struct aiScene;
+// fbxsdk.hは <fbxsdk::FbxScene> を使わないコード(呼び出し側)からも "using namespace fbxsdk;" 済みの
+// 状態でインクルードされるため、ここでグローバル名前空間に class FbxScene; を前方宣言すると
+// fbxsdk::FbxScene と衝突してあいまいなシンボルになる。namespace fbxsdk 内で前方宣言する。
+namespace fbxsdk { class FbxScene; }
 
 struct Bone
 {
@@ -35,5 +36,5 @@ struct Skeleton
 
 	// シーン全体のノード階層をそのままSkeletonへ取り込む。
 	// (どのノードが実際にスキンウェイトを持つボーンかは、後からOffsetMatrixを設定して確定する)
-	void BuildFromScene(const aiScene* scene);
+	void BuildFromScene(fbxsdk::FbxScene* scene);
 };

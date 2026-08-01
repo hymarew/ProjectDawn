@@ -1,6 +1,6 @@
 #include "Common.hlsl"
 
-// Phase2: GPUスキニング用頂点シェーダー。
+// GPUスキニング用頂点シェーダー。
 // 既存のVS_IN/CreateVertexShader(VERTEX_3D専用)には手を入れず、
 // ボーン付きモデル専用の入力レイアウト+cbufferを追加する形で対応する。
 

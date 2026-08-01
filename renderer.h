@@ -27,7 +27,6 @@ struct VERTEX_3D_SKIN
 };
 
 
-
 struct MATERIAL
 {
 	XMFLOAT4	Ambient;

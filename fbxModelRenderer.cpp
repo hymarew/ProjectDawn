@@ -8,11 +8,13 @@
 #include "fbxModelRenderer.h"
 #include "DirectXTex.h"
 
-#include "assimp/cimport.h"
-#include "assimp/scene.h"
-#include "assimp/postprocess.h"
-#pragma comment(lib, "assimp-vc143-mt.lib")
+#include <fbxsdk.h>
+#pragma comment(lib, "libfbxsdk-mt.lib")
+#pragma comment(lib, "libxml2-mt.lib")
+#pragma comment(lib, "zlib-mt.lib")
+#pragma comment(lib, "Bcrypt.lib") // libxml2の乱数生成(xmlInitRandom)がBCryptGenRandomを要求する
 
+#include <algorithm>
 #include <vector>
 
 using namespace DirectX;
@@ -20,6 +22,22 @@ using namespace DirectX;
 
 std::unordered_map<std::string, MODEL*>       FbxModelRenderer::m_ModelPool;
 std::unordered_map<std::string, FbxSkinData*> FbxModelRenderer::m_SkinPool;
+
+
+// FbxAMatrixをT/R/Sへ分解してからDirectXの行ベクトル規約(Scale*Rotation*Translation)で組み直す。
+// skeleton.cppのToXMMatrixと同じ実装(GetColumn直読み+転置方式は平行移動が失われる不具合があったため)。
+static XMMATRIX ToXMMatrix(const FbxAMatrix& m)
+{
+	FbxVector4    t = m.GetT();
+	FbxQuaternion q = m.GetQ();
+	FbxVector4    s = m.GetS();
+
+	XMMATRIX sm = XMMatrixScaling((float)s[0], (float)s[1], (float)s[2]);
+	XMMATRIX rm = XMMatrixRotationQuaternion(XMVectorSet((float)q[0], (float)q[1], (float)q[2], (float)q[3]));
+	XMMATRIX tm = XMMatrixTranslation((float)t[0], (float)t[1], (float)t[2]);
+
+	return sm * rm * tm;
+}
 
 
 //======================================================================
@@ -63,7 +81,6 @@ static XMVECTOR InterpolateQuat(const std::vector<QuatKey>& keys, float time)
 
 			// クォータニオンはq/-qが同じ回転を表す(二重被覆)。符号が逆転していると
 			// XMQuaternionSlerpは最短経路ではなく遠回りの補間をしてしまい、関節が不自然に折れ曲がって見える。
-			// 内積が負なら片方を反転して揃える。
 			if (XMVectorGetX(XMQuaternionDot(a, b)) < 0.0f)
 				b = XMVectorNegate(b);
 
@@ -75,44 +92,20 @@ static XMVECTOR InterpolateQuat(const std::vector<QuatKey>& keys, float time)
 
 
 // 指定ボーンのアニメーションチャンネルから、指定時刻におけるローカル変換(Scale * Rotation * Translation)を作る。
-//
-// 位置・回転とも「バインドポーズ + (アニメーション先頭フレームからの変化量)」という差分方式で適用する。
-// 理由: FBXのピボット分解で、Hipsのようなボーンでは位置が、他のボーンでは事前回転がそれぞれ親側の
-// 補助ノードへ逃がされており、ボーン自身のバインド値は実質(0,0,0)/単位回転になっている。
-// アニメーションの絶対値をそのまま使うと親側の補助ノードが持つ静的な値と二重に合成されてしまい、
-// 手足が分解したり関節が変な方向へ折れ曲がる。差分方式ならこの分解の違いに影響されない。
-static XMMATRIX ComposeLocalTransform(const BoneAnimation& anim, float time, const XMMATRIX& bindLocal)
+// FbxAnimEvaluator::GetNodeLocalTransformで焼き込んだキー(animationClip.cpp)は、FBXのピボット分解
+// (PreRotation等)をFBX SDK側で解決済みの完全なローカル変換のため、Assimp版のような
+// 「バインドポーズ + 先頭フレームからの差分」の補正は不要で、キーの値をそのまま使える。
+static XMMATRIX ComposeLocalTransform(const BoneAnimation& anim, float time)
 {
-	XMVECTOR bindTranslation = XMVectorSetW(bindLocal.r[3], 0.0f);
-	XMVECTOR bindRotation    = XMQuaternionRotationMatrix(bindLocal);
-
-	// 位置: バインド位置 + (現在値 - 先頭キー値)
-	XMVECTOR translation = bindTranslation;
-	if (!anim.PositionKeys.empty())
-	{
-		XMVECTOR firstPos = XMLoadFloat3(&anim.PositionKeys[0].Value);
-		XMVECTOR curPos   = InterpolateVec3(anim.PositionKeys, time, firstPos);
-		translation = XMVectorAdd(bindTranslation, XMVectorSubtract(curPos, firstPos));
-	}
-
-	// 回転: バインド回転 * (先頭キー回転の逆 * 現在の回転) ※行ベクトル規約でA*Bは「Aを先に適用」
-	XMMATRIX bindRotMatrix = XMMatrixRotationQuaternion(bindRotation);
-	XMMATRIX rotMatrix = bindRotMatrix;
-	if (!anim.RotationKeys.empty())
-	{
-		XMVECTOR firstRot = XMLoadFloat4(&anim.RotationKeys[0].Value);
-		XMVECTOR curRot   = InterpolateQuat(anim.RotationKeys, time);
-		XMMATRIX firstRotMatrixInv = XMMatrixInverse(nullptr, XMMatrixRotationQuaternion(firstRot));
-		XMMATRIX curRotMatrix      = XMMatrixRotationQuaternion(curRot);
-		rotMatrix = bindRotMatrix * firstRotMatrixInv * curRotMatrix;
-	}
-
-	XMVECTOR scale = InterpolateVec3(anim.ScaleKeys, time, XMVectorSet(1.0f, 1.0f, 1.0f, 0.0f));
+	XMVECTOR position = InterpolateVec3(anim.PositionKeys, time, XMVectorZero());
+	XMVECTOR rotation = InterpolateQuat(anim.RotationKeys, time);
+	XMVECTOR scale    = InterpolateVec3(anim.ScaleKeys, time, XMVectorSet(1.0f, 1.0f, 1.0f, 0.0f));
 
 	XMMATRIX s = XMMatrixScalingFromVector(scale);
-	XMMATRIX t = XMMatrixTranslationFromVector(translation);
+	XMMATRIX r = XMMatrixRotationQuaternion(rotation);
+	XMMATRIX t = XMMatrixTranslationFromVector(position);
 
-	return s * rotMatrix * t;
+	return s * r * t;
 }
 
 
@@ -130,7 +123,7 @@ static void ComputeGlobalTransforms(const Skeleton& skeleton, const AnimationCli
 		const Bone& bone = skeleton.Bones[i];
 		const BoneAnimation* boneAnim = clip ? clip->FindBoneAnimation(bone.Name) : nullptr;
 
-		XMMATRIX localTransform = boneAnim ? ComposeLocalTransform(*boneAnim, time, bone.LocalBindMatrix) : bone.LocalBindMatrix;
+		XMMATRIX localTransform = boneAnim ? ComposeLocalTransform(*boneAnim, time) : bone.LocalBindMatrix;
 
 		outGlobalTransforms[i] = (bone.ParentIndex < 0)
 			? localTransform
@@ -155,17 +148,6 @@ static void ComputeGpuBoneMatrices(const Skeleton& skeleton, const std::vector<X
 }
 
 
-// 一部のFBX(このY Bot含む)は、本体メッシュ(Alpha_Surface)とは別に、関節部分を覆う
-// 小さな補助メッシュ(Alpha_Joints)を持つ。両方を同時に描画すると、アニメーション中に
-// 脚が正しく曲がらず固まって見える不具合(おそらくZファイティング/重なり由来)を確認したため、
-// 名前に"Joint"を含むサブセットは補助メッシュとみなしてスキップする。
-// (本体メッシュだけでも見た目上の欠けは無いことを確認済み)
-static bool IsJointHelperSubset(const SUBSET& subset)
-{
-	return strstr(subset.Material.Name, "Joint") != nullptr;
-}
-
-
 void FbxModelRenderer::Draw()
 {
 	UINT stride = m_SkinData ? sizeof(VERTEX_3D_SKIN) : sizeof(VERTEX_3D);
@@ -179,8 +161,6 @@ void FbxModelRenderer::Draw()
 
 	for (unsigned int i = 0; i < m_Model->SubsetNum; i++)
 	{
-		if (IsJointHelperSubset(m_Model->SubsetArray[i])) continue;
-
 		Renderer::SetMaterial(m_Model->SubsetArray[i].Material.Material);
 
 		if (m_Model->SubsetArray[i].Material.Texture)
@@ -201,8 +181,6 @@ void FbxModelRenderer::DrawShadow()
 
 	for (unsigned int i = 0; i < m_Model->SubsetNum; i++)
 	{
-		if (IsJointHelperSubset(m_Model->SubsetArray[i])) continue;
-
 		Renderer::GetDeviceContext()->DrawIndexed(m_Model->SubsetArray[i].IndexNum, m_Model->SubsetArray[i].StartIndex, 0);
 	}
 }
@@ -294,6 +272,37 @@ int FbxModelRenderer::GetMatchedAnimationBoneCount() const
 }
 
 
+// クリップ全体でボーンがどれだけ動いているかを表すスコア(位置キーの変化量二乗和 + 回転キーの変化量)。
+// MixamoのFBXは既定で、実質動きの無い短い"Take 001"と実際の動きを持つ"mixamo.com"の
+// 2本のAnimStackを含むことがある。どちらが「実際に動く方」かは名前や再生時間では判別できない
+// (例: Idle.fbxはmixamo.comの方が長いが、Running.fbxはTake 001の方が長い)ため、
+// 実際のキー値の変化量で判定する。
+static float ComputeMotionScore(const AnimationClip& clip)
+{
+	float score = 0.0f;
+
+	for (const BoneAnimation& boneAnim : clip.BoneAnimations)
+	{
+		for (size_t k = 1; k < boneAnim.PositionKeys.size(); k++)
+		{
+			XMVECTOR a = XMLoadFloat3(&boneAnim.PositionKeys[k - 1].Value);
+			XMVECTOR b = XMLoadFloat3(&boneAnim.PositionKeys[k].Value);
+			score += XMVectorGetX(XMVector3LengthSq(XMVectorSubtract(b, a)));
+		}
+
+		for (size_t k = 1; k < boneAnim.RotationKeys.size(); k++)
+		{
+			XMVECTOR a = XMLoadFloat4(&boneAnim.RotationKeys[k - 1].Value);
+			XMVECTOR b = XMLoadFloat4(&boneAnim.RotationKeys[k].Value);
+			float dot = fabsf(XMVectorGetX(XMQuaternionDot(a, b))); // 符号違いの二重被覆を吸収
+			score += (1.0f - dot);
+		}
+	}
+
+	return score;
+}
+
+
 void FbxModelRenderer::PlayAnimation(const char *FileName)
 {
 	if (!m_SkinData) return; // スキニングモデルでなければ何もしない
@@ -301,7 +310,19 @@ void FbxModelRenderer::PlayAnimation(const char *FileName)
 	std::vector<AnimationClip> clips = LoadAnimationClips(FileName);
 	if (clips.empty()) return;
 
-	m_CurrentClip = clips[0];
+	const AnimationClip* best = &clips[0];
+	float bestScore = ComputeMotionScore(*best);
+	for (size_t i = 1; i < clips.size(); i++)
+	{
+		float score = ComputeMotionScore(clips[i]);
+		if (score > bestScore)
+		{
+			best = &clips[i];
+			bestScore = score;
+		}
+	}
+
+	m_CurrentClip = *best;
 	m_AnimTime = 0.0f;
 	m_HasAnimation = true;
 }
@@ -353,29 +374,76 @@ void FbxModelRenderer::Load(const char *FileName)
 }
 
 
+static void CollectMeshNodesRecursive(FbxNode* node, std::vector<FbxNode*>& outMeshNodes)
+{
+	FbxNodeAttribute* attr = node->GetNodeAttribute();
+	if (attr && attr->GetAttributeType() == FbxNodeAttribute::eMesh)
+		outMeshNodes.push_back(node);
+
+	for (int i = 0; i < node->GetChildCount(); i++)
+		CollectMeshNodesRecursive(node->GetChild(i), outMeshNodes);
+}
+
+
+// 頂点あたり最大4影響のBLENDINDICES/BLENDWEIGHT枠に合わせて上位4件のみ残し、合計が1になるよう正規化する。
+// (AssimpのaiProcess_LimitBoneWeightsに相当する処理をFBX SDK側で手動実装)
+static void LimitAndNormalizeWeights(std::vector<std::pair<int, float>>& weights)
+{
+	if (weights.size() > 4)
+	{
+		std::partial_sort(weights.begin(), weights.begin() + 4, weights.end(),
+			[](const std::pair<int, float>& a, const std::pair<int, float>& b) { return a.second > b.second; });
+		weights.resize(4);
+	}
+
+	float sum = 0.0f;
+	for (auto& w : weights) sum += w.second;
+	if (sum > 0.0f)
+		for (auto& w : weights) w.second /= sum;
+}
+
+
 void FbxModelRenderer::LoadModel(const char *FileName, MODEL *Model, FbxSkinData** OutSkinData)
 {
-	// aiProcess_Triangulate         : 全ポリゴンを三角形化(既存パイプラインは三角形リスト前提)
-	// aiProcess_ConvertToLeftHanded : Assimpの右手座標系からDirectXの左手座標系へ変換
-	// aiProcess_GenNormals          : 法線が無いメッシュに備える(保険)
-	// aiProcess_LimitBoneWeights    : 頂点あたりのボーン影響数を4以下に制限・正規化する(VERTEX_3D_SKINの枠数と一致させる)
-	const aiScene* scene = aiImportFile(FileName,
-		aiProcess_Triangulate | aiProcess_ConvertToLeftHanded | aiProcess_GenNormals | aiProcess_LimitBoneWeights);
+	FbxManager* manager = FbxManager::Create();
+	FbxIOSettings* ioSettings = FbxIOSettings::Create(manager, IOSROOT);
+	manager->SetIOSettings(ioSettings);
 
-	if (!scene)
+	FbxImporter* importer = FbxImporter::Create(manager, "");
+	if (!importer->Initialize(FileName, -1, manager->GetIOSettings()))
 	{
-		MessageBoxA(nullptr, aiGetErrorString(), "FBX Load Error", MB_OK);
-		assert(scene);
+		MessageBoxA(nullptr, importer->GetStatus().GetErrorString(), "FBX Load Error", MB_OK);
+		importer->Destroy();
+		manager->Destroy();
+		assert(false);
 		return;
 	}
+
+	FbxScene* scene = FbxScene::Create(manager, "ModelScene");
+	importer->Import(scene);
+	importer->Destroy();
+
+	// 全ポリゴンを三角形化(既存パイプラインは三角形リスト前提)
+	FbxGeometryConverter geometryConverter(manager);
+	geometryConverter.Triangulate(scene, true);
+
+	// FBXの座標系(Maya等: 右手系が多い)からDirectXの左手座標系へ変換。
+	// ConvertScene()はルートノードに補正回転を足すだけで、ハンドネス変更(右手系→左手系)を
+	// 正しく表現できない(ドキュメントに明記)。DeepConvertScene()は階層全体の変換・頂点位置・
+	// アニメーションカーブまで再計算するため、こちらを使う必要がある。
+	FbxAxisSystem::DirectX.DeepConvertScene(scene);
+	FbxSystemUnit::m.ConvertScene(scene);
 
 	char dir[MAX_PATH];
 	strcpy(dir, FileName);
 	PathRemoveFileSpec(dir);
 
+	std::vector<FbxNode*> meshNodes;
+	CollectMeshNodesRecursive(scene->GetRootNode(), meshNodes);
+
 	bool hasBones = false;
-	for (unsigned int m = 0; m < scene->mNumMeshes; m++)
-		if (scene->mMeshes[m]->mNumBones > 0)
+	for (FbxNode* node : meshNodes)
+		if (node->GetMesh()->GetDeformerCount(FbxDeformer::eSkin) > 0)
 			hasBones = true;
 
 	//==================================================
@@ -388,25 +456,37 @@ void FbxModelRenderer::LoadModel(const char *FileName, MODEL *Model, FbxSkinData
 		skeleton.BuildFromScene(scene);
 
 		int gpuIndex = 0;
-		for (unsigned int m = 0; m < scene->mNumMeshes; m++)
+		for (FbxNode* node : meshNodes)
 		{
-			aiMesh* mesh = scene->mMeshes[m];
-			for (unsigned int b = 0; b < mesh->mNumBones; b++)
+			FbxMesh* mesh = node->GetMesh();
+			int skinCount = mesh->GetDeformerCount(FbxDeformer::eSkin);
+			for (int sk = 0; sk < skinCount; sk++)
 			{
-				aiBone* bone = mesh->mBones[b];
-				int boneIndex = skeleton.FindBoneIndex(bone->mName.C_Str());
-				if (boneIndex < 0) continue; // 通常は起こらないはず(ノード階層に必ず存在する)
-
-				Bone& skelBone = skeleton.Bones[boneIndex];
-				if (!skelBone.HasOffset)
+				FbxSkin* skin = (FbxSkin*)mesh->GetDeformer(sk, FbxDeformer::eSkin);
+				int clusterCount = skin->GetClusterCount();
+				for (int c = 0; c < clusterCount; c++)
 				{
-					skelBone.HasOffset    = true;
-					skelBone.OffsetMatrix = XMMatrixSet(
-						bone->mOffsetMatrix.a1, bone->mOffsetMatrix.b1, bone->mOffsetMatrix.c1, bone->mOffsetMatrix.d1,
-						bone->mOffsetMatrix.a2, bone->mOffsetMatrix.b2, bone->mOffsetMatrix.c2, bone->mOffsetMatrix.d2,
-						bone->mOffsetMatrix.a3, bone->mOffsetMatrix.b3, bone->mOffsetMatrix.c3, bone->mOffsetMatrix.d3,
-						bone->mOffsetMatrix.a4, bone->mOffsetMatrix.b4, bone->mOffsetMatrix.c4, bone->mOffsetMatrix.d4);
-					skelBone.GpuIndex     = gpuIndex++;
+					FbxCluster* cluster = skin->GetCluster(c);
+					FbxNode* link = cluster->GetLink();
+					if (!link) continue;
+
+					int boneIndex = skeleton.FindBoneIndex(link->GetName());
+					if (boneIndex < 0) continue; // 通常は起こらないはず(ノード階層に必ず存在する)
+
+					Bone& skelBone = skeleton.Bones[boneIndex];
+					if (!skelBone.HasOffset)
+					{
+						FbxAMatrix transformMatrix;     // メッシュのバインド時グローバル変換
+						FbxAMatrix transformLinkMatrix; // ボーンのバインド時グローバル変換
+						cluster->GetTransformMatrix(transformMatrix);
+						cluster->GetTransformLinkMatrix(transformLinkMatrix);
+
+						FbxAMatrix offset = transformLinkMatrix.Inverse() * transformMatrix;
+
+						skelBone.HasOffset    = true;
+						skelBone.OffsetMatrix = ToXMMatrix(offset);
+						skelBone.GpuIndex     = gpuIndex++;
+					}
 				}
 			}
 		}
@@ -415,193 +495,218 @@ void FbxModelRenderer::LoadModel(const char *FileName, MODEL *Model, FbxSkinData
 
 	// 全メッシュを単一の頂点/インデックスバッファへ結合し、メッシュ単位でSUBSET(描画範囲+マテリアル)に分ける。
 	unsigned int totalVertexNum = 0;
-	unsigned int totalIndexNum = 0;
-	for (unsigned int m = 0; m < scene->mNumMeshes; m++)
-	{
-		totalVertexNum += scene->mMeshes[m]->mNumVertices;
-		totalIndexNum += scene->mMeshes[m]->mNumFaces * 3;
-	}
+	for (FbxNode* node : meshNodes)
+		totalVertexNum += node->GetMesh()->GetPolygonCount() * 3;
+	unsigned int totalIndexNum = totalVertexNum; // 頂点を共有せず、ポリゴン頂点ごとに1頂点を割り当てる
 
-	// スキニング無し(Phase1)と有り(Phase2)で頂点フォーマットが異なるため配列を出し分ける。
 	VERTEX_3D*      vertexArray     = hasBones ? nullptr : new VERTEX_3D[totalVertexNum];
 	VERTEX_3D_SKIN* vertexArraySkin = hasBones ? new VERTEX_3D_SKIN[totalVertexNum] : nullptr;
 	unsigned int* indexArray = new unsigned int[totalIndexNum];
 
-	Model->SubsetArray = new SUBSET[scene->mNumMeshes];
-	Model->SubsetNum = scene->mNumMeshes;
+	Model->SubsetArray = new SUBSET[meshNodes.size()];
+	Model->SubsetNum = (unsigned int)meshNodes.size();
 
 	unsigned int vertexOffset = 0;
 	unsigned int indexOffset = 0;
 
-	for (unsigned int m = 0; m < scene->mNumMeshes; m++)
+	for (size_t m = 0; m < meshNodes.size(); m++)
 	{
-		aiMesh* mesh = scene->mMeshes[m];
+		FbxNode* node = meshNodes[m];
+		FbxMesh* mesh = node->GetMesh();
 
-		for (unsigned int v = 0; v < mesh->mNumVertices; v++)
-		{
-			XMFLOAT3 position = XMFLOAT3(mesh->mVertices[v].x, mesh->mVertices[v].y, mesh->mVertices[v].z);
+		const int polygonCount = mesh->GetPolygonCount();
+		const FbxVector4* controlPoints = mesh->GetControlPoints();
 
-			XMFLOAT3 normal = mesh->HasNormals()
-				? XMFLOAT3(mesh->mNormals[v].x, mesh->mNormals[v].y, mesh->mNormals[v].z)
-				: XMFLOAT3(0.0f, 1.0f, 0.0f);
-
-			XMFLOAT2 texCoord = mesh->HasTextureCoords(0)
-				? XMFLOAT2(mesh->mTextureCoords[0][v].x, mesh->mTextureCoords[0][v].y)
-				: XMFLOAT2(0.0f, 0.0f);
-
-			if (hasBones)
-			{
-				VERTEX_3D_SKIN& vertex = vertexArraySkin[vertexOffset + v];
-				vertex.Position = position;
-				vertex.Normal   = normal;
-				vertex.TexCoord = texCoord;
-				vertex.Diffuse  = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-				vertex.BoneIndices[0] = vertex.BoneIndices[1] = vertex.BoneIndices[2] = vertex.BoneIndices[3] = 0;
-				vertex.BoneWeights = XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
-			}
-			else
-			{
-				VERTEX_3D& vertex = vertexArray[vertexOffset + v];
-				vertex.Position = position;
-				vertex.Normal   = normal;
-				vertex.TexCoord = texCoord;
-				vertex.Diffuse  = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-			}
-		}
-
-		// ボーンごとの頂点ウェイトをVERTEX_3D_SKINへ書き込む(aiProcess_LimitBoneWeightsにより最大4件/頂点)
+		//==============================
+		// このメッシュのスキンウェイトを制御点ごとに集計(上位4件+正規化)
+		//==============================
+		std::vector<std::vector<std::pair<int, float>>> controlPointWeights;
 		if (hasBones)
 		{
-			std::vector<int> nextSlot(mesh->mNumVertices, 0);
+			controlPointWeights.resize(mesh->GetControlPointsCount());
 
-			for (unsigned int b = 0; b < mesh->mNumBones; b++)
+			int skinCount = mesh->GetDeformerCount(FbxDeformer::eSkin);
+			for (int sk = 0; sk < skinCount; sk++)
 			{
-				aiBone* bone = mesh->mBones[b];
-				int boneIndex = skeleton.FindBoneIndex(bone->mName.C_Str());
-				if (boneIndex < 0) continue;
-				int gpuIndex = skeleton.Bones[boneIndex].GpuIndex;
-
-				for (unsigned int w = 0; w < bone->mNumWeights; w++)
+				FbxSkin* skin = (FbxSkin*)mesh->GetDeformer(sk, FbxDeformer::eSkin);
+				int clusterCount = skin->GetClusterCount();
+				for (int c = 0; c < clusterCount; c++)
 				{
-					unsigned int vid = bone->mWeights[w].mVertexId;
-					float weight = bone->mWeights[w].mWeight;
-					if (weight <= 0.0f) continue;
+					FbxCluster* cluster = skin->GetCluster(c);
+					FbxNode* link = cluster->GetLink();
+					if (!link) continue;
 
-					int slot = nextSlot[vid];
-					if (slot >= 4) continue; // 4件を超える分は切り捨て(通常はLimitBoneWeightsで発生しない)
+					int boneIndex = skeleton.FindBoneIndex(link->GetName());
+					if (boneIndex < 0) continue;
+					int gpuIndex = skeleton.Bones[boneIndex].GpuIndex;
 
-					VERTEX_3D_SKIN& vertex = vertexArraySkin[vertexOffset + vid];
-					vertex.BoneIndices[slot] = (UINT)gpuIndex;
-					reinterpret_cast<float*>(&vertex.BoneWeights)[slot] = weight;
-					nextSlot[vid] = slot + 1;
+					int indexCount = cluster->GetControlPointIndicesCount();
+					int* indices = cluster->GetControlPointIndices();
+					double* weights = cluster->GetControlPointWeights();
+
+					for (int k = 0; k < indexCount; k++)
+					{
+						if (weights[k] <= 0.0) continue;
+						controlPointWeights[indices[k]].push_back({ gpuIndex, (float)weights[k] });
+					}
 				}
 			}
 
-			// どのボーンにも属さない頂点(スキンウェイトを持たない孤立頂点)は、
-			// そのまま静止させるためウェイトをこのメッシュ自身のルート変換(単位行列)へ逃がす。
-			for (unsigned int v = 0; v < mesh->mNumVertices; v++)
-			{
-				VERTEX_3D_SKIN& vertex = vertexArraySkin[vertexOffset + v];
-				float sum = vertex.BoneWeights.x + vertex.BoneWeights.y + vertex.BoneWeights.z + vertex.BoneWeights.w;
-				if (sum <= 0.0f)
-				{
-					vertex.BoneIndices[0] = 0;
-					vertex.BoneWeights = XMFLOAT4(1.0f, 0.0f, 0.0f, 0.0f);
-				}
-			}
+			for (auto& weights : controlPointWeights)
+				LimitAndNormalizeWeights(weights);
 		}
 
-		for (unsigned int f = 0; f < mesh->mNumFaces; f++)
-		{
-			const aiFace& face = mesh->mFaces[f];
+		FbxStringList uvSetNames;
+		mesh->GetUVSetNames(uvSetNames);
+		const char* uvSetName = (uvSetNames.GetCount() > 0) ? uvSetNames[0] : nullptr;
 
-			indexArray[indexOffset + f * 3 + 0] = vertexOffset + face.mIndices[0];
-			indexArray[indexOffset + f * 3 + 1] = vertexOffset + face.mIndices[1];
-			indexArray[indexOffset + f * 3 + 2] = vertexOffset + face.mIndices[2];
+		unsigned int writeIndex = 0;
+		for (int p = 0; p < polygonCount; p++)
+		{
+			if (mesh->GetPolygonSize(p) != 3) continue; // 三角形化済みのはずだが念のためガード
+
+			for (int corner = 0; corner < 3; corner++)
+			{
+				int cpIndex = mesh->GetPolygonVertex(p, corner);
+				FbxVector4 cp = controlPoints[cpIndex];
+
+				FbxVector4 normal4;
+				mesh->GetPolygonVertexNormal(p, corner, normal4);
+
+				FbxVector2 uv2(0.0, 0.0);
+				if (uvSetName)
+				{
+					bool unmapped = false;
+					mesh->GetPolygonVertexUV(p, corner, uvSetName, uv2, unmapped);
+				}
+
+				XMFLOAT3 position = XMFLOAT3((float)cp[0], (float)cp[1], (float)cp[2]);
+				XMFLOAT3 normal   = XMFLOAT3((float)normal4[0], (float)normal4[1], (float)normal4[2]);
+				XMFLOAT2 texCoord = XMFLOAT2((float)uv2[0], 1.0f - (float)uv2[1]); // FBXのV軸はDirectXと上下逆
+
+				unsigned int vid = vertexOffset + writeIndex;
+
+				if (hasBones)
+				{
+					VERTEX_3D_SKIN& vertex = vertexArraySkin[vid];
+					vertex.Position = position;
+					vertex.Normal   = normal;
+					vertex.TexCoord = texCoord;
+					vertex.Diffuse  = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+
+					vertex.BoneIndices[0] = vertex.BoneIndices[1] = vertex.BoneIndices[2] = vertex.BoneIndices[3] = 0;
+					vertex.BoneWeights = XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
+
+					const std::vector<std::pair<int, float>>& weights = controlPointWeights[cpIndex];
+					if (weights.empty())
+					{
+						// どのボーンにも属さない頂点は、そのまま静止させるため単位行列(GpuIndex 0)へフルウェイトで逃がす
+						vertex.BoneWeights = XMFLOAT4(1.0f, 0.0f, 0.0f, 0.0f);
+					}
+					else
+					{
+						for (size_t w = 0; w < weights.size(); w++)
+						{
+							vertex.BoneIndices[w] = (UINT)weights[w].first;
+							reinterpret_cast<float*>(&vertex.BoneWeights)[w] = weights[w].second;
+						}
+					}
+				}
+				else
+				{
+					VERTEX_3D& vertex = vertexArray[vid];
+					vertex.Position = position;
+					vertex.Normal   = normal;
+					vertex.TexCoord = texCoord;
+					vertex.Diffuse  = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+				}
+
+				indexArray[indexOffset + writeIndex] = vid;
+				writeIndex++;
+			}
 		}
 
 		SUBSET& subset = Model->SubsetArray[m];
 		subset.StartIndex = indexOffset;
-		subset.IndexNum = mesh->mNumFaces * 3;
+		subset.IndexNum = writeIndex;
 		subset.Material.Texture = nullptr;
-		strncpy(subset.Material.Name, mesh->mName.C_Str(), sizeof(subset.Material.Name) - 1);
+		strncpy(subset.Material.Name, node->GetName(), sizeof(subset.Material.Name) - 1);
 		subset.Material.Name[sizeof(subset.Material.Name) - 1] = '\0';
 
 		//==============================
 		// マテリアル読み込み
 		//==============================
-		aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
+		FbxSurfaceMaterial* material = (node->GetMaterialCount() > 0) ? node->GetMaterial(0) : nullptr;
 
-		aiColor4D diffuse(1.0f, 1.0f, 1.0f, 1.0f);
-		aiColor4D ambient(0.2f, 0.2f, 0.2f, 1.0f);
-		aiColor4D specular(0.0f, 0.0f, 0.0f, 1.0f);
-		float shininess = 0.0f;
+		FbxDouble3 diffuse(1.0, 1.0, 1.0);
+		FbxDouble3 ambient(0.2, 0.2, 0.2);
+		FbxDouble3 specular(0.0, 0.0, 0.0);
+		double shininess = 0.0;
 
-		material->Get(AI_MATKEY_COLOR_DIFFUSE, diffuse);
-		material->Get(AI_MATKEY_COLOR_AMBIENT, ambient);
-		material->Get(AI_MATKEY_COLOR_SPECULAR, specular);
-		material->Get(AI_MATKEY_SHININESS, shininess);
-
-		subset.Material.Material.Diffuse   = XMFLOAT4(diffuse.r, diffuse.g, diffuse.b, diffuse.a);
-		subset.Material.Material.Ambient   = XMFLOAT4(ambient.r, ambient.g, ambient.b, ambient.a);
-		subset.Material.Material.Specular  = XMFLOAT4(specular.r, specular.g, specular.b, specular.a);
-		subset.Material.Material.Emission  = XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
-		subset.Material.Material.Shininess = shininess;
-
-		//==============================
-		// テクスチャ読み込み(外部ファイル参照 / FBX埋め込みの両方に対応)
-		//==============================
-		aiString texPath;
-		if (material->GetTexture(aiTextureType_DIFFUSE, 0, &texPath) == AI_SUCCESS && texPath.length > 0)
+		if (material)
 		{
-			TexMetadata metadata;
-			ScratchImage image;
-			bool loaded = false;
+			FbxProperty prop;
+			prop = material->FindProperty(FbxSurfaceMaterial::sDiffuse);
+			if (prop.IsValid()) diffuse = prop.Get<FbxDouble3>();
+			prop = material->FindProperty(FbxSurfaceMaterial::sAmbient);
+			if (prop.IsValid()) ambient = prop.Get<FbxDouble3>();
+			prop = material->FindProperty(FbxSurfaceMaterial::sSpecular);
+			if (prop.IsValid()) specular = prop.Get<FbxDouble3>();
+			prop = material->FindProperty(FbxSurfaceMaterial::sShininess);
+			if (prop.IsValid()) shininess = prop.Get<FbxDouble>();
+			// sTransparencyFactorは単体では信頼できない(多くのエクスポータがTransparentColorとの
+			// 掛け算前提で1.0を既定値にしており、そのままアルファに使うと不透明マテリアルが透明になる)。
+			// 今回のFBXは透明マテリアルを使わないため、アルファは常に不透明(1.0)とする。
+		}
 
-			if (texPath.data[0] == '*')
+		subset.Material.Material.Diffuse   = XMFLOAT4((float)diffuse[0], (float)diffuse[1], (float)diffuse[2], 1.0f);
+		subset.Material.Material.Ambient   = XMFLOAT4((float)ambient[0], (float)ambient[1], (float)ambient[2], 1.0f);
+		subset.Material.Material.Specular  = XMFLOAT4((float)specular[0], (float)specular[1], (float)specular[2], 1.0f);
+		subset.Material.Material.Emission  = XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
+		subset.Material.Material.Shininess = (float)shininess;
+
+		//==============================
+		// テクスチャ読み込み(外部ファイル参照)
+		//==============================
+		if (material)
+		{
+			FbxProperty diffuseProp = material->FindProperty(FbxSurfaceMaterial::sDiffuse);
+			int fileTexCount = diffuseProp.IsValid() ? diffuseProp.GetSrcObjectCount<FbxFileTexture>() : 0;
+			if (fileTexCount > 0)
 			{
-				// FBX内部に埋め込まれたテクスチャ("*0"のようにインデックスで参照される)
-				int texIndex = atoi(texPath.data + 1);
-				if (texIndex >= 0 && texIndex < (int)scene->mNumTextures)
+				FbxFileTexture* tex = diffuseProp.GetSrcObject<FbxFileTexture>(0);
+				const char* texFileName = tex->GetRelativeFileName();
+				if (!texFileName || texFileName[0] == '\0')
+					texFileName = tex->GetFileName();
+
+				if (texFileName && texFileName[0] != '\0')
 				{
-					aiTexture* embeddedTex = scene->mTextures[texIndex];
-					if (embeddedTex->mHeight == 0)
+					char path[MAX_PATH];
+					strcpy(path, dir);
+					strcat(path, "\\");
+					strcat(path, PathFindFileNameA(texFileName));
+
+					wchar_t wpath[MAX_PATH];
+					mbstowcs(wpath, path, MAX_PATH);
+
+					TexMetadata metadata;
+					ScratchImage image;
+					if (SUCCEEDED(LoadFromWICFile(wpath, WIC_FLAGS_NONE, &metadata, image)))
 					{
-						// 圧縮画像(png/jpg等)がそのままメモリ上に格納されている
-						if (SUCCEEDED(LoadFromWICMemory((const uint8_t*)embeddedTex->pcData, embeddedTex->mWidth, WIC_FLAGS_NONE, &metadata, image)))
-							loaded = true;
+						ScratchImage mipChain;
+						if (SUCCEEDED(GenerateMipMaps(image.GetImages(), image.GetImageCount(), image.GetMetadata(), TEX_FILTER_DEFAULT, 0, mipChain)))
+							CreateShaderResourceView(Renderer::GetDevice(), mipChain.GetImages(), mipChain.GetImageCount(), mipChain.GetMetadata(), &subset.Material.Texture);
+						else
+							CreateShaderResourceView(Renderer::GetDevice(), image.GetImages(), image.GetImageCount(), metadata, &subset.Material.Texture);
 					}
 				}
-			}
-			else
-			{
-				// 外部ファイル参照。FBXと同じフォルダにあるものとして解決する
-				char path[MAX_PATH];
-				strcpy(path, dir);
-				strcat(path, "\\");
-				strcat(path, texPath.data);
-
-				wchar_t wpath[MAX_PATH];
-				mbstowcs(wpath, path, MAX_PATH);
-
-				if (SUCCEEDED(LoadFromWICFile(wpath, WIC_FLAGS_NONE, &metadata, image)))
-					loaded = true;
-			}
-
-			if (loaded)
-			{
-				ScratchImage mipChain;
-				if (SUCCEEDED(GenerateMipMaps(image.GetImages(), image.GetImageCount(), image.GetMetadata(), TEX_FILTER_DEFAULT, 0, mipChain)))
-					CreateShaderResourceView(Renderer::GetDevice(), mipChain.GetImages(), mipChain.GetImageCount(), mipChain.GetMetadata(), &subset.Material.Texture);
-				else
-					CreateShaderResourceView(Renderer::GetDevice(), image.GetImages(), image.GetImageCount(), metadata, &subset.Material.Texture);
 			}
 		}
 
 		subset.Material.Material.TextureEnable = (subset.Material.Texture != nullptr);
 
-		vertexOffset += mesh->mNumVertices;
-		indexOffset += mesh->mNumFaces * 3;
+		vertexOffset += writeIndex;
+		indexOffset += writeIndex;
 	}
 
 	//==============================
@@ -610,7 +715,7 @@ void FbxModelRenderer::LoadModel(const char *FileName, MODEL *Model, FbxSkinData
 	{
 		D3D11_BUFFER_DESC bd{};
 		bd.Usage = D3D11_USAGE_DEFAULT;
-		bd.ByteWidth = hasBones ? (sizeof(VERTEX_3D_SKIN) * totalVertexNum) : (sizeof(VERTEX_3D) * totalVertexNum);
+		bd.ByteWidth = hasBones ? (sizeof(VERTEX_3D_SKIN) * vertexOffset) : (sizeof(VERTEX_3D) * vertexOffset);
 		bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 
 		D3D11_SUBRESOURCE_DATA sd{};
@@ -625,7 +730,7 @@ void FbxModelRenderer::LoadModel(const char *FileName, MODEL *Model, FbxSkinData
 	{
 		D3D11_BUFFER_DESC bd{};
 		bd.Usage = D3D11_USAGE_DEFAULT;
-		bd.ByteWidth = sizeof(unsigned int) * totalIndexNum;
+		bd.ByteWidth = sizeof(unsigned int) * indexOffset;
 		bd.BindFlags = D3D11_BIND_INDEX_BUFFER;
 
 		D3D11_SUBRESOURCE_DATA sd{};
@@ -647,5 +752,6 @@ void FbxModelRenderer::LoadModel(const char *FileName, MODEL *Model, FbxSkinData
 		*OutSkinData = skinData;
 	}
 
-	aiReleaseImport(scene);
+	scene->Destroy();
+	manager->Destroy();
 }

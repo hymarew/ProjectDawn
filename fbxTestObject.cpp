@@ -16,8 +16,9 @@ void FbxTestObject::Init()
 	m_Layer    = 1;
 	m_Position = { 0.0f, 0.0f, 0.0f };
 
-	// MixamoのFBXは実寸(cm相当)で書き出されているため、ゲーム内スケールに合わせて0.01倍する
-	m_Scale = { 0.01f, 0.01f, 0.01f };
+	// FbxModelRenderer::LoadModel内でFbxSystemUnit::m.ConvertScene()によりメートル単位へ変換済みのため、
+	// (cmで書き出されがちなMixamoのFBXでも)追加のスケール補正は不要
+	m_Scale = { 1.0f, 1.0f, 1.0f };
 
 	// Idle.fbxはメッシュ・スキン・Idleアニメーションを1本にまとめて含んでいるため、
 	// メッシュ読み込みと再生アニメーションの両方をこのファイルから取る
