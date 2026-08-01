@@ -272,6 +272,37 @@ int FbxModelRenderer::GetMatchedAnimationBoneCount() const
 }
 
 
+// クリップ全体でボーンがどれだけ動いているかを表すスコア(位置キーの変化量二乗和 + 回転キーの変化量)。
+// MixamoのFBXは既定で、実質動きの無い短い"Take 001"と実際の動きを持つ"mixamo.com"の
+// 2本のAnimStackを含むことがある。どちらが「実際に動く方」かは名前や再生時間では判別できない
+// (例: Idle.fbxはmixamo.comの方が長いが、Running.fbxはTake 001の方が長い)ため、
+// 実際のキー値の変化量で判定する。
+static float ComputeMotionScore(const AnimationClip& clip)
+{
+	float score = 0.0f;
+
+	for (const BoneAnimation& boneAnim : clip.BoneAnimations)
+	{
+		for (size_t k = 1; k < boneAnim.PositionKeys.size(); k++)
+		{
+			XMVECTOR a = XMLoadFloat3(&boneAnim.PositionKeys[k - 1].Value);
+			XMVECTOR b = XMLoadFloat3(&boneAnim.PositionKeys[k].Value);
+			score += XMVectorGetX(XMVector3LengthSq(XMVectorSubtract(b, a)));
+		}
+
+		for (size_t k = 1; k < boneAnim.RotationKeys.size(); k++)
+		{
+			XMVECTOR a = XMLoadFloat4(&boneAnim.RotationKeys[k - 1].Value);
+			XMVECTOR b = XMLoadFloat4(&boneAnim.RotationKeys[k].Value);
+			float dot = fabsf(XMVectorGetX(XMQuaternionDot(a, b))); // 符号違いの二重被覆を吸収
+			score += (1.0f - dot);
+		}
+	}
+
+	return score;
+}
+
+
 void FbxModelRenderer::PlayAnimation(const char *FileName)
 {
 	if (!m_SkinData) return; // スキニングモデルでなければ何もしない
@@ -279,7 +310,19 @@ void FbxModelRenderer::PlayAnimation(const char *FileName)
 	std::vector<AnimationClip> clips = LoadAnimationClips(FileName);
 	if (clips.empty()) return;
 
-	m_CurrentClip = clips[0];
+	const AnimationClip* best = &clips[0];
+	float bestScore = ComputeMotionScore(*best);
+	for (size_t i = 1; i < clips.size(); i++)
+	{
+		float score = ComputeMotionScore(clips[i]);
+		if (score > bestScore)
+		{
+			best = &clips[i];
+			bestScore = score;
+		}
+	}
+
+	m_CurrentClip = *best;
 	m_AnimTime = 0.0f;
 	m_HasAnimation = true;
 }
